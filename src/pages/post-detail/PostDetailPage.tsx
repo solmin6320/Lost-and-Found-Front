@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type MouseEvent } from 'react'
+import { useRef, useState, type MouseEvent } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 
 import { loginPath } from '@/app/authRedirect'
@@ -7,6 +7,7 @@ import { paths, readPostDetailEntry, type LoginNoticeState } from '@/app/paths'
 import { useAuth } from '@/features/auth'
 import { CommentSection } from '@/features/comments'
 import {
+  MissingPost,
   POST_CATEGORY_LABEL,
   PostGallery,
   PostOwnerPanel,
@@ -22,10 +23,9 @@ import { formatDate } from '@/shared/lib/date'
 import { isPlainClick } from '@/shared/lib/events'
 import { showFlash } from '@/shared/lib/flash'
 import { getErrorMessage, hasErrorCode, isApiError } from '@/shared/lib/http'
-import { ButtonLink } from '@/shared/ui/Button'
-import { EmptyState } from '@/shared/ui/EmptyState'
+import { useDocumentTitle } from '@/shared/lib/useDocumentTitle'
 import { ErrorState } from '@/shared/ui/ErrorState'
-import { CalendarBlank, CaretLeft, MagnifyingGlass, MapPin, Tag } from '@/shared/ui/icons'
+import { CalendarBlank, CaretLeft, MapPin, Tag } from '@/shared/ui/icons'
 import { Skeleton } from '@/shared/ui/Skeleton'
 
 import styles from './PostDetailPage.module.css'
@@ -52,7 +52,7 @@ export function PostDetailPage() {
     hasErrorCode(detail.error, 'POST_NOT_FOUND') ||
     (isApiError(detail.error) && detail.error.status === 400)
 
-  if (missing) return <MissingPost />
+  if (missing) return <MissingPost listHref={paths.postList} className={styles.stateBox} />
   // 받아 둔 글이 있으면 다시 받다 실패해도 그대로 둔다(1분 뒤 다시 받는다)
   if (detail.data) return <PostDetail key={detail.data.id} post={detail.data} />
   if (detail.isError) {
@@ -236,26 +236,6 @@ function BackToList() {
   )
 }
 
-/** 없거나 지워진 글. 막다른 길이 되지 않게 목록으로 가는 문을 둔다 */
-function MissingPost() {
-  useDocumentTitle('없는 글')
-  return (
-    <div className={styles.stateBox}>
-      <EmptyState
-        titleAs="h1"
-        icon={<MagnifyingGlass />}
-        title="없거나 삭제된 글이에요."
-        description="주소가 맞는지 확인하거나 목록에서 다시 찾아보세요."
-        action={
-          <ButtonLink to={paths.postList} variant="primary">
-            목록으로
-          </ButtonLink>
-        }
-      />
-    </div>
-  )
-}
-
 /** 실제 화면과 같은 자리 · 같은 크기. 불러오면 그 자리에 글이 들어앉는다 */
 function PostDetailSkeleton() {
   return (
@@ -302,15 +282,4 @@ function PostDetailSkeleton() {
       </div>
     </div>
   )
-}
-
-/** 탭 제목에 글 제목을 싣는다. 여러 탭을 열어 두고 오갈 때 어느 글인지 보인다 */
-function useDocumentTitle(title: string) {
-  useEffect(() => {
-    const previous = document.title
-    document.title = `${title} | 분실물 찾기`
-    return () => {
-      document.title = previous
-    }
-  }, [title])
 }

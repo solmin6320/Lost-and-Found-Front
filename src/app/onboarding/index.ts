@@ -1,5 +1,4 @@
-export { GUIDE_STEPS } from './guideSteps'
 export type { GuideTarget } from './guideSteps'
 export { OnboardingTour } from './OnboardingTour'
-export { isOnboardingDone, markOnboardingDone, openPageGuide, requestGuide, usePageGuide } from './onboardingState'
+export { openPageGuide, requestGuide, usePageGuide } from './onboardingState'
 export { usePostListGuide } from './usePostListGuide'

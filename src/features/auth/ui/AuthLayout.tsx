@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { Link, type LinkProps } from 'react-router-dom'
 
+import { particle } from '@/shared/lib/particle'
 import { ArrowUUpLeft, CheckCircle } from '@/shared/ui/icons'
 
 import styles from './AuthLayout.module.css'
@@ -87,18 +88,10 @@ export function AuthReturnNote({ lead, label, concept }: AuthReturnNoteProps) {
       <ArrowUUpLeft />
       <span>
         {lead} <strong>{label}</strong>
-        {withRo(label)} 돌아갑니다.
+        {particle(label, '으로')} 돌아갑니다.
       </span>
     </p>
   )
-}
-
-/** 받침에 따라 `로` / `으로`. ㄹ 받침은 `로`(글로 · 목록으로) */
-function withRo(word: string): string {
-  const code = word.charCodeAt(word.length - 1) - 0xac00
-  if (code < 0 || code > 11171) return '로'
-  const final = code % 28
-  return final === 0 || final === 8 ? '로' : '으로'
 }
 
 interface AuthSwitchProps {

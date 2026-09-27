@@ -1,5 +1,7 @@
 import { useEffect, useId, useRef, type MouseEvent, type PointerEvent, type ReactNode } from 'react'
 
+import { trapTab } from '@/shared/lib/focusTrap'
+
 import { X } from './icons'
 import styles from './Sheet.module.css'
 
@@ -19,6 +21,7 @@ interface SheetProps {
  * 모달 시트. 좁은 화면은 바텀 시트, 넓은 화면은 가운데 다이얼로그 모양이다(CSS 만 다르다).
  * 네이티브 `<dialog>` 의 `showModal()` 을 쓴다 —
  * 바깥이 inert 가 되어 포커스가 갇히고, Esc 로 닫힌다. 닫으면 열었던 버튼으로 포커스를 돌려준다.
+ * Tab 은 시트 안에서 돈다(마지막 → 닫기 버튼). 확인 다이얼로그 · 사진 크게 보기와 같은 방식이다.
  */
 export function Sheet({ open, onClose, title, children, footer, initialFocus }: SheetProps) {
   const dialogRef = useRef<HTMLDialogElement>(null)
@@ -85,6 +88,7 @@ export function Sheet({ open, onClose, title, children, footer, initialFocus }: 
       aria-labelledby={titleId}
       onPointerDown={handlePointerDown}
       onClick={handleClick}
+      onKeyDown={(event) => trapTab(event, event.currentTarget)}
     >
       <div className={styles.header}>
         <h2 id={titleId} className={styles.title}>

@@ -1,9 +1,10 @@
 import { useEffect, useState, type ReactNode } from 'react'
-import { Navigate, useNavigate, useParams } from 'react-router-dom'
+import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
 
 import { paths } from '@/app/paths'
 import { usePostWritePage } from '@/app/usePostWritePage'
 import {
+  MissingPost,
   PostForm,
   PostFormSkeleton,
   PostWriteHeader,
@@ -18,10 +19,8 @@ import {
 import { showFlash } from '@/shared/lib/flash'
 import { getErrorMessage, hasErrorCode, isApiError } from '@/shared/lib/http'
 import { useDocumentTitle } from '@/shared/lib/useDocumentTitle'
-import { ButtonLink } from '@/shared/ui/Button'
-import { EmptyState } from '@/shared/ui/EmptyState'
 import { ErrorState } from '@/shared/ui/ErrorState'
-import { MagnifyingGlass } from '@/shared/ui/icons'
+import { CaretLeft } from '@/shared/ui/icons'
 
 import styles from './PostEditPage.module.css'
 
@@ -32,7 +31,8 @@ const FORBIDDEN_MESSAGE = '본인이 작성한 게시글, 댓글만 처리할 �
  * SCR-04 게시글 수정 · `/posts/:postId/edit` — [4.4] 수정 + [4.5] 사진(유지 · 교체 · 전부 삭제)
  *
  * - 작성자 본인만. 불러온 글의 `memberId` 가 내가 아니면 **폼을 그리지 않고** 상세로 되돌린다(+ 서버와 같은 문장의 알림)
- * - 로딩 : 폼 모양 스켈레톤(빈 폼을 먼저 보여 주지 않는다) · 없는 글 : 빈 상태 + [목록으로] · 오류 : message + [다시 시도]
+ * - 로딩 : 폼 모양 스켈레톤(빈 폼을 먼저 보여 주지 않는다) · 없는 글 : 빈 상태 + [목록으로] ·
+ *   오류 : message + [다시 시도] + [글로 돌아가기](다시 시도해도 안 되면 나갈 문 — 막다른 길을 만들지 않는다)
  * - 저장 중 403 → 상세 + message, 404(다른 기기에서 지움) → 목록 + message
  * - 성공(200) → 상세로 기록을 바꿔 간다 + 짧은 알림. 상세 캐시는 `useUpdatePost` 가 응답으로 고친다
  */
@@ -54,14 +54,15 @@ export function PostEditPage() {
     navigate(paths.postDetail(post.id), { replace: true })
   }, [notOwner, post, navigate])
 
-  useDocumentTitle('글 수정')
-
   const missing =
     postId === null ||
     hasErrorCode(detail.error, 'POST_NOT_FOUND') ||
     (isApiError(detail.error) && detail.error.status === 400)
 
-  if (missing) return <MissingPost />
+  // 없는 글이면 상세와 같은 탭 제목. 바로 들어왔든 불러온 뒤 404 든 같게
+  useDocumentTitle(missing ? '없는 글' : '글 수정')
+
+  if (missing) return <MissingPost listHref={paths.postList} className={styles.stateBox} />
   if (page.gate === 'pending') return <PostFormSkeleton label="로그인을 확인하는 중입니다" />
   if (page.gate === 'login' || page.memberId === null) return <Navigate to={page.loginHref} replace />
   if (post === null) {
@@ -69,11 +70,18 @@ export function PostEditPage() {
       return (
         <div className={styles.stateBox}>
           <ErrorState
+            className={styles.errorPanel}
             titleAs="h1"
             message={getErrorMessage(detail.error)}
             onRetry={() => void detail.refetch()}
             retrying={detail.isFetching}
           />
+          <p className={styles.exit}>
+            <Link to={postId === null ? paths.postList : paths.postDetail(postId)} className={styles.exitLink}>
+              <CaretLeft />
+              글로 돌아가기
+            </Link>
+          </p>
         </div>
       )
     }
@@ -142,24 +150,5 @@ function EditForm({ post, memberId, signedIn, intro, onSessionLost }: EditFormPr
       onSessionLost={onSessionLost}
       cancelTo={paths.postDetail(post.id)}
     />
-  )
-}
-
-/** 없거나 지워진 글 — 상세와 같은 문장. 막다른 길이 되지 않게 목록으로 가는 문을 둔다 */
-function MissingPost() {
-  return (
-    <div className={styles.stateBox}>
-      <EmptyState
-        titleAs="h1"
-        icon={<MagnifyingGlass />}
-        title="없거나 삭제된 글이에요."
-        description="주소가 맞는지 확인하거나 목록에서 다시 찾아보세요."
-        action={
-          <ButtonLink to={paths.postList} variant="primary">
-            목록으로
-          </ButtonLink>
-        }
-      />
-    </div>
   )
 }

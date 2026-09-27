@@ -73,7 +73,7 @@ export function PostTypeChoice({ value, onChange, readOnly = false, error }: Pos
                 <span>{choice.label[0]}</span> <span>{choice.label[1]}</span>
               </span>
               <span className={styles.posts}>{choice.posts}</span>
-              {checked ? <CheckCircle className={styles.check} weight="fill" /> : null}
+              {checked ? <CheckCircle className={styles.check} /> : null}
             </label>
           )
         })}

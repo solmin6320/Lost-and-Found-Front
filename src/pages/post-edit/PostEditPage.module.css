@@ -5,3 +5,44 @@
   border-radius: var(--radius-md);
   background-color: var(--surface-sunken);
 }
+
+/*
+ * 불러오기 오류 — [다시 시도] 아래에 나갈 문 하나. 다시 시도해도 안 될 때 막다른 길이 되지 않게.
+ * 버튼 두 개를 나란히 두지 않는다 — 먼저 할 일은 다시 시도이고, 이건 물러나는 길이라 글자 링크로 한 단계 낮춘다.
+ * 오류 틀의 아래 여백을 이 줄이 대신 가진다(두 선택지가 한 덩어리로 보이게)
+ */
+.stateBox .errorPanel {
+  padding-bottom: 0;
+}
+
+.exit {
+  display: flex;
+  justify-content: center;
+  padding: var(--space-2) var(--space-6) var(--space-10);
+}
+
+.exitLink {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-height: var(--tap-min);
+  padding-inline: var(--space-2);
+  color: var(--text-body);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  text-decoration: underline;
+  text-decoration-color: var(--border-hover);
+  text-underline-offset: 0.25em;
+}
+
+.exitLink svg {
+  width: var(--icon-sm);
+  height: var(--icon-sm);
+}
+
+@media (hover: hover) {
+  .exitLink:hover {
+    color: var(--text-strong);
+    text-decoration-color: currentColor;
+  }
+}
