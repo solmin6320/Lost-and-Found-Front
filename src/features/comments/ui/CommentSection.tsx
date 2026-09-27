@@ -84,7 +84,7 @@ export function CommentSection({
 
   function handleDeleted(commentId: number) {
     setRecent((list) => list.filter((c) => c.id !== commentId))
-    setAnnouncement('댓글을 지웠어요.')
+    setAnnouncement('댓글을 삭제했어요.')
     // 지운 댓글의 버튼이 사라졌다. 댓글 제목에서 다시 읽기 시작한다
     requestAnimationFrame(() => headingRef.current?.focus())
   }
@@ -235,7 +235,7 @@ function CommentComposer({ postId, memberId, onCreated, onSessionExpiredWhileWri
   const offerRef = useRef<HTMLElement>(null)
   const dirty = value.trim().length > 0
 
-  // 세션 만료 알림은 그리기 전에 온다(캐시가 비워지기 직전). 그때의 글자를 읽을 수 있게 늘 최신 값을 둔다
+  // 세션 만료 알림은 그리기 전에 온다(칸이 비로그인 모습으로 바뀌기 직전). 그때의 글자를 읽을 수 있게 늘 최신 값을 둔다
   const latest = useRef({ value, memberId, onSessionExpiredWhileWriting })
   useEffect(() => {
     latest.current = { value, memberId, onSessionExpiredWhileWriting }

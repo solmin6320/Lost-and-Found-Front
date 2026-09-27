@@ -1,7 +1,9 @@
+import { useEffect, useRef } from 'react'
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 
 import { openPageGuide, requestGuide } from '@/app/onboarding'
 import { paths } from '@/app/paths'
+import { RouteFocus } from '@/app/RouteFocus'
 import { ScrollMemory } from '@/app/ScrollMemory'
 import { useAuth } from '@/features/auth'
 import { cx } from '@/shared/lib/cx'
@@ -51,8 +53,9 @@ export function RootLayout() {
         <div className={styles.footerInner}>분실물 찾기 · 개인 프로젝트</div>
       </footer>
 
-      {/* 화면이 바뀌어도 남는 것 — 스크롤 위치 기억 · 짧은 알림(글 삭제 뒤 목록에서) */}
+      {/* 화면이 바뀌어도 남는 것 — 스크롤 위치 기억 · 새 화면 제목으로 포커스 · 짧은 알림(글 삭제 뒤 목록에서) */}
       <ScrollMemory />
+      <RouteFocus />
       <FlashViewport />
     </div>
   )
@@ -60,7 +63,7 @@ export function RootLayout() {
 
 /**
  * 비로그인이면 로그인을 거쳐 등록 화면으로 돌아온다.
- * 좁은 화면(24rem 미만)에서는 [+] 만 남긴다. 글자는 화면에서만 숨겨 이름으로 남고, 이름표(툴팁)가 대신 보인다.
+ * 휴대폰 폭(28rem 미만)에서는 [+] 만 남긴다. 글자는 화면에서만 숨겨 이름으로 남고, 이름표(툴팁)가 대신 보인다.
  * 휴대폰 폭에서는 선만 두른 버튼이다 — 첫 화면의 두 색 면(의도 선택)과 무게를 다투지 않게.
  */
 function CreatePostLink() {
@@ -132,10 +135,27 @@ function SettingsLink() {
 /**
  * 세션 복구 중(`unknown`)에는 자리만 잡는다. [로그인]을 먼저 그렸다가 닉네임으로 바꾸면
  * 로그인한 사용자에게 매번 "로그아웃됐나?" 하는 깜빡임이 보인다.
+ *
+ * 계정 메뉴에서 로그아웃하면 메뉴(와 누르던 버튼)가 사라진다. 그 자리에 생긴 [로그인]으로 포커스를 옮긴다 —
+ * 그냥 두면 문서 맨 앞으로 빠진다. 로그아웃하며 다른 화면으로 옮겨지면(내가 쓴 글 → 로그인) 새 화면의 제목이 가져간다(RouteFocus)
  */
 function HeaderAuth() {
   const auth = useAuth()
   const location = useLocation()
+  const loginRef = useRef<HTMLAnchorElement>(null)
+  const focusLogin = useRef(false)
+
+  useEffect(() => {
+    if (auth.status !== 'anonymous' || !focusLogin.current) return
+    focusLogin.current = false
+    // 헤더는 sticky 다. 그냥 focus() 하면 Chrome 이 헤더의 제자리로 스크롤을 끌어 올려 읽던 곳을 잃는다
+    loginRef.current?.focus({ preventScroll: true })
+  }, [auth.status])
+
+  async function logout() {
+    focusLogin.current = true
+    await auth.logout()
+  }
 
   if (auth.status === 'unknown') {
     return <span className={styles.authPending} aria-hidden="true" />
@@ -147,14 +167,14 @@ function HeaderAuth() {
     const to = here === paths.postList || onAuthScreen ? paths.login : paths.loginThenReturn(here)
 
     return (
-      <ButtonLink to={to} variant="secondary" size="sm" className={styles.login}>
+      <ButtonLink ref={loginRef} to={to} variant="secondary" size="sm" className={styles.login}>
         로그인
       </ButtonLink>
     )
   }
 
   // 화면을 옮기면 펼친 메뉴를 닫는다
-  return <AccountMenu key={location.pathname} me={auth.me} onLogout={auth.logout} />
+  return <AccountMenu key={location.pathname} me={auth.me} onLogout={logout} />
 }
 
 /**

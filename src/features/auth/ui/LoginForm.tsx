@@ -2,7 +2,8 @@ import { useEffect, useId, useRef, useState, type FormEvent, type ReactNode } fr
 
 import { getErrorMessage, hasErrorCode } from '@/shared/lib/http'
 import { Button } from '@/shared/ui/Button'
-import { LockSimple, WarningCircle } from '@/shared/ui/icons'
+import { FormAlert } from '@/shared/ui/FormAlert'
+import { LockSimple } from '@/shared/ui/icons'
 import { TextField } from '@/shared/ui/TextField'
 
 import { EMAIL_MAX_LENGTH } from '../api/types'
@@ -116,10 +117,7 @@ export function LoginForm({ initialEmail = '', lockedExit }: LoginFormProps) {
           </div>
         </div>
       ) : errors.form ? (
-        <div ref={alertRef} className={styles.formAlert} role="alert" tabIndex={-1}>
-          <WarningCircle />
-          <p>{errors.form}</p>
-        </div>
+        <FormAlert ref={alertRef} message={errors.form} />
       ) : null}
 
       <TextField
@@ -163,12 +161,14 @@ export function LoginForm({ initialEmail = '', lockedExit }: LoginFormProps) {
         }}
       />
 
+      {/* 잠그지 않고 누름만 무시한다(disabled 는 누르던 버튼에서 포커스를 뺀다). 잠김은 흐리게, 확인 중은 글자로 알린다 */}
       <Button
         type="submit"
         variant="primary"
         block
         className={styles.submit}
-        disabled={busy || locked}
+        unavailable={locked}
+        aria-disabled={busy || undefined}
         aria-describedby={locked ? lockId : undefined}
       >
         {busy ? '확인 중…' : '로그인'}

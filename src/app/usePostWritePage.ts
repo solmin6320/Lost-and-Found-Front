@@ -35,7 +35,7 @@ export function usePostWritePage() {
     auth.status === 'unknown' ? 'pending' : memberId === null ? 'login' : 'form'
 
   function onSessionLost(draftSaved: boolean, leave: LeaveFn) {
-    const first = expired.current ? '로그인이 만료됐습니다. 다시 로그인하세요.' : '로그아웃했어요.'
+    const first = expired.current ? '로그인이 만료됐어요. 다시 로그인하세요.' : '로그아웃했어요.'
     const state: LoginNoticeState = {
       notice: draftSaved ? `${first} 로그인하면 쓰던 글을 이어서 쓸 수 있어요.` : first,
     }

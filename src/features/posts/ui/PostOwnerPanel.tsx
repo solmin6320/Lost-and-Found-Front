@@ -18,8 +18,11 @@ interface PostOwnerPanelProps {
   post: PostDetailResponse
   /** 수정 화면 주소(SCR-04). 경로는 app 이 정한다 */
   editHref: string
-  /** 지웠다(또는 이미 지워져 있었다). 부른 쪽이 목록으로 옮기고 이 문장을 짧게 알린다 */
-  onDeleted: (message: string) => void
+  /**
+   * 지웠다(또는 이미 지워져 있었다). 부른 쪽이 목록으로 옮기고 이 문장을 짧게 알린다.
+   * `tone` — 지웠으면 `done`(체크), 이미 지워져 있었으면 `info`(하려던 일이 안 됐고 그 이유)
+   */
+  onDeleted: (message: string, tone: 'done' | 'info') => void
 }
 
 /** 게시중 ↔ 연락중은 되돌릴 수 있어 바로 바꾼다. 완료는 따로 둔다(확인을 받는다) */
@@ -102,11 +105,11 @@ export function PostOwnerPanel({ post, editHref, onDeleted }: PostOwnerPanelProp
   function submitDelete() {
     setDialogError(null)
     deletePost.mutate(post.id, {
-      onSuccess: () => onDeleted('글을 삭제했습니다.'),
+      onSuccess: () => onDeleted('글을 삭제했어요.', 'done'),
       onError: (error) => {
-        // 다른 탭에서 이미 지웠다 — 결과는 같다. 훅이 캐시를 정리했다
+        // 다른 탭에서 이미 지웠다 — 결과는 같지만 내가 지운 것은 아니다(체크 대신 안내). 훅이 캐시를 정리했다
         if (hasErrorCode(error, 'POST_NOT_FOUND')) {
-          onDeleted(getErrorMessage(error))
+          onDeleted(getErrorMessage(error), 'info')
           return
         }
         if (hasErrorCode(error, 'FORBIDDEN_ACCESS')) {

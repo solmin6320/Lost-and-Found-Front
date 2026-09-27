@@ -57,7 +57,9 @@ export function AccountMenu({ me, onLogout }: AccountMenuProps) {
   }
 
   async function handleLogout() {
-    // 되돌릴 수 있는 동작이라 확인하지 않는다(화면정의서 1.10). 요청이 겹치지 않게만 잠근다
+    // 되돌릴 수 있는 동작이라 확인하지 않는다(화면정의서 1.10). 요청이 겹치지 않게 누름만 무시한다.
+    // 끝나면 이 메뉴는 사라지고 헤더가 [로그인]으로 포커스를 옮긴다(RootLayout)
+    if (loggingOut) return
     setLoggingOut(true)
     await onLogout()
     setLoggingOut(false)
@@ -105,7 +107,8 @@ export function AccountMenu({ me, onLogout }: AccountMenuProps) {
             type="button"
             className={styles.item}
             onClick={handleLogout}
-            disabled={loggingOut}
+            // 잠그지 않는다 — 누르던 버튼이 잠기면 포커스가 문서 맨 앞으로 빠진다
+            aria-disabled={loggingOut || undefined}
           >
             {loggingOut ? '로그아웃하는 중…' : '로그아웃'}
           </button>

@@ -12,7 +12,7 @@ interface ErrorStateProps {
   message: string
   /** 있으면 `[다시 시도]` 를 둔다. 오류 화면에는 나갈 문이 있어야 한다 */
   onRetry?: () => void
-  /** 다시 불러오는 중. 버튼을 잠가 요청이 겹치지 않게 한다 */
+  /** 다시 불러오는 중. 누름을 무시해 요청이 겹치지 않게 한다(잠그지 않는다 — 누르던 버튼에서 포커스가 빠진다) */
   retrying?: boolean
   /** 제목 태그. 빈 상태(`EmptyState`)와 같은 단계로 맞춘다 */
   titleAs?: 'h1' | 'h2' | 'h3' | 'p'
@@ -41,7 +41,12 @@ export function ErrorState({
       </div>
       {onRetry ? (
         <div className={styles.action}>
-          <Button onClick={onRetry} disabled={retrying}>
+          <Button
+            aria-disabled={retrying || undefined}
+            onClick={() => {
+              if (!retrying) onRetry()
+            }}
+          >
             <ArrowClockwise />
             {retrying ? '다시 불러오는 중…' : '다시 시도'}
           </Button>

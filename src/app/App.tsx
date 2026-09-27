@@ -23,7 +23,7 @@ export function App() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      {/* 로그아웃·세션 만료 때 쿼리 캐시를 비워야 해서 QueryClientProvider 안쪽에 둔다 */}
+      {/* 로그아웃·세션 만료 때 회원 캐시를 지워야 해서 QueryClientProvider 안쪽에 둔다 */}
       <AuthProvider>
         <IconProvider>
           <RouterProvider router={router} />

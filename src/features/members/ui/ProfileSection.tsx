@@ -60,7 +60,9 @@ export function ProfileSectionSkeleton() {
 
 /**
  * 닉네임 — 20자까지, 보내기 전에 앞뒤 공백을 잘라 낸다(서버는 자르지 않고 그대로 저장한다).
- * 바꾼 게 없으면 [저장]을 잠근다. 성공하면 이 화면에 머물고 헤더 닉네임이 바로 바뀐다(AuthProvider 가 캐시를 따라간다).
+ * 바꾼 게 없으면 [저장]을 흐리게 두고 누름을 무시한다(`unavailable`). `disabled` 로 잠그면 저장한 순간
+ * 누르던 버튼에서 포커스가 빠져 "닉네임을 바꿨어요" 다음을 문서 맨 앞부터 다시 찾아야 한다.
+ * 성공하면 이 화면에 머물고 헤더 닉네임이 바로 바뀐다(AuthProvider 가 캐시를 따라간다).
  */
 function NicknameForm({ current }: { current: string }) {
   const mutation = useUpdateNickname()
@@ -127,7 +129,8 @@ function NicknameForm({ current }: { current: string }) {
         <Button
           type="submit"
           variant="primary"
-          disabled={!changed || mutation.isPending}
+          unavailable={!changed && !mutation.isPending}
+          aria-disabled={mutation.isPending || undefined}
           aria-describedby={`${inputId}-hint`}
         >
           {mutation.isPending ? '저장하는 중…' : '닉네임 저장'}

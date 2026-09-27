@@ -76,6 +76,8 @@
 /* ── 펼친 설명 ── */
 
 .panel {
+  composes: appear from '../styles/motion.module.css';
+
   position: absolute;
   top: calc(100% + var(--space-1-5));
   left: 0;
@@ -90,17 +92,9 @@
   font-size: var(--text-sm);
   line-height: var(--leading-snug);
   word-break: keep-all;
-  animation: appear var(--duration-base) var(--ease-out);
 }
 
 .panel[data-align='end'] {
   right: 0;
   left: auto;
-}
-
-@keyframes appear {
-  from {
-    opacity: 0;
-    transform: translateY(-4px);
-  }
 }

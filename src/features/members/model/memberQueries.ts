@@ -25,7 +25,7 @@ export function meQueryOptions() {
  * [3.7] 내 정보.
  *
  * 로그인했을 때만 켠다. 비로그인으로 부르면 401 을 받고 재발급까지 헛걸음한다.
- * 로그아웃하거나 비밀번호를 바꾸면 쿼리 캐시가 비워져 다시 요청하려 들기 때문에 꼭 막는다.
+ * 로그아웃하거나 비밀번호를 바꾸면 이 캐시가 지워져 다시 요청하려 들기 때문에 꼭 막는다.
  *
  * ```ts
  * const me = useMe({ enabled: auth.status === 'authenticated' })

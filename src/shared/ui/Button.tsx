@@ -26,16 +26,42 @@ export type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> &
   ButtonLookProps & {
     /** 다이얼로그가 열릴 때 [취소]에 포커스를 주는 것처럼, 밖에서 이 버튼을 잡을 때 */
     ref?: Ref<HTMLButtonElement>
+    /**
+     * 지금은 할 수 없다(바꾼 게 없음 · 계정 잠김). 흐리게 그리고 누름 · 제출을 무시한다.
+     * `disabled` 를 쓰지 않는다 — 누르던 버튼이 잠기면 포커스가 문서 맨 앞으로 빠지고, 이유(`aria-describedby`)도 읽히지 않는다.
+     * 요청 중("…하는 중")에는 이것 대신 `aria-disabled` 만 준다. 흐리지 않고 누름은 부른 쪽이 무시한다
+     */
+    unavailable?: boolean
   }
 
 /** `type` 기본값은 `button` 이다. 폼 안에서 의도치 않게 제출되지 않게 한다 */
-export function Button({ variant, size, block, className, type = 'button', ...rest }: ButtonProps) {
+export function Button({
+  variant,
+  size,
+  block,
+  className,
+  type = 'button',
+  unavailable = false,
+  onClick,
+  ...rest
+}: ButtonProps) {
   return (
-    <button type={type} className={buttonClassName({ variant, size, block }, className)} {...rest} />
+    <button
+      type={type}
+      className={buttonClassName({ variant, size, block }, cx(unavailable && styles.unavailable, className))}
+      {...rest}
+      aria-disabled={unavailable || rest['aria-disabled']}
+      // 제출 버튼이면 누름을 막는 것으로 제출도 막힌다(입력칸에서 Enter 를 쳐도 같다)
+      onClick={unavailable ? (event) => event.preventDefault() : onClick}
+    />
   )
 }
 
-export type ButtonLinkProps = LinkProps & ButtonLookProps
+export type ButtonLinkProps = LinkProps &
+  ButtonLookProps & {
+    /** 로그아웃 뒤 헤더의 [로그인]처럼, 밖에서 이 링크로 포커스를 옮길 때 */
+    ref?: Ref<HTMLAnchorElement>
+  }
 
 /** 이동은 버튼이 아니라 링크다. 모양만 버튼과 같다(새 탭 열기·주소 복사가 된다) */
 export function ButtonLink({ variant, size, block, className, ...rest }: ButtonLinkProps) {

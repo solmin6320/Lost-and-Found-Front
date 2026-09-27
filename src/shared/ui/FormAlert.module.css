@@ -1,0 +1,30 @@
+/*
+ * 폼 전체 문제 한 줄(어느 칸인지 모름 · 연결 실패 · 자격 증명 불일치). 로그인 · 가입 · 글 쓰기 · 비밀번호 변경이 같이 쓴다.
+ * 빨강을 쓰지 않는다(빨강은 삭제 전용). 옅은 면 + 아이콘 + 굵은 글자로 알린다
+ */
+.alert {
+  composes: appear from '../styles/motion.module.css';
+
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  background-color: var(--surface-sunken);
+  color: var(--text-strong);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  line-height: var(--leading-snug);
+  word-break: keep-all;
+}
+
+.alert svg {
+  flex: none;
+  width: var(--icon-md);
+  height: var(--icon-md);
+}
+
+/* 실패하면 포커스가 이리 온다. 면에 붙은 링은 답답해 한 칸 띄운다 */
+.alert:focus-visible {
+  outline-offset: 3px;
+}

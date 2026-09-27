@@ -113,9 +113,10 @@
   text-decoration: none;
 }
 
-.item:disabled {
-  color: var(--text-disabled);
-  cursor: not-allowed;
+/* 로그아웃하는 중 — 글자가 바뀌어 알린다. 포커스는 남기고 누름만 무시한다 */
+.item[aria-disabled='true'] {
+  color: var(--text-muted);
+  cursor: progress;
 }
 
 .item[aria-current='page'] {
@@ -123,7 +124,7 @@
 }
 
 @media (hover: hover) {
-  .item:hover:not(:disabled) {
+  .item:hover:not([aria-disabled='true']) {
     background-color: var(--surface-sunken);
   }
 }

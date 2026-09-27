@@ -104,14 +104,14 @@ function PostDetail({ post }: { post: PostDetailResponse }) {
   function handleSessionExpiredWhileWriting(draftSaved: boolean) {
     const notice: LoginNoticeState = {
       notice: draftSaved
-        ? '로그인이 만료됐습니다. 다시 로그인하세요. 로그인하면 쓰던 댓글을 이어서 쓸 수 있어요.'
-        : '로그인이 만료됐습니다. 다시 로그인하세요.',
+        ? '로그인이 만료됐어요. 다시 로그인하세요. 로그인하면 쓰던 댓글을 이어서 쓸 수 있어요.'
+        : '로그인이 만료됐어요. 다시 로그인하세요.',
     }
     navigate(loginPath(here), { replace: true, state: notice })
   }
 
-  function handleDeleted(message: string) {
-    showFlash(message)
+  function handleDeleted(message: string, tone: 'done' | 'info') {
+    showFlash(message, tone)
     // 뒤로가기가 지워진 글로 돌아가지 않게 기록을 바꾼다. 내가 쓴 글에서 왔으면 보던 탭으로
     navigate(readPostDetailEntry(location.state).mineHref ?? paths.postList, { replace: true })
   }

@@ -16,7 +16,8 @@ import { useObjectUrls } from '@/shared/lib/image'
 import { useLeaveGuard } from '@/shared/lib/useLeaveGuard'
 import { Button } from '@/shared/ui/Button'
 import { ConfirmDialog } from '@/shared/ui/ConfirmDialog'
-import { Check, ClockCounterClockwise, WarningCircle } from '@/shared/ui/icons'
+import { FormAlert } from '@/shared/ui/FormAlert'
+import { Check, ClockCounterClockwise } from '@/shared/ui/icons'
 import { TextArea } from '@/shared/ui/TextArea'
 import { TextField } from '@/shared/ui/TextField'
 
@@ -495,10 +496,7 @@ export function PostForm({
 
         <div className={styles.bar}>
           {formError ? (
-            <div ref={alertRef} className={styles.formAlert} role="alert" tabIndex={-1}>
-              <WarningCircle />
-              <p>{formError}</p>
-            </div>
+            <FormAlert ref={alertRef} message={formError} />
           ) : null}
           {pending ? <SubmitSteps phase={phase} withPhotos={change === 'replace'} /> : null}
           <div className={styles.buttons}>

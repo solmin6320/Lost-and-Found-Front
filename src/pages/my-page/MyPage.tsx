@@ -75,7 +75,7 @@ export function MyPage() {
 
   if (auth.status === 'anonymous') {
     const state: LoginNoticeState | undefined = seen
-      ? { notice: expired ? '로그인이 만료됐습니다. 다시 로그인하세요.' : '로그아웃했어요.' }
+      ? { notice: expired ? '로그인이 만료됐어요. 다시 로그인하세요.' : '로그아웃했어요.' }
       : undefined
     return <Navigate to={loginPath(here)} replace state={state} />
   }

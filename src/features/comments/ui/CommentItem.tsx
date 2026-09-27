@@ -29,7 +29,7 @@ interface CommentItemProps {
  *
  * - 수정은 **그 자리에서**. 저장하면 `(수정됨)` 이 붙는다. Esc 로 그만둔다
  * - 삭제는 되돌릴 수 없지만 잃는 것이 300자 한 줄뿐이라 다이얼로그 대신 **그 자리에서 한 번 더** 묻는다
- *   (`[삭제]` → `이 댓글을 지울까요? [삭제하기] [취소]`, 포커스는 [취소]).
+ *   (`[삭제]` → `이 댓글을 삭제할까요? [삭제하기] [취소]`, 포커스는 [취소]).
  *   다이얼로그를 남발하면 게시글 삭제 다이얼로그를 읽지 않게 된다(화면정의서 SCR-03 ③)
  * - 요청 중에는 입력을 읽기 전용으로, 버튼은 누름만 무시한다 — 누른 버튼이 잠기면 포커스가 빠진다
  */
@@ -178,13 +178,13 @@ export function CommentItem({ postId, comment, mine, byPostAuthor, fresh, onUpda
 
       {mine && mode === 'confirm-delete' ? (
         <div className={styles.confirm} role="group" aria-label="댓글 삭제 확인" aria-busy={remove.isPending || undefined}>
-          <p className={styles.confirmText}>이 댓글을 지울까요? 되돌릴 수 없어요.</p>
+          <p className={styles.confirmText}>이 댓글을 삭제할까요? 되돌릴 수 없어요.</p>
           <div className={styles.confirmActions}>
             <Button ref={cancelDeleteRef} size="sm" aria-disabled={busy || undefined} onClick={cancelDelete}>
               취소
             </Button>
             <Button size="sm" variant="danger" aria-disabled={busy || undefined} onClick={confirmDelete}>
-              {remove.isPending ? '지우는 중…' : '삭제하기'}
+              {remove.isPending ? '삭제하는 중…' : '삭제하기'}
             </Button>
           </div>
         </div>

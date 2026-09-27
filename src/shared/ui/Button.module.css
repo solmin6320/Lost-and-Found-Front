@@ -45,6 +45,11 @@
   cursor: progress;
 }
 
+/* 지금은 할 수 없음(`unavailable`) — 포커스는 남기고 모양은 `disabled` 와 같다. 아래 변형마다 흐린 색을 입힌다 */
+.button.unavailable {
+  cursor: not-allowed;
+}
+
 .block {
   width: 100%;
 }
@@ -71,7 +76,7 @@
   color: var(--on-action);
 }
 
-.primary:disabled {
+.primary:is(:disabled, .unavailable) {
   background-color: var(--action-disabled);
   color: var(--on-action-disabled);
 }
@@ -82,7 +87,7 @@
   color: var(--text-strong);
 }
 
-.secondary:disabled {
+.secondary:is(:disabled, .unavailable) {
   background-color: var(--surface-sunken);
   color: var(--text-disabled);
 }
@@ -92,7 +97,7 @@
   color: var(--text-body);
 }
 
-.ghost:disabled {
+.ghost:is(:disabled, .unavailable) {
   color: var(--text-disabled);
 }
 
@@ -102,7 +107,7 @@
   color: var(--danger-on);
 }
 
-.danger:disabled {
+.danger:is(:disabled, .unavailable) {
   background-color: var(--action-disabled);
   color: var(--on-action-disabled);
 }
@@ -114,32 +119,32 @@
   color: var(--danger-text);
 }
 
-.dangerQuiet:disabled {
+.dangerQuiet:is(:disabled, .unavailable) {
   background-color: var(--surface-sunken);
   color: var(--text-disabled);
 }
 
 /* 터치 기기에서는 탭한 뒤 hover 색이 들러붙는다. 마우스에서만 */
 @media (hover: hover) {
-  .primary:hover:not(:disabled) {
+  .primary:hover:not(:disabled, .unavailable) {
     background-color: var(--action-hover);
   }
 
-  .secondary:hover:not(:disabled) {
+  .secondary:hover:not(:disabled, .unavailable) {
     border-color: var(--border-hover);
     background-color: var(--surface-sunken);
   }
 
-  .danger:hover:not(:disabled) {
+  .danger:hover:not(:disabled, .unavailable) {
     background-color: var(--danger-hover);
   }
 
-  .dangerQuiet:hover:not(:disabled) {
+  .dangerQuiet:hover:not(:disabled, .unavailable) {
     border-color: var(--border-hover);
     background-color: var(--danger-surface);
   }
 
-  .ghost:hover:not(:disabled) {
+  .ghost:hover:not(:disabled, .unavailable) {
     background-color: var(--surface-sunken);
     color: var(--text-strong);
   }

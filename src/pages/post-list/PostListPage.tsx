@@ -32,6 +32,7 @@ import {
 } from '@/features/posts'
 import { isPlainClick } from '@/shared/lib/events'
 import { getErrorMessage } from '@/shared/lib/http'
+import { useDocumentTitle } from '@/shared/lib/useDocumentTitle'
 import type { PagedModel } from '@/shared/types/api'
 import { Button, ButtonLink } from '@/shared/ui/Button'
 import { EmptyState } from '@/shared/ui/EmptyState'
@@ -68,6 +69,8 @@ export function PostListPage() {
   })
   const createHref = useCreateHref()
   const intent = intentShowing(search.type)
+  // 탭 제목은 결과 제목을 따른다 — "누군가 주워 둔 물건 | 분실물 찾기". 의도를 바꾸면 탭 제목도 바뀐다
+  useDocumentTitle(postListHeading(search.type))
 
   const [sheet, setSheet] = useState<{ open: boolean; field?: PostFilterField; key: number }>({
     open: false,

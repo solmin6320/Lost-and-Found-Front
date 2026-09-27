@@ -3,7 +3,7 @@ import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { NICKNAME_MAX_LENGTH } from '@/features/members'
 import { getErrorMessage, hasErrorCode } from '@/shared/lib/http'
 import { Button } from '@/shared/ui/Button'
-import { WarningCircle } from '@/shared/ui/icons'
+import { FormAlert } from '@/shared/ui/FormAlert'
 import { TextField } from '@/shared/ui/TextField'
 
 import { EMAIL_MAX_LENGTH } from '../api/types'
@@ -103,10 +103,7 @@ export function SignupForm({ signup, onSignedUpWithoutLogin }: SignupFormProps) 
   return (
     <form className={styles.form} onSubmit={handleSubmit} noValidate aria-label="이메일로 가입">
       {errors.form ? (
-        <div ref={alertRef} className={styles.formAlert} role="alert" tabIndex={-1}>
-          <WarningCircle />
-          <p>{errors.form}</p>
-        </div>
+        <FormAlert ref={alertRef} message={errors.form} />
       ) : null}
 
       <TextField
@@ -177,7 +174,8 @@ export function SignupForm({ signup, onSignedUpWithoutLogin }: SignupFormProps) 
         }}
       />
 
-      <Button type="submit" variant="primary" block className={styles.submit} disabled={busy}>
+      {/* 잠그지 않고 누름만 무시한다 — 누르던 버튼에서 포커스가 빠지지 않게 */}
+      <Button type="submit" variant="primary" block className={styles.submit} aria-disabled={busy || undefined}>
         {busy ? '가입하는 중…' : '가입하기'}
       </Button>
     </form>

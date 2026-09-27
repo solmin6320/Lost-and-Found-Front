@@ -11,7 +11,7 @@ import { useAuth } from './useAuth'
  * ```ts
  * const updatePassword = useUpdatePassword()
  * updatePassword.mutate(body, {
- *   onSuccess: () => navigate(...), // "비밀번호를 바꿨습니다. 다시 로그인하세요." (SCR-05)
+ *   onSuccess: () => navigate(...), // "비밀번호를 바꿨어요. 다시 로그인하세요." (SCR-05)
  * })
  * ```
  *

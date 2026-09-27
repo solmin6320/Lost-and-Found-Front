@@ -1,9 +1,10 @@
-import { useId, useRef, useState, type FormEvent, type Ref } from 'react'
+import { useEffect, useId, useRef, useState, type FormEvent, type Ref } from 'react'
 
 import { PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH } from '@/features/members'
 import { getErrorMessage, hasErrorCode } from '@/shared/lib/http'
 import { Button } from '@/shared/ui/Button'
-import { Eye, EyeSlash, WarningCircle } from '@/shared/ui/icons'
+import { FormAlert } from '@/shared/ui/FormAlert'
+import { Eye, EyeSlash } from '@/shared/ui/icons'
 import { TextField } from '@/shared/ui/TextField'
 
 import { useUpdatePassword } from '../model/useUpdatePassword'
@@ -51,7 +52,15 @@ export function PasswordChangeForm({ email, onChanged }: PasswordChangeFormProps
   const [errors, setErrors] = useState<Errors>({})
   const currentRef = useRef<HTMLInputElement>(null)
   const nextRef = useRef<HTMLInputElement>(null)
+  const alertRef = useRef<HTMLDivElement>(null)
   const noticeId = useId()
+
+  // 방금 나타난 폼 오류로 포커스를 옮긴다. 그리기 전에는 옮길 요소가 없다
+  const focusAfterRender = useRef<(() => void) | null>(null)
+  useEffect(() => {
+    focusAfterRender.current?.()
+    focusAfterRender.current = null
+  })
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -78,7 +87,9 @@ export function PasswordChangeForm({ email, onChanged }: PasswordChangeFormProps
             setErrors({ current: getErrorMessage(failure) })
             currentRef.current?.focus()
           } else {
+            // 어느 칸의 문제인지 모른다(연결 실패 · 서버 오류). [바꾸기] 위의 한 줄부터 읽게 한다
             setErrors({ form: getErrorMessage(failure) })
+            focusAfterRender.current = () => alertRef.current?.focus()
           }
         },
       },
@@ -119,8 +130,9 @@ export function PasswordChangeForm({ email, onChanged }: PasswordChangeFormProps
         name="new-password"
         autoComplete="new-password"
         value={next}
-        maxLength={PASSWORD_MAX_LENGTH}
-        hint="8~20자"
+        // maxLength 를 두지 않는다(가입 폼과 같다) — 붙여 넣은 긴 비밀번호가 조용히 잘리면 바꾼 비밀번호를 본인도 모른다.
+        // 넘치면 벗어날 때 알린다. 오류 문장이 같은 규칙을 말할 때는 도움말을 거둔다
+        hint={errors.next ? undefined : '8~20자'}
         readOnly={mutation.isPending}
         error={errors.next}
         onChange={(value) => {
@@ -137,15 +149,11 @@ export function PasswordChangeForm({ email, onChanged }: PasswordChangeFormProps
         {LOGOUT_NOTICE}
       </p>
 
-      {errors.form ? (
-        <p className={styles.formError} role="alert">
-          <WarningCircle />
-          {errors.form}
-        </p>
-      ) : null}
+      {errors.form ? <FormAlert ref={alertRef} message={errors.form} /> : null}
 
       <div>
-        <Button type="submit" variant="primary" disabled={mutation.isPending} aria-describedby={noticeId}>
+        {/* 잠그지 않고 누름만 무시한다 — 누르던 버튼에서 포커스가 빠지지 않게 */}
+        <Button type="submit" variant="primary" aria-disabled={mutation.isPending || undefined} aria-describedby={noticeId}>
           {mutation.isPending ? '바꾸는 중…' : '비밀번호 바꾸기'}
         </Button>
       </div>

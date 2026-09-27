@@ -4,14 +4,15 @@ import { paths, type LoginNoticeState } from '@/app/paths'
 import { PasswordChangeForm, useAuth } from '@/features/auth'
 import { ProfileSection, ProfileSectionSkeleton, useMe } from '@/features/members'
 import { getErrorMessage } from '@/shared/lib/http'
+import { useDocumentTitle } from '@/shared/lib/useDocumentTitle'
 import { ButtonLink } from '@/shared/ui/Button'
 import { ErrorState } from '@/shared/ui/ErrorState'
 import { ThemePicker } from '@/shared/ui/ThemePicker'
 
 import styles from './SettingsPage.module.css'
 
-/** 비밀번호를 바꾼 뒤 로그인 화면 폼 위에 띄울 한 줄(화면정의서 SCR-05). 표시는 단계 2 에서 붙인다 */
-const PASSWORD_CHANGED_NOTICE: LoginNoticeState = { notice: '비밀번호를 바꿨습니다. 다시 로그인하세요.' }
+/** 비밀번호를 바꾼 뒤 로그인 화면 폼 위에 띄울 한 줄(화면정의서 SCR-05). 로그인 화면이 체크 아이콘과 함께 보인다 */
+const PASSWORD_CHANGED_NOTICE: LoginNoticeState = { notice: '비밀번호를 바꿨어요. 다시 로그인하세요.' }
 
 /**
  * SCR-08 설정 · `/settings` — 위에서부터 프로필 · 화면 모드 · 비밀번호 변경.
@@ -26,6 +27,7 @@ export function SettingsPage() {
   const signedIn = auth.status === 'authenticated'
   // 로그인했을 때만 부른다. 비로그인으로 부르면 401 을 받고 재발급까지 헛걸음한다
   const me = useMe({ enabled: signedIn })
+  useDocumentTitle('설정')
 
   return (
     <div className={styles.page}>

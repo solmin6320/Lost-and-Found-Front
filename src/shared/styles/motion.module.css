@@ -1,0 +1,20 @@
+/*
+ * 여러 화면이 같이 쓰는 움직임. 같은 동작은 같은 모양으로 움직인다 — 화면마다 따로 적으면 조금씩 어긋난다.
+ * 쓰는 쪽은 `composes: appear from '…/shared/styles/motion.module.css';` 로 붙인다(규칙의 첫 줄).
+ * 모션 줄이기는 global.css 가 한꺼번에 끈다.
+ */
+
+/*
+ * 방금 생긴 안내 · 확인 칸(폼 오류 · 잠금 · 삭제 확인 · 이어 쓰기 · 이름표 설명).
+ * 위에서 한 칸(4px) 내려오며 옅게 나타난다 — 눌러서 생긴 칸이 어디서 왔는지 이어 준다. 치장하지 않는다
+ */
+.appear {
+  animation: appear var(--duration-base) var(--ease-out);
+}
+
+@keyframes appear {
+  from {
+    opacity: 0;
+    transform: translateY(calc(var(--space-1) * -1));
+  }
+}

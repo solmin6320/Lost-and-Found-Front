@@ -4,6 +4,7 @@ import { describeReturnTarget, safeRedirectPath, signupPath } from '@/app/authRe
 import { paths, type LoginNoticeState } from '@/app/paths'
 import { AuthLayout, AuthReturnNote, AuthSwitch, LoginForm, AuthTextLink, useAuth } from '@/features/auth'
 import { PostTypeGuide } from '@/features/posts'
+import { useDocumentTitle } from '@/shared/lib/useDocumentTitle'
 
 /**
  * SCR-05 로그인 · `/login?redirect=`
@@ -18,6 +19,7 @@ export function LoginPage() {
   const location = useLocation()
   const [searchParams] = useSearchParams()
   const redirect = safeRedirectPath(searchParams.get('redirect'))
+  useDocumentTitle('로그인')
 
   if (auth.status === 'authenticated') {
     return <Navigate to={redirect} replace />
