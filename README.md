@@ -36,6 +36,13 @@ npm run dev          # http://localhost:5173
 백엔드 CORS 설정을 직접 확인하고 싶을 때만 `.env` 에
 `VITE_API_BASE_URL=http://localhost:8080` 을 채운다. 프록시를 건너뛰고 크로스 오리진으로 나간다.
 
+프록시가 넘겨줄 백엔드 주소는 `DEV_PROXY_TARGET`(기본 `http://localhost:8080`)이다.
+개발 서버만 읽는 값이라 `VITE_` 를 붙이지 않는다 — 붙은 값은 브라우저 번들에 실릴 수 있다(보안명세서 5장).
+
+```bash
+DEV_PROXY_TARGET=http://localhost:8090 npm run dev   # 다른 포트의 백엔드 · 목 서버로 붙일 때
+```
+
 ## 폴더
 
 ```
