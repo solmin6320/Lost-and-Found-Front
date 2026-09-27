@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 
 import { loginPath } from '@/app/authRedirect'
 import { usePageGuide } from '@/app/onboarding'
-import { paths, type PostDetailEntryState } from '@/app/paths'
+import { paths, readPostDetailEntry } from '@/app/paths'
 import { useAuth } from '@/features/auth'
 import { CommentSection } from '@/features/comments'
 import {
@@ -101,8 +101,8 @@ function PostDetail({ post }: { post: PostDetailResponse }) {
 
   function handleDeleted(message: string) {
     showFlash(message)
-    // 뒤로가기가 지워진 글로 돌아가지 않게 기록을 바꾼다
-    navigate(paths.postList, { replace: true })
+    // 뒤로가기가 지워진 글로 돌아가지 않게 기록을 바꾼다. 내가 쓴 글에서 왔으면 보던 탭으로
+    navigate(readPostDetailEntry(location.state).mineHref ?? paths.postList, { replace: true })
   }
 
   return (
@@ -202,12 +202,13 @@ function PostDetail({ post }: { post: PostDetailResponse }) {
 
 /**
  * [목록으로] — 목록 카드로 들어왔으면 **뒤로 간다**(보던 필터 · 페이지 · 스크롤 그대로).
- * 공유 링크처럼 바로 들어왔으면 목록 첫 화면으로. 새 탭 열기(Ctrl · 가운데 버튼)는 링크 그대로 둔다
+ * 공유 링크처럼 바로 들어왔으면 목록 첫 화면으로. 새 탭 열기(Ctrl · 가운데 버튼)는 링크 그대로 둔다.
+ * 내가 쓴 글(SCR-07)의 카드로 들어왔으면 이름도 `내가 쓴 글` 이다 — 누르면 돌아갈 곳을 말한다
  */
 function BackToList() {
   const location = useLocation()
   const navigate = useNavigate()
-  const fromList = (location.state as Partial<PostDetailEntryState> | null)?.fromList === true
+  const { fromList, mineHref } = readPostDetailEntry(location.state)
 
   function handleClick(event: MouseEvent<HTMLAnchorElement>) {
     if (!fromList || !isPlainClick(event)) return
@@ -216,9 +217,9 @@ function BackToList() {
   }
 
   return (
-    <Link to={paths.postList} className={styles.backLink} onClick={handleClick}>
+    <Link to={mineHref ?? paths.postList} className={styles.backLink} onClick={handleClick}>
       <CaretLeft />
-      목록으로
+      {mineHref ? '내가 쓴 글' : '목록으로'}
     </Link>
   )
 }

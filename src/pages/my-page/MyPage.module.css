@@ -1,0 +1,111 @@
+/*
+ * SCR-07 내가 쓴 글 — 목록과 같은 폭(페이지 폭)과 같은 사진 피드. 넓어지면 열이 는다(2 → 3 → 4, 컨테이너 쿼리).
+ *   ① 제목 + 관리하는 곳 한 줄   ② 상태 탭   ③ 사진 피드 · 빈 상태   ④ 페이지
+ * 첫 화면의 두 색 면(목록의 의도 선택)은 두지 않는다 — 여기는 둘러보는 곳이 아니라 내 글을 챙기는 곳이다.
+ * 색은 카드(사진 위 이름표 · 포스터)와 첫 글 올리기 버튼에만 남는다.
+ */
+
+.page {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.head {
+  display: grid;
+  gap: var(--space-1-5);
+  margin-bottom: var(--space-5);
+}
+
+.title {
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-extrabold);
+  line-height: var(--leading-tight);
+  letter-spacing: var(--tracking-tight);
+}
+
+.hint {
+  max-width: var(--measure);
+  color: var(--text-body);
+  font-size: var(--text-sm);
+  line-height: var(--leading-snug);
+  word-break: keep-all;
+}
+
+@media (min-width: 40rem) {
+  .title {
+    font-size: var(--text-3xl);
+  }
+
+  .head {
+    margin-bottom: var(--space-6);
+  }
+}
+
+.tabs {
+  margin-bottom: var(--space-5);
+  scroll-margin-top: calc(var(--header-h) + var(--space-4));
+}
+
+@media (min-width: 40rem) {
+  .tabs {
+    margin-bottom: var(--space-6);
+  }
+}
+
+/* ── 사진 피드 — 목록(SCR-01)과 같은 격자 ── */
+
+.body {
+  min-width: 0;
+  container-type: inline-size;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-6) var(--space-3);
+  transition: opacity var(--duration-base) var(--ease-out);
+}
+
+@container (min-width: 34rem) {
+  .grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    column-gap: var(--space-4);
+  }
+}
+
+@container (min-width: 54rem) {
+  .grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: var(--space-8) var(--space-5);
+  }
+}
+
+/* 탭을 바꿔 불러오는 동안 직전 탭의 글 */
+.grid[data-stale] {
+  opacity: 0.45;
+}
+
+/* 비어 있음 · 오류 — 사진 자리에 옅은 면 한 장. 목록 · 상세의 빈 상태와 같은 면이다 */
+.stateBox {
+  border-radius: var(--radius-md);
+  background-color: var(--surface-sunken);
+  animation: appear var(--duration-base) var(--ease-out);
+}
+
+@keyframes appear {
+  from {
+    opacity: 0;
+  }
+}
+
+/* 첫 글 올리기 — 두 갈래. 좁으면 위아래로 */
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-2);
+}
+
+.pagination {
+  margin-top: var(--space-10);
+}

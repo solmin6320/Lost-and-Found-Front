@@ -33,6 +33,11 @@
   color: var(--text-strong);
 }
 
+.detail {
+  max-width: 100%;
+  margin-block: var(--space-1);
+}
+
 .description {
   font-size: var(--text-sm);
   color: var(--text-body);

@@ -80,6 +80,20 @@ export interface PostListParams extends PostSearchCondition {
   size?: number
 }
 
+/**
+ * `GET /api/members/me/posts` 의 쿼리 파라미터. 원본 : `MemberController.getMyPosts`
+ *
+ * 검색 조건은 없고 상태만 거른다. 정렬은 서버가 `createdAt desc, id desc` 로 고정한다(`sort` 를 보내도 무시한다).
+ */
+export interface MyPostsParams {
+  /** 없으면 전체 */
+  status?: PostStatus
+  /** **0부터** 센다. 기본 0 */
+  page?: number
+  /** 기본 20, 최대 100 */
+  size?: number
+}
+
 /** 첨부 사진 한 장. 원본 : `dto/response/PostImageResponse` */
 export interface PostImageResponse {
   id: number

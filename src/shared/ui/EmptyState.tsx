@@ -7,6 +7,8 @@ import styles from './StatePanel.module.css'
 interface EmptyStateProps {
   /** 무엇이 없는지. "데이터 없음" 이 아니라 사용자의 말로 */
   title: string
+  /** 제목 바로 아래 한 줄 — 무엇에 대한 빈 상태인지(없는 화면의 주소처럼). 설명보다 먼저 읽힌다 */
+  detail?: ReactNode
   /** 다음에 할 일 */
   description?: string
   /** 막다른 길을 만들지 않는다 — 조건을 넓히거나 첫 행동을 하는 버튼 */
@@ -21,6 +23,7 @@ interface EmptyStateProps {
 /** 비어 있는 상태. 빈 화면은 오류처럼 보이므로 화면이 먼저 말한다 */
 export function EmptyState({
   title,
+  detail,
   description,
   action,
   icon,
@@ -35,6 +38,7 @@ export function EmptyState({
         </span>
       ) : null}
       <Title className={styles.title}>{title}</Title>
+      {detail ? <div className={styles.detail}>{detail}</div> : null}
       {description ? <p className={styles.description}>{description}</p> : null}
       {action ? <div className={styles.action}>{action}</div> : null}
     </div>

@@ -1,0 +1,60 @@
+/*
+ * SCR-09 없는 화면 — 상세의 "없거나 삭제된 글"과 같은 옅은 면 한 장(읽는 폭 700px).
+ * 주소는 이름표(4px) 모양으로 — 무엇이 틀렸는지 눈으로 짚을 자리다. 장식을 더하지 않는다.
+ */
+
+.page {
+  width: 100%;
+  max-width: var(--layout-max);
+  margin: var(--space-8) auto 0;
+  border-radius: var(--radius-md);
+  background-color: var(--surface-sunken);
+  animation: appear var(--duration-slow) var(--ease-out);
+}
+
+@keyframes appear {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+.address {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  max-width: 100%;
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-xs);
+  background-color: var(--surface);
+  font-size: var(--text-sm);
+  line-height: var(--leading-snug);
+}
+
+.addressLabel {
+  flex: none;
+  color: var(--text-muted);
+  font-weight: var(--weight-semibold);
+}
+
+/* 긴 주소 · 띄어쓰기 없는 주소도 칸 안에서 줄을 바꾼다. 세 줄을 넘으면 자른다 */
+.addressValue {
+  display: -webkit-box;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text-strong);
+  font-weight: var(--weight-bold);
+  text-align: left;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-2);
+}

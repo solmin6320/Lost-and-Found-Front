@@ -1,0 +1,81 @@
+/*
+ * 상태 탭 — 한 줄, 아래에 가는 선. 고른 탭만 글자가 진해지고 그 아래 잉크 막대가 선다.
+ * 320 폭에서도 넷이 한 줄에 들어간다(글자 + 숫자, 탭 사이 간격이 좁아진다). 넘기지 않는다 — 숨은 탭이 없다.
+ */
+
+.list {
+  display: flex;
+  gap: clamp(var(--space-3), 0.4rem + 2.6vw, var(--space-8));
+  border-bottom: var(--hairline);
+}
+
+.tab {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1-5);
+  min-height: var(--tap-min);
+  padding-block: var(--space-2);
+  color: var(--text-muted);
+  font-size: var(--text-base);
+  font-weight: var(--weight-semibold);
+  text-decoration: none;
+  white-space: nowrap;
+  transition: color var(--duration-base) var(--ease-out);
+}
+
+/* 고른 탭의 막대 — 선 위에 겹친다. 바뀔 때 옅게 나타난다(옮겨 가는 것처럼 보인다) */
+.tab::after {
+  content: '';
+  position: absolute;
+  inset-inline: 0;
+  bottom: -1px;
+  height: 2px;
+  border-radius: var(--radius-xs) var(--radius-xs) 0 0;
+  background-color: var(--text-strong);
+  opacity: 0;
+  transform: scaleX(0.6);
+  transition:
+    opacity var(--duration-base) var(--ease-out),
+    transform var(--duration-base) var(--ease-out);
+}
+
+.tab[aria-current='page'] {
+  color: var(--text-strong);
+  font-weight: var(--weight-extrabold);
+}
+
+.tab[aria-current='page']::after {
+  opacity: 1;
+  transform: none;
+}
+
+/* 포커스 링은 글자에 닿지 않게 바깥으로. 탭 사이 간격(12px 이상) 안에 들어간다 */
+.tab:focus-visible {
+  border-radius: var(--radius-xs);
+  outline-offset: 2px;
+}
+
+@media (hover: hover) {
+  .tab:not([aria-current='page']):hover {
+    color: var(--text-strong);
+  }
+}
+
+.label {
+  word-break: keep-all;
+}
+
+.count {
+  color: inherit;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-bold);
+}
+
+.tab:not([aria-current='page']) .count {
+  color: var(--text-muted);
+}
+
+.countSkeleton {
+  font-size: var(--text-sm);
+}

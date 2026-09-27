@@ -62,6 +62,31 @@ export interface PostListEntryState {
  */
 export interface PostDetailEntryState {
   fromList: true
+  /**
+   * 내가 쓴 글(SCR-07)의 카드로 들어왔다. 상세의 되돌아가기 링크가 `목록으로` 대신 `내가 쓴 글` 이 되고,
+   * 글을 지운 뒤에는 목록이 아니라 보던 탭으로 돌아간다
+   */
+  from?: 'mine'
+  /** `from: 'mine'` 일 때 보던 탭 · 쪽(`?status=OPEN&page=2`). 없으면 전체 첫 쪽 */
+  search?: string
 }
 
 export const POST_DETAIL_FROM_LIST: PostDetailEntryState = { fromList: true }
+
+/** 내가 쓴 글 카드가 상세로 넘기는 기록 상태 */
+export function postDetailFromMine(search: string): PostDetailEntryState {
+  return { fromList: true, from: 'mine', search }
+}
+
+/**
+ * 상세가 기록 상태를 읽는다. 기록(history)의 state 는 무엇이든 들어올 수 있어 모양이 맞을 때만 쓴다.
+ * `search` 는 `?` 로 시작하는 쿼리만 받는다 — 경로를 바꿔치기하는 값(`//evil`)이 끼어들 수 없다
+ */
+export function readPostDetailEntry(state: unknown): { fromList: boolean; mineHref: string | null } {
+  if (typeof state !== 'object' || state === null) return { fromList: false, mineHref: null }
+  const { fromList, from, search } = state as Record<string, unknown>
+  if (fromList !== true) return { fromList: false, mineHref: null }
+  if (from !== 'mine') return { fromList: true, mineHref: null }
+  const query = typeof search === 'string' && /^\?[\w=&%-]*$/.test(search) ? search : ''
+  return { fromList: true, mineHref: `${paths.myPage}${query}` }
+}

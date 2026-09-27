@@ -1,12 +1,15 @@
 import { queryOptions, useQuery } from '@tanstack/react-query'
 
-import { getPost, getPosts, normalizePostListParams } from '../api/postApi'
-import type { PostListParams } from '../api/types'
+import { getMyPosts, getPost, getPosts, normalizeMyPostsParams, normalizePostListParams } from '../api/postApi'
+import type { MyPostsParams, PostListParams } from '../api/types'
 
 /**
  * 게시글 쿼리 키. 무효화할 때 범위를 고른다.
  *   글 등록·삭제·상태 변경 후 목록 전체 → `postKeys.lists()`
  *   글 하나의 상세 → `postKeys.detail(id)`
+ *
+ * 내가 쓴 글(`mine`)은 `lists()` **아래에** 둔다. 글을 올리거나 상태를 바꾸거나 지우면 모두 `lists()` 를 무효화하므로
+ * 마이페이지도 따로 챙기지 않아도 같이 새로 받는다. 로그아웃 · 세션 만료는 캐시를 통째로 비운다.
  *
  * `detail(id)` 는 그 글의 댓글 키(`@/features/comments` 의 `commentKeys.post(id)`)의 앞부분이다.
  * 그래서 `detail(id)` 로 지우거나 무효화하면 댓글 캐시까지 같이 걸린다(글 삭제 · 닉네임 변경).
@@ -17,6 +20,8 @@ export const postKeys = {
   lists: () => [...postKeys.all, 'list'] as const,
   /** 검색 조건과 페이지가 키에 들어간다. 조건이 바뀌면 다른 캐시다 */
   list: (params: PostListParams) => [...postKeys.lists(), normalizePostListParams(params)] as const,
+  /** [6.1] 내가 쓴 글. 상태 · 쪽 · 크기가 키에 들어간다 */
+  mine: (params: MyPostsParams) => [...postKeys.lists(), 'mine', normalizeMyPostsParams(params)] as const,
   details: () => [...postKeys.all, 'detail'] as const,
   detail: (postId: number) => [...postKeys.details(), postId] as const,
 }
@@ -38,6 +43,19 @@ export function postListQueryOptions(params: PostListParams = {}) {
 /** [4.2] 게시글 목록. `page` 는 0부터 센다 */
 export function usePostList(params: PostListParams = {}) {
   return useQuery(postListQueryOptions(params))
+}
+
+/** 내가 쓴 글 쿼리 설정. 로그인했을 때만 켠다(`enabled`) — 비로그인으로 부르면 401 과 재발급 헛걸음이다 */
+export function myPostsQueryOptions(params: MyPostsParams = {}) {
+  return queryOptions({
+    queryKey: postKeys.mine(params),
+    queryFn: ({ signal }) => getMyPosts(params, signal),
+  })
+}
+
+/** [6.1] 내가 쓴 글. `page` 는 0부터 센다 */
+export function useMyPosts(params: MyPostsParams = {}, { enabled = true }: { enabled?: boolean } = {}) {
+  return useQuery({ ...myPostsQueryOptions(params), enabled })
 }
 
 /**

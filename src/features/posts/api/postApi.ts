@@ -7,6 +7,7 @@ import {
   isPostType,
   type PostCreateRequest,
   type PostDetailResponse,
+  type MyPostsParams,
   type PostImageChange,
   type PostListParams,
   type PostListResponse,
@@ -63,6 +64,32 @@ export function getPosts(
 ): Promise<PagedModel<PostListResponse>> {
   return request<PagedModel<PostListResponse>>('/api/posts', {
     query: { ...normalizePostListParams(params) },
+    signal,
+  })
+}
+
+/** 내 글 조회 조건을 서버에 보낼 모양으로. 모르는 상태 · 0쪽 · 잘못된 크기는 뺀다(요청과 쿼리 키가 같은 결과를 쓴다) */
+export function normalizeMyPostsParams(params: MyPostsParams): MyPostsParams {
+  const result: MyPostsParams = {}
+  if (isPostStatus(params.status)) result.status = params.status
+  if (isPositiveInteger(params.page)) result.page = params.page
+  if (isPositiveInteger(params.size)) result.size = params.size
+  return result
+}
+
+/**
+ * [6.1] `GET /api/members/me/posts?status=&page=&size=` — **로그인 필요.** 내가 쓴 글, 등록일 내림차순 고정.
+ * 응답은 목록과 같은 모양(`PagedModel<PostListResponse>`, `thumbnailUrl` 포함)이다.
+ * 전부 내 글이라 `memberId` 가 없어도 본인 판정이 필요 없다.
+ *
+ * 실패 code : `INVALID_ACCESS_TOKEN`(401 — http 레이어가 재발급한다) · `INVALID_INPUT`(400, 모르는 상태 값)
+ */
+export function getMyPosts(
+  params: MyPostsParams = {},
+  signal?: AbortSignal,
+): Promise<PagedModel<PostListResponse>> {
+  return request<PagedModel<PostListResponse>>('/api/members/me/posts', {
+    query: { ...normalizeMyPostsParams(params) },
     signal,
   })
 }
