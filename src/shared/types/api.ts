@@ -32,9 +32,9 @@ export type ErrorCode =
   | 'INVALID_REFRESH_TOKEN' // 401
   // 게시글·댓글
   | 'POST_NOT_FOUND' // 404
-  | 'COMMENT_NOT_FOUND' // 404 — 백엔드 feature/comment-crud 브랜치에만 있다(main 미머지)
-  | 'FORBIDDEN_ACCESS' // 403
-  | 'INVALID_STATUS_TRANSITION' // 409
+  | 'COMMENT_NOT_FOUND' // 404
+  | 'FORBIDDEN_ACCESS' // 403 — 남의 글·댓글. `@PreAuthorize` 거부도 이 code 다
+  | 'INVALID_STATUS_TRANSITION' // 409 — 완료(DONE)된 글의 상태를 되돌리려 함
   // 이미지
   | 'INVALID_IMAGE_EXTENSION' // 400
   | 'EXCEEDED_IMAGE_COUNT' // 400

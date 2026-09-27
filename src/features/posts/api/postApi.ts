@@ -5,8 +5,11 @@ import {
   isPostCategory,
   isPostStatus,
   isPostType,
+  type PostDetailResponse,
   type PostListParams,
   type PostListResponse,
+  type PostStatusResponse,
+  type PostStatusUpdateRequest,
 } from './types'
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/
@@ -58,4 +61,49 @@ export function getPosts(
     query: { ...normalizePostListParams(params) },
     signal,
   })
+}
+
+/**
+ * [4.3] `GET /api/posts/{id}` — 비로그인 가능.
+ *
+ * 조회수는 서버가 올린다. 로그인 회원이 이 글을 **하루에 처음** 볼 때만 +1 이고(Redis 1일),
+ * 비로그인 · 만료된 토큰은 집계하지 않는다. 다시 불러도 조회수가 부풀지는 않지만
+ * 요청마다 서버에서 쓰기 트랜잭션이 돈다. 그래서 캐시를 고칠 때 이 요청을 다시 부르지 않는다.
+ *
+ * 실패 code : `POST_NOT_FOUND`(404) · `INVALID_INPUT`(400, id 가 숫자가 아님)
+ */
+export function getPost(postId: number, signal?: AbortSignal): Promise<PostDetailResponse> {
+  return request<PostDetailResponse>(`/api/posts/${postId}`, { signal })
+}
+
+/**
+ * [4.6] `PATCH /api/posts/{id}/status` — 작성자 본인만. JSON 본문.
+ *
+ * 전이 규칙(백엔드 `Post.changeStatus`)
+ * - `OPEN` · `IN_PROGRESS` 에서는 나머지 어느 상태로든 바꿀 수 있다(`OPEN → DONE` 도 된다)
+ * - `DONE` 에서 다른 상태로 → 409 `INVALID_STATUS_TRANSITION`. 완료는 되돌릴 수 없다
+ * - 지금과 같은 상태 → 아무것도 바꾸지 않고 200(`DONE → DONE` 도 200)
+ *
+ * 실패 code : `INVALID_STATUS_TRANSITION`(409) · `FORBIDDEN_ACCESS`(403) · `POST_NOT_FOUND`(404) ·
+ * `INVALID_INPUT`(400)
+ *
+ * 화면에서는 캐시까지 맞추는 `useChangePostStatus()` 를 쓴다.
+ */
+export function changePostStatus(
+  postId: number,
+  body: PostStatusUpdateRequest,
+): Promise<PostStatusResponse> {
+  return request<PostStatusResponse>(`/api/posts/${postId}/status`, { method: 'PATCH', body })
+}
+
+/**
+ * [4.4] `DELETE /api/posts/{id}` — 작성자 본인만. 성공하면 204(`undefined`).
+ * 댓글과 사진도 함께 지워진다. 되돌릴 수 없다.
+ *
+ * 실패 code : `FORBIDDEN_ACCESS`(403) · `POST_NOT_FOUND`(404)
+ *
+ * 화면에서는 캐시까지 정리하는 `useDeletePost()` 를 쓴다.
+ */
+export function deletePost(postId: number): Promise<void> {
+  return request<void>(`/api/posts/${postId}`, { method: 'DELETE' })
 }

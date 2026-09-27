@@ -1,5 +1,20 @@
-export { getPosts, normalizePostListParams } from './api/postApi'
-export { postKeys, postListQueryOptions, usePostList } from './model/postQueries'
+export {
+  changePostStatus,
+  deletePost,
+  getPost,
+  getPosts,
+  normalizePostListParams,
+} from './api/postApi'
+export {
+  postDetailQueryOptions,
+  postKeys,
+  postListQueryOptions,
+  usePostDetail,
+  usePostList,
+} from './model/postQueries'
+export { useChangePostStatus, useDeletePost } from './model/postMutations'
+export { canChangeStatus, isIrreversibleStatus, nextPostStatuses } from './model/postStatus'
+export { toPostId } from './model/postId'
 export {
   POST_CATEGORY_LABEL,
   POST_STATUS_LABEL,
@@ -46,9 +61,13 @@ export {
 } from './api/types'
 export type {
   PostCategory,
+  PostDetailResponse,
+  PostImageResponse,
   PostListParams,
   PostListResponse,
   PostSearchCondition,
   PostStatus,
+  PostStatusResponse,
+  PostStatusUpdateRequest,
   PostType,
 } from './api/types'
