@@ -1,0 +1,170 @@
+/*
+ * 사진 크게 보기 — 화면 전체. 사진은 어두운 바탕에서 본다(두 모드가 같은 값, tokens.css 3장 끝).
+ * 위 줄 : 몇 번째 · [닫기]. 가운데 : 자르지 않은 사진. 양옆 : 이전 / 다음(동그란 44px).
+ * 나타날 때 투명도만 바꾼다 — 사진이 튀어나오는 확대 효과는 쓰지 않는다.
+ */
+
+.viewer {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  max-width: none;
+  height: 100dvh;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background-color: var(--viewer-surface);
+  color: var(--viewer-ink);
+}
+
+.viewer[open] {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  animation: fade var(--duration-base) var(--ease-out);
+}
+
+.viewer::backdrop {
+  background-color: transparent;
+}
+
+@keyframes fade {
+  from {
+    opacity: 0;
+  }
+}
+
+.bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: max(var(--space-2), env(safe-area-inset-top)) max(var(--space-2), env(safe-area-inset-right)) var(--space-2)
+    max(var(--space-5), env(safe-area-inset-left));
+}
+
+.counter {
+  color: var(--viewer-muted);
+  font-size: var(--text-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.counter strong {
+  color: var(--viewer-ink);
+  font-weight: var(--weight-bold);
+}
+
+.close {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-height: var(--tap-min);
+  padding-inline: var(--space-3) var(--space-4);
+  border-radius: var(--radius-sm);
+  color: var(--viewer-ink);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-bold);
+  cursor: pointer;
+}
+
+.close svg {
+  width: var(--icon-md);
+  height: var(--icon-md);
+}
+
+/* 어두운 바탕이라 잉크 링이 안 보인다. 밝은 글자색으로 */
+.viewer :focus-visible {
+  outline-color: var(--viewer-ink);
+}
+
+@media (hover: hover) {
+  .close:hover {
+    background-color: var(--viewer-control);
+  }
+}
+
+.track {
+  display: flex;
+  height: 100%;
+  min-height: 0;
+  overflow-x: auto;
+  overscroll-behavior: contain;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+}
+
+.track::-webkit-scrollbar {
+  display: none;
+}
+
+/* 한 장 = 줄 폭 · 줄 높이. 사진은 그 안에 자르지 않고 가장 크게(세로 사진도 화면 높이를 넘지 않는다) */
+.slide {
+  position: relative;
+  flex: 0 0 100%;
+  min-height: 0;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+}
+
+.photo {
+  position: absolute;
+  inset: 0 var(--space-2) max(var(--space-4), env(safe-area-inset-bottom));
+  width: calc(100% - 2 * var(--space-2));
+  height: calc(100% - max(var(--space-4), env(safe-area-inset-bottom)));
+  object-fit: contain;
+}
+
+@media (min-width: 48rem) {
+  .photo {
+    inset-inline: calc(var(--tap-min) + var(--space-8));
+    width: calc(100% - 2 * (var(--tap-min) + var(--space-8)));
+  }
+}
+
+.nav {
+  position: absolute;
+  top: 50%;
+  display: grid;
+  place-items: center;
+  width: var(--tap-min);
+  height: var(--tap-min);
+  border-radius: var(--radius-pill);
+  background-color: var(--viewer-control);
+  color: var(--viewer-ink);
+  transform: translateY(-50%);
+  cursor: pointer;
+}
+
+.nav[data-side='prev'] {
+  left: max(var(--space-2), env(safe-area-inset-left));
+}
+
+.nav[data-side='next'] {
+  right: max(var(--space-2), env(safe-area-inset-right));
+}
+
+.nav svg {
+  width: var(--icon-md);
+  height: var(--icon-md);
+}
+
+.nav[aria-disabled='true'] {
+  opacity: 0.35;
+  cursor: default;
+}
+
+@media (min-width: 48rem) {
+  .nav[data-side='prev'] {
+    left: var(--space-6);
+  }
+
+  .nav[data-side='next'] {
+    right: var(--space-6);
+  }
+}
+
+@media (hover: hover) {
+  .nav:not([aria-disabled='true']):hover {
+    background-color: var(--viewer-control-hover);
+  }
+}

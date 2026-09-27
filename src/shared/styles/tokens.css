@@ -404,4 +404,16 @@
   --status-progress-line: var(--ink-200);
   --status-done-fg: var(--ink-500);
   --status-done-line: var(--ink-100);
+
+  /*
+   * 사진 위 조작(크게 보기 표시) · 사진 크게 보기 화면. 사진은 어두운 바탕에서 본다 — 두 모드가 같은 값이다.
+   * 순수 검정 대신 잉크에 가까운 #0E0F11. 글자 #F3F4F6 은 그 위 17.5:1, 조작 면(흰 14%) 위 14:1
+   */
+  --on-photo-surface: rgb(20 21 24 / 0.62);
+  --on-photo-ink: #f3f4f6;
+  --viewer-surface: #0e0f11;
+  --viewer-ink: #f3f4f6;
+  --viewer-muted: #b4b8bf;
+  --viewer-control: rgb(255 255 255 / 0.14);
+  --viewer-control-hover: rgb(255 255 255 / 0.24);
 }

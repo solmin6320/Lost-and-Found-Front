@@ -14,7 +14,7 @@ interface EmptyStateProps {
   /** 장식. 스크린리더에는 숨긴다 */
   icon?: ReactNode
   /** 제목 태그. 화면의 제목 구조에 맞춘다 */
-  titleAs?: 'h2' | 'h3' | 'p'
+  titleAs?: 'h1' | 'h2' | 'h3' | 'p'
   className?: string
 }
 

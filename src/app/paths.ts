@@ -54,3 +54,14 @@ export interface LoginNoticeState {
 export interface PostListEntryState {
   justSignedUp: true
 }
+
+/**
+ * 목록 카드로 상세에 들어갈 때 붙인다. 상세의 [목록으로]가 이것이 있으면 **뒤로 가기**를 한다 —
+ * 새로 목록을 여는 것과 달리 보던 필터 · 페이지 · 스크롤 위치가 그대로 돌아온다.
+ * 공유 링크처럼 바로 들어왔으면 없다. 그때는 목록 첫 화면으로 간다
+ */
+export interface PostDetailEntryState {
+  fromList: true
+}
+
+export const POST_DETAIL_FROM_LIST: PostDetailEntryState = { fromList: true }

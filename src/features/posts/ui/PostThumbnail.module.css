@@ -95,3 +95,10 @@
     font-size: var(--text-lg);
   }
 }
+
+/* 상세처럼 포스터가 크게 놓일 때(26rem 이상) — 물건 이름도 그 크기에 맞춘다 */
+@container (min-width: 26rem) {
+  .label {
+    font-size: var(--text-2xl);
+  }
+}

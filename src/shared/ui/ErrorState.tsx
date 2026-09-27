@@ -15,7 +15,7 @@ interface ErrorStateProps {
   /** 다시 불러오는 중. 버튼을 잠가 요청이 겹치지 않게 한다 */
   retrying?: boolean
   /** 제목 태그. 빈 상태(`EmptyState`)와 같은 단계로 맞춘다 */
-  titleAs?: 'h2' | 'h3' | 'p'
+  titleAs?: 'h1' | 'h2' | 'h3' | 'p'
   className?: string
 }
 

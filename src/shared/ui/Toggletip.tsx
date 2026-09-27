@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState, type FocusEvent, type ReactNode } from 'react'
+import { useCallback, useEffect, useId, useRef, useState, type FocusEvent, type ReactNode } from 'react'
 
 import { cx } from '@/shared/lib/cx'
 
@@ -14,6 +14,12 @@ interface ToggletipProps {
   /** 설명이 버튼의 어느 쪽 끝에 맞춰 펼쳐지나. 버튼이 줄 오른쪽 끝이면 `end` */
   align?: 'start' | 'end'
   className?: string
+  /**
+   * 밖에서 여닫을 때(제어). 헤더 `서비스 안내`가 상세 화면의 이름표 안내를 여는 경우다.
+   * 주지 않으면 스스로 여닫는다
+   */
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
 }
 
 /**
@@ -23,8 +29,29 @@ interface ToggletipProps {
  * 펼침 버튼 + 설명(disclosure). 포커스는 버튼에 그대로 두고, 설명은 스크린리더가 바로 읽게 알림 영역에 넣는다.
  * 닫히는 때 : 다시 누름 · Esc(버튼으로 포커스 복귀) · 바깥 누름 · 포커스가 밖으로 나감
  */
-export function Toggletip({ label, children, align = 'start', className }: ToggletipProps) {
-  const [open, setOpen] = useState(false)
+export function Toggletip({
+  label,
+  children,
+  align = 'start',
+  className,
+  open: openProp,
+  onOpenChange,
+}: ToggletipProps) {
+  const [ownOpen, setOwnOpen] = useState(false)
+  const open = openProp ?? ownOpen
+  const onOpenChangeRef = useRef(onOpenChange)
+
+  useEffect(() => {
+    onOpenChangeRef.current = onOpenChange
+  })
+
+  const setOpen = useCallback(
+    (next: boolean) => {
+      if (openProp === undefined) setOwnOpen(next)
+      onOpenChangeRef.current?.(next)
+    },
+    [openProp],
+  )
   const rootRef = useRef<HTMLDivElement>(null)
   const buttonRef = useRef<HTMLButtonElement>(null)
   const panelId = useId()
@@ -46,7 +73,7 @@ export function Toggletip({ label, children, align = 'start', className }: Toggl
       document.removeEventListener('pointerdown', handlePointerDown)
       document.removeEventListener('keydown', handleKeyDown)
     }
-  }, [open])
+  }, [open, setOpen])
 
   function handleBlur(event: FocusEvent<HTMLDivElement>) {
     const next = event.relatedTarget
@@ -62,7 +89,7 @@ export function Toggletip({ label, children, align = 'start', className }: Toggl
         aria-label={label}
         aria-expanded={open}
         aria-controls={panelId}
-        onClick={() => setOpen((value) => !value)}
+        onClick={() => setOpen(!open)}
       >
         <Info />
         <span className={styles.label}>{label}</span>

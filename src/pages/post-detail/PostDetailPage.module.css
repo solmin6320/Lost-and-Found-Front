@@ -1,0 +1,321 @@
+/*
+ * SCR-03 배치
+ *
+ * 좁은 화면 — 한 줄로 읽는다(700px 읽는 폭).
+ *   목록으로 · 제목 · 이름표 · 사진 · 핵심 정보 · 본문 · 메타 · (내 글 관리) · 댓글
+ *
+ * 64rem 이상 — 두 칸. 왼쪽 사진 열은 스크롤을 따라 내려온다(sticky) — 댓글을 읽으면서도 물건이 보인다.
+ * 오른쪽 읽기 열은 30rem(80rem 이상 34rem = 본문 한 줄 34em). 1440 에서 가운데 700px 만 쓰고 양옆이 비지 않게.
+ *
+ *   ┌ 목록으로 ─────────────────────────────┐
+ *   │ ┌──────────────┐  제목              │
+ *   │ │   사진(1:1)   │  이름표             │
+ *   │ │              │  핵심 정보 · 본문     │
+ *   │ └──────────────┘  메타 · 내 글 관리    │
+ *   │  작은 사진 · 2/5    댓글              │
+ *   └──────────────────────────────────────┘
+ */
+
+.page {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas:
+    'back'
+    'head'
+    'gallery'
+    'info'
+    'comments';
+  row-gap: var(--space-5);
+  max-width: var(--layout-max);
+  margin-inline: auto;
+}
+
+@media (min-width: 64rem) {
+  .page {
+    max-width: none;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 30rem);
+    grid-template-rows: auto auto auto 1fr;
+    grid-template-areas:
+      'back back'
+      'gallery head'
+      'gallery info'
+      'gallery comments';
+    column-gap: var(--space-10);
+    row-gap: var(--space-6);
+    align-items: start;
+  }
+}
+
+@media (min-width: 80rem) {
+  .page {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 34rem);
+    column-gap: var(--space-14);
+  }
+}
+
+/* ── 목록으로 ── */
+
+.back {
+  grid-area: back;
+  margin-block: calc(var(--space-3) * -1) calc(var(--space-2) * -1);
+}
+
+.backLink {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-height: var(--tap-min);
+  margin-left: calc(var(--space-1) * -1);
+  padding-right: var(--space-2);
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  text-decoration: none;
+}
+
+.backLink svg {
+  width: var(--icon-sm);
+  height: var(--icon-sm);
+}
+
+@media (hover: hover) {
+  a.backLink:hover {
+    color: var(--text-strong);
+  }
+}
+
+/* ── 제목 · 이름표 ── */
+
+.head {
+  grid-area: head;
+  display: grid;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+/* 100자 · 띄어쓰기 없는 제목도 칸을 밀지 않는다 */
+.title {
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-extrabold);
+  line-height: var(--leading-tight);
+  letter-spacing: var(--tracking-tight);
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+@media (min-width: 40rem) and (max-width: 63.99rem) {
+  .title {
+    font-size: var(--text-3xl);
+  }
+}
+
+/* 긴 제목은 모든 폭에서 한 단계 작게. 굵기는 그대로라 위계는 남는다 */
+.title[data-long] {
+  font-size: var(--text-xl);
+}
+
+@media (min-width: 40rem) {
+  .title[data-long] {
+    font-size: var(--text-2xl);
+  }
+}
+
+/* 이름표 줄 — 배지 둘, 줄 끝에 `이름표 안내`. 안내 판이 오른쪽 끝에 맞춰 펼쳐져 320 에서도 화면 안에 든다 */
+.badges {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--tap-min);
+  margin-block: calc(var(--space-2) * -1);
+}
+
+.flags {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1-5);
+}
+
+/* 상세의 배지는 사진 위가 아니라 종이 위라 한 단계 크게 */
+.flags > span[data-type],
+.flags > span[data-status] {
+  height: 1.625rem;
+  font-size: var(--text-xs);
+}
+
+.guide {
+  margin-left: auto;
+}
+
+/* ── 사진 ── */
+
+.gallery {
+  grid-area: gallery;
+  min-width: 0;
+}
+
+@media (min-width: 64rem) {
+  .gallery {
+    position: sticky;
+    top: calc(var(--header-h) + var(--space-6));
+  }
+}
+
+.skeletonPhoto {
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: var(--radius-md);
+}
+
+/* 사진 상자와 같은 비율(PostGallery 의 태블릿 4:3) */
+@media (min-width: 40rem) and (max-width: 63.99rem) {
+  .skeletonPhoto {
+    aspect-ratio: 4 / 3;
+  }
+}
+
+/* ── 핵심 정보 · 본문 · 메타 ── */
+
+.info {
+  grid-area: info;
+  display: grid;
+  gap: var(--space-6);
+  min-width: 0;
+}
+
+/* 유형 색의 옅은 면 한 장 — 색이 개념에 붙는 자리(분실 마리골드 · 습득 코발트). 크게 칠하지 않는다 */
+.facts {
+  --concept-tint: var(--surface-sunken);
+  --concept-line: var(--border-subtle);
+  --concept-text: var(--text-muted);
+
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
+  padding: var(--space-4) var(--space-5);
+  border: 1px solid var(--concept-line);
+  border-radius: var(--radius-md);
+  background-color: var(--concept-tint);
+}
+
+.facts[data-type='LOST'] {
+  --concept-tint: var(--lost-tint);
+  --concept-line: var(--lost-tint-line);
+  --concept-text: var(--lost-text);
+}
+
+.facts[data-type='FOUND'] {
+  --concept-tint: var(--found-tint);
+  --concept-line: var(--found-tint-line);
+  --concept-text: var(--found-text);
+}
+
+.fact {
+  display: grid;
+  grid-template-columns: 5rem minmax(0, 1fr);
+  align-items: baseline;
+  gap: var(--space-3);
+}
+
+.fact dt {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1-5);
+  color: var(--text-body);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  line-height: var(--leading-snug);
+  white-space: nowrap;
+}
+
+.fact dt svg {
+  flex: none;
+  width: var(--icon-sm);
+  height: var(--icon-sm);
+  color: var(--concept-text);
+}
+
+.fact dd {
+  min-width: 0;
+  margin: 0;
+  color: var(--text-strong);
+  font-size: var(--text-base);
+  font-weight: var(--weight-semibold);
+  line-height: var(--leading-snug);
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+/* 본문 — 사용자 입력 원문. 줄바꿈을 살리고(pre-wrap), 띄어쓰기 없는 긴 주소도 칸을 밀지 않는다 */
+.content {
+  display: block;
+  max-width: var(--measure);
+  color: var(--text-body);
+  font-size: var(--text-base);
+  line-height: var(--leading-normal);
+  white-space: pre-wrap;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+/* 누가 · 언제 올렸나 · 몇 명이 봤나. 한 줄에 셋, 좁으면 줄을 바꾼다. 가운뎃점 대신 간격으로 나눈다 */
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-5);
+  margin: 0;
+  padding-top: var(--space-4);
+  border-top: var(--hairline);
+  font-size: var(--text-sm);
+  line-height: var(--leading-snug);
+}
+
+.meta > div {
+  display: flex;
+  gap: var(--space-1-5);
+  min-width: 0;
+}
+
+.meta dt {
+  flex: none;
+  color: var(--text-muted);
+}
+
+.meta dd {
+  min-width: 0;
+  margin: 0;
+  color: var(--text-body);
+  font-weight: var(--weight-semibold);
+  overflow-wrap: anywhere;
+}
+
+/* ── 댓글 ── */
+
+.comments {
+  grid-area: comments;
+  min-width: 0;
+  margin-top: var(--space-4);
+  padding-top: var(--space-8);
+  border-top: var(--hairline);
+}
+
+@media (min-width: 64rem) {
+  .comments {
+    margin-top: var(--space-2);
+  }
+}
+
+/* ── 없는 글 · 오류 ── 오류는 [목록으로] 줄 아래에 둔다(한 칸, 넓은 화면에서도 가운데) */
+.page > .stateBox {
+  grid-column: 1 / -1;
+  margin-top: 0;
+}
+
+
+.stateBox {
+  width: 100%;
+  max-width: var(--layout-max);
+  margin: var(--space-8) auto 0;
+  border-radius: var(--radius-md);
+  background-color: var(--surface-sunken);
+}

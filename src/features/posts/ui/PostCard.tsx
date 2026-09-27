@@ -20,6 +20,8 @@ interface PostCardProps {
   headingLevel?: 'h2' | 'h3'
   /** 첫 화면에 보이는 카드(목록 첫 줄). 사진을 미루지 않고 바로 받는다 */
   priority?: boolean
+  /** 상세로 넘길 기록 상태. 상세의 [목록으로]가 이것을 보고 뒤로 간다(보던 필터 · 스크롤 그대로) */
+  linkState?: unknown
 }
 
 /**
@@ -38,12 +40,13 @@ export function PostCard({
   thumbnailUrl,
   headingLevel: Heading = 'h3',
   priority = false,
+  linkState,
 }: PostCardProps) {
   return (
     <article className={styles.card} data-status={post.status}>
       <div className={styles.body}>
         <Heading className={styles.title}>
-          <Link className={styles.link} to={to}>
+          <Link className={styles.link} to={to} state={linkState}>
             {post.title}
           </Link>
         </Heading>

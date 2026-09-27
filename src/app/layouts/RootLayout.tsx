@@ -1,10 +1,12 @@
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 
-import { requestGuide } from '@/app/onboarding'
+import { openPageGuide, requestGuide } from '@/app/onboarding'
 import { paths } from '@/app/paths'
+import { ScrollMemory } from '@/app/ScrollMemory'
 import { useAuth } from '@/features/auth'
 import { cx } from '@/shared/lib/cx'
 import { ButtonLink } from '@/shared/ui/Button'
+import { FlashViewport } from '@/shared/ui/Flash'
 import { Gear, Plus, Question } from '@/shared/ui/icons'
 import tip from '@/shared/ui/Tooltip.module.css'
 
@@ -48,6 +50,10 @@ export function RootLayout() {
       <footer className={styles.footer}>
         <div className={styles.footerInner}>분실물 찾기 · 개인 프로젝트</div>
       </footer>
+
+      {/* 화면이 바뀌어도 남는 것 — 스크롤 위치 기억 · 짧은 알림(글 삭제 뒤 목록에서) */}
+      <ScrollMemory />
+      <FlashViewport />
     </div>
   )
 }
@@ -83,6 +89,7 @@ function CreatePostLink() {
 /**
  * 서비스 안내 — 온보딩 1층을 언제든 다시 연다(docs/온보딩설계.md 2장). 안내는 목록 위에 뜬다 —
  * 다른 화면이면 목록으로 가면서 요청을 남기고, 목록이 요청을 가져가며 연다. 닫으면 이 버튼으로 포커스가 돌아온다.
+ * 그 화면에 자기 안내가 있으면(상세의 `이름표 안내`) 목록으로 떠나지 않고 그것을 연다 — 보던 글을 잃지 않는다.
  * 모양은 설정과 같다 — 휴대폰 폭에서는 물음표만(이름은 aria-label, 마우스 · 키보드에는 이름표), 48rem 이상은 글자도.
  */
 function GuideButton() {
@@ -90,6 +97,7 @@ function GuideButton() {
   const navigate = useNavigate()
 
   function handleClick() {
+    if (location.pathname !== paths.postList && openPageGuide()) return
     requestGuide()
     if (location.pathname !== paths.postList) navigate(paths.postList)
   }

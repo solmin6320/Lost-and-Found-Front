@@ -3,7 +3,7 @@ import { useEffect, useRef, useState, type MouseEvent } from 'react'
 import type { To } from 'react-router-dom'
 
 import { OnboardingTour, usePostListGuide } from '@/app/onboarding'
-import { paths } from '@/app/paths'
+import { POST_DETAIL_FROM_LIST, paths } from '@/app/paths'
 import { useAuth } from '@/features/auth'
 import {
   BadgeGuide,
@@ -366,6 +366,7 @@ function PostListBody({
             to={paths.postDetail(post.id)}
             thumbnailUrl={post.thumbnailUrl}
             priority={index < FIRST_ROW}
+            linkState={POST_DETAIL_FROM_LIST}
           />
         </li>
       ))}

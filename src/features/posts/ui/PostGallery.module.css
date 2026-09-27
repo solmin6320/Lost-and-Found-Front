@@ -1,0 +1,258 @@
+/*
+ * 상세의 사진 — 1:1 비율 상자. 사진은 자르지 않는다(contain). 세로 · 가로 사진 모두 같은 상자라 아래 글이 밀리지 않는다.
+ * 여러 장이면 손가락으로 넘긴다(스크롤 스냅, 한 번에 한 장). 아래 줄 : 작은 사진(30rem 이상) · 몇 번째 · 이전 / 다음.
+ */
+
+.gallery {
+  display: grid;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.poster {
+  border-radius: var(--radius-md);
+}
+
+.stage {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius-md);
+  background-color: var(--surface-sunken);
+}
+
+/* 옅은 테 — 흰 사진이 종이에 녹아 사각형이 사라지지 않게. 목록 카드와 같다 */
+.stage::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 1px var(--media-edge);
+  pointer-events: none;
+}
+
+.track {
+  display: flex;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+}
+
+.track::-webkit-scrollbar {
+  display: none;
+}
+
+.slide {
+  flex: 0 0 100%;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+}
+
+.photoButton {
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  overflow: hidden;
+  cursor: zoom-in;
+}
+
+/*
+ * 태블릿 한 줄 배치(40~64rem) — 읽기 폭 700px 에서 1:1 이면 사진이 첫 화면을 다 차지한다. 4:3 으로 낮춰
+ * 제목 · 이름표 · 핵심 정보가 사진과 함께 보이게. 세로 사진은 흐린 배경 위에 그대로(자르지 않는다)
+ */
+@media (min-width: 40rem) and (max-width: 63.99rem) {
+  .photoButton {
+    aspect-ratio: 4 / 3;
+  }
+}
+
+/*
+ * 상자가 넘친 것을 잘라 바깥 링이 안 보인다. 사진 **위에** 안쪽 링을 두 겹(잉크 · 종이색)으로 그린다 —
+ * 어두운 사진 · 밝은 사진 어디서도 보인다
+ */
+.photoButton:focus-visible {
+  outline: none;
+}
+
+.photoButton:focus-visible::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: var(--radius-md);
+  box-shadow:
+    inset 0 0 0 2px var(--focus-ring),
+    inset 0 0 0 5px var(--surface);
+}
+
+/* 흐린 배경 — 크게 흐리고 조금 어둡게 눌러 앞의 사진이 떠 보이게. 가장자리 번짐이 비치지 않게 살짝 키운다 */
+.backdrop {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: blur(28px) saturate(0.9) brightness(var(--backdrop-brightness, 0.82));
+  /* 흐림은 가장자리를 안쪽으로 번지게 한다. 충분히 키워 번진 테두리를 상자 밖으로 민다 */
+  transform: scale(1.4);
+  opacity: 0;
+  transition: opacity var(--duration-slow) var(--ease-out);
+}
+
+.backdrop[data-loaded] {
+  opacity: 0.9;
+}
+
+/* 어둡게 — 흐린 배경이 앞 사진보다 밝아 보이지 않게 한 단계 더 누른다 */
+:global([data-theme='dark']) .backdrop {
+  --backdrop-brightness: 0.62;
+}
+
+@media (prefers-color-scheme: dark) {
+  :global(:root:not([data-theme='light'])) .backdrop {
+    --backdrop-brightness: 0.62;
+  }
+}
+
+.photo {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  opacity: 0;
+  transition: opacity var(--duration-slow) var(--ease-out);
+}
+
+.photo[data-loaded] {
+  opacity: 1;
+}
+
+.fallback {
+  position: absolute;
+  inset: 0;
+  border-radius: 0;
+}
+
+/* 누르면 커진다는 표시 — 사진 오른쪽 아래 작은 원. 사진이 어떤 색이든 읽히게 어두운 반투명 면 */
+.expand {
+  position: absolute;
+  right: var(--space-3);
+  bottom: var(--space-3);
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: var(--radius-pill);
+  background-color: var(--on-photo-surface);
+  color: var(--on-photo-ink);
+  pointer-events: none;
+}
+
+.expand svg {
+  width: var(--icon-sm);
+  height: var(--icon-sm);
+}
+
+/* ── 아래 줄 ── */
+
+.controls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.thumbs {
+  display: none;
+  gap: var(--space-1-5);
+  min-width: 0;
+}
+
+@media (min-width: 30rem) {
+  .thumbs {
+    display: flex;
+  }
+}
+
+.thumb {
+  position: relative;
+  flex: none;
+  width: 3.25rem;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border-radius: var(--radius-sm);
+  background-color: var(--surface-sunken);
+  cursor: pointer;
+}
+
+.thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.thumb::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 1px var(--media-edge);
+  transition: box-shadow var(--duration-fast) var(--ease-out);
+}
+
+/* 지금 보는 장 — 잉크 테 두 겹. 색이 아니라 굵기로 가른다 */
+.thumb[aria-current]::after {
+  box-shadow:
+    inset 0 0 0 2px var(--selected-line),
+    inset 0 0 0 4px var(--surface);
+}
+
+.pager {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--space-0-5);
+  margin-left: auto;
+}
+
+.pagerButton {
+  display: grid;
+  place-items: center;
+  width: var(--tap-min);
+  height: var(--tap-min);
+  border-radius: var(--radius-pill);
+  color: var(--text-strong);
+  cursor: pointer;
+}
+
+.pagerButton svg {
+  width: var(--icon-md);
+  height: var(--icon-md);
+}
+
+.pagerButton[aria-disabled='true'] {
+  color: var(--text-disabled);
+  cursor: default;
+}
+
+@media (hover: hover) {
+  .pagerButton:not([aria-disabled='true']):hover {
+    background-color: var(--surface-sunken);
+  }
+}
+
+.counter {
+  min-width: 3.25rem;
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  text-align: center;
+}
+
+.counter strong {
+  color: var(--text-strong);
+  font-weight: var(--weight-bold);
+}

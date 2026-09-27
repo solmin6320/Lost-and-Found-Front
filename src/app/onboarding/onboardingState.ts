@@ -1,4 +1,4 @@
-import { useSyncExternalStore } from 'react'
+import { useEffect, useRef, useSyncExternalStore } from 'react'
 
 /**
  * 온보딩 1층(docs/온보딩설계.md 3장)의 두 가지 상태.
@@ -60,4 +60,35 @@ export function takeGuideRequest(): boolean {
 
 export function useGuideRequested(): boolean {
   return useSyncExternalStore(subscribe, () => requested)
+}
+
+/*
+ * 3. 화면별 안내 — 목록이 아닌 화면에도 그 화면의 2층 안내(docs/온보딩설계.md 4장)가 있으면
+ *    헤더 `서비스 안내`가 목록으로 떠나지 않고 **그 안내를 연다.** 보던 글을 잃지 않는다.
+ *    지금은 상세(SCR-03)의 `이름표 안내` 하나다. 한 번에 한 화면만 등록한다(마지막에 그린 화면).
+ */
+let pageGuide: (() => void) | null = null
+
+/** 화면이 자기 안내를 여는 방법을 헤더에 알려 둔다. 화면을 떠나면 저절로 지워진다 */
+export function usePageGuide(open: () => void) {
+  const openRef = useRef(open)
+
+  useEffect(() => {
+    openRef.current = open
+  })
+
+  useEffect(() => {
+    const handler = () => openRef.current()
+    pageGuide = handler
+    return () => {
+      if (pageGuide === handler) pageGuide = null
+    }
+  }, [])
+}
+
+/** 헤더 `서비스 안내` — 화면별 안내가 있으면 열고 `true` */
+export function openPageGuide(): boolean {
+  if (!pageGuide) return false
+  pageGuide()
+  return true
 }

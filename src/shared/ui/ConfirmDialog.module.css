@@ -1,0 +1,111 @@
+/*
+ * 확인 다이얼로그 — 되돌릴 수 없는 동작 앞에서 한 번 멈춘다.
+ * 모든 폭에서 가운데. 결정 버튼은 오른쪽 끝(좁으면 두 칸을 나눠 채운다 — 엄지가 닿는다).
+ * 실제로 떠 있는 것이라 그림자를 쓴다. 가로 모드 휴대폰에서도 잘리지 않게 높이를 dvh 로 묶는다.
+ */
+
+.dialog {
+  inset: 0;
+  width: calc(100% - 2 * var(--gutter));
+  max-width: 26rem;
+  max-height: 86dvh;
+  margin: auto;
+  padding: 0;
+  overflow-y: auto;
+  border: 0;
+  border-radius: var(--radius-md);
+  background-color: var(--surface-raised);
+  color: inherit;
+  box-shadow: var(--shadow-overlay);
+}
+
+.dialog[open] {
+  animation: pop var(--duration-base) var(--ease-out);
+}
+
+.dialog::backdrop {
+  background-color: var(--scrim);
+}
+
+.dialog[open]::backdrop {
+  animation: fade var(--duration-base) var(--ease-out);
+}
+
+@keyframes pop {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+@keyframes fade {
+  from {
+    opacity: 0;
+  }
+}
+
+.inner {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-6) var(--space-5) var(--space-5);
+}
+
+.title {
+  font-size: var(--text-xl);
+  font-weight: var(--weight-extrabold);
+  line-height: var(--leading-tight);
+  word-break: keep-all;
+}
+
+.body {
+  color: var(--text-body);
+  font-size: var(--text-base);
+  line-height: var(--leading-normal);
+  word-break: keep-all;
+}
+
+.body p + p {
+  margin-top: var(--space-1);
+}
+
+.error {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-1);
+  padding: var(--space-3);
+  border-radius: var(--radius-sm);
+  background-color: var(--surface-sunken);
+  color: var(--text-strong);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  line-height: var(--leading-snug);
+  animation: appear var(--duration-base) var(--ease-out);
+}
+
+.error svg {
+  flex: none;
+  width: var(--icon-sm);
+  height: var(--icon-sm);
+  margin-top: var(--space-0-5);
+}
+
+@keyframes appear {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
+.footer {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+
+@media (min-width: 30rem) {
+  .footer {
+    display: flex;
+    justify-content: flex-end;
+  }
+}

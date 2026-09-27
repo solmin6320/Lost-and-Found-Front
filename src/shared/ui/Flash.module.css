@@ -1,0 +1,45 @@
+/*
+ * 짧은 알림 — 화면 아래 가운데, 엄지 위. 잉크 면 한 줄이라 어느 화면 위에서도 읽힌다.
+ * 아래에서 6px 떠오르며 나타난다. 누를 것이 없어 뒤의 화면을 막지 않는다(pointer-events 없음).
+ */
+
+.viewport {
+  position: fixed;
+  inset-inline: 0;
+  bottom: calc(var(--space-6) + env(safe-area-inset-bottom));
+  z-index: var(--z-toast);
+  display: flex;
+  justify-content: center;
+  padding-inline: var(--gutter);
+  pointer-events: none;
+}
+
+.flash {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  max-width: min(28rem, 100%);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-sm);
+  background-color: var(--action);
+  box-shadow: var(--shadow-overlay);
+  color: var(--on-action);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  line-height: var(--leading-snug);
+  word-break: keep-all;
+  animation: rise var(--duration-slow) var(--ease-out);
+}
+
+.flash svg {
+  flex: none;
+  width: var(--icon-md);
+  height: var(--icon-md);
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
