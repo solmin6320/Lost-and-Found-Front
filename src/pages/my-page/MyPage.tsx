@@ -10,7 +10,6 @@ import {
   POST_STATUSES,
   POST_STATUS_LABEL,
   PostCard,
-  PostCardSkeleton,
   PostStatusTabs,
   myPostsQueryOptions,
   toMyPostsParams,
@@ -30,9 +29,8 @@ import { Archive, MagnifyingGlass } from '@/shared/ui/icons'
 import { Pagination } from '@/shared/ui/Pagination'
 
 import styles from './MyPage.module.css'
+import { MyPostsGridSkeleton } from './MyPageSkeleton'
 
-/** 로딩 스켈레톤 개수 — 2 · 4열에서 줄이 채워진다. 내 글은 목록보다 적다 */
-const SKELETON_COUNT = 8
 /** 첫 줄 카드 수(가장 넓은 4열). 이 카드들의 사진은 미루지 않는다 */
 const FIRST_ROW = 4
 
@@ -197,15 +195,7 @@ interface MyPostsBodyProps {
 function MyPostsBody({ query, search, noPostsYet, allHref, firstPageHref, linkState }: MyPostsBodyProps) {
   // 직전 탭이 비어 있었으면 그 빈 상태를 흐리게 남기지 않는다 — 문장이 새 탭과 어긋난다
   if (query.isPending || (query.isPlaceholderData && query.data?.content.length === 0)) {
-    return (
-      <ul className={styles.grid} role="list" aria-busy="true">
-        {Array.from({ length: SKELETON_COUNT }, (_, i) => (
-          <li key={i}>
-            <PostCardSkeleton />
-          </li>
-        ))}
-      </ul>
-    )
+    return <MyPostsGridSkeleton />
   }
 
   if (query.isError) {

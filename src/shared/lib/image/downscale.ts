@@ -18,7 +18,7 @@ export class ImageDecodeError extends Error {
 }
 
 /** 그림은 읽었는데 JPEG 로 만들지 못했다(캔버스 메모리 부족 등) */
-export class ImageEncodeError extends Error {
+class ImageEncodeError extends Error {
   constructor(options?: { cause?: unknown }) {
     super('이미지를 변환할 수 없습니다', options)
     this.name = 'ImageEncodeError'

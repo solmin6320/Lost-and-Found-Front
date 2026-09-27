@@ -1,4 +1,5 @@
 import { isIsoDate, todayIsoDate } from '@/shared/lib/date'
+import { particle } from '@/shared/lib/particle'
 
 import {
   POST_CONTENT_MAX_LENGTH,
@@ -72,13 +73,6 @@ export function dateFieldLabel(type: PostType | null): string {
   return type ? lostFoundDateLabel(type) : '날짜'
 }
 
-/** 받침이 있으면 `withBatchim`, 없으면 `without` — "분실일을" · "날짜를" */
-function particle(word: string, withBatchim: string, without: string): string {
-  const last = word.charCodeAt(word.length - 1)
-  const hangul = last >= 0xac00 && last <= 0xd7a3
-  return hangul && (last - 0xac00) % 28 !== 0 ? withBatchim : without
-}
-
 /**
  * 한 칸 검사. 문제가 있으면 문장, 없으면 `undefined`.
  * 글자 수는 **앞뒤 공백을 잘라 낸 뒤** 센다 — 보낼 때 잘라서 보낸다(`toPostRequest`).
@@ -96,11 +90,11 @@ export function checkPostField(field: PostFormField, values: PostFormValues, tod
     case 'lostFoundDate': {
       const label = dateFieldLabel(values.type)
       if (!values.lostFoundDate || !isIsoDate(values.lostFoundDate)) {
-        return `${label}${particle(label, '을', '를')} 골라 주세요`
+        return `${label}${particle(label, '을')} 골라 주세요`
       }
       // 같은 모양의 문자열이라 글자 순서가 날짜 순서다
       if (values.lostFoundDate > today) {
-        return `${label}${particle(label, '은', '는')} 오늘 이후로 고를 수 없어요`
+        return `${label}${particle(label, '은')} 오늘 이후로 고를 수 없어요`
       }
       return undefined
     }
@@ -111,9 +105,9 @@ export function checkPostField(field: PostFormField, values: PostFormValues, tod
 
 function checkText(value: string, label: string, max: number): string | undefined {
   const trimmed = value.trim()
-  if (!trimmed) return `${label}${particle(label, '을', '를')} 적어 주세요`
+  if (!trimmed) return `${label}${particle(label, '을')} 적어 주세요`
   if (trimmed.length > max) {
-    return `${label}${particle(label, '은', '는')} ${max.toLocaleString('ko-KR')}자까지 쓸 수 있어요`
+    return `${label}${particle(label, '은')} ${max.toLocaleString('ko-KR')}자까지 쓸 수 있어요`
   }
   return undefined
 }

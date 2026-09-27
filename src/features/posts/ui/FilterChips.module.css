@@ -125,6 +125,16 @@ button.trigger::after,
   border-radius: 0 var(--radius-pill) var(--radius-pill) 0;
 }
 
+/*
+ * [×] 는 보이는 폭 36px, 누르는 폭 44px. 늘린 8px 은 오른쪽(칩 사이 틈)으로만 낸다 —
+ * 왼쪽으로 늘리면 바로 옆 [값 고치기]를 누르려던 손가락이 조건을 지운다.
+ * 틈(6px)을 넘는 2px 은 다음 칩 아래로 들어가고, 뒤에 그려지는 다음 칩이 그 자리를 가져간다
+ */
+.triggerClear::after {
+  inset-inline: 0 auto;
+  width: max(100%, var(--tap-min));
+}
+
 .triggerMain:focus-visible,
 .triggerClear:focus-visible {
   outline-color: var(--on-action);

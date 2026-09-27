@@ -30,7 +30,8 @@ export const postKeys = {
 }
 
 /**
- * 목록 쿼리 설정. 옵션을 덧붙여야 하면 훅 대신 이것을 펼쳐 쓴다.
+ * [4.2] 게시글 목록 쿼리 설정. `page` 는 0부터 센다.
+ * 목록 화면은 이전 쪽을 붙잡아 두는 옵션을 덧붙여야 해서 훅 없이 이것을 펼쳐 쓴다.
  *
  * ```ts
  * useQuery({ ...postListQueryOptions(params), placeholderData: keepPreviousData })
@@ -41,11 +42,6 @@ export function postListQueryOptions(params: PostListParams = {}) {
     queryKey: postKeys.list(params),
     queryFn: ({ signal }) => getPosts(params, signal),
   })
-}
-
-/** [4.2] 게시글 목록. `page` 는 0부터 센다 */
-export function usePostList(params: PostListParams = {}) {
-  return useQuery(postListQueryOptions(params))
 }
 
 /** 내가 쓴 글 쿼리 설정. 로그인했을 때만 켠다(`enabled`) — 비로그인으로 부르면 401 과 재발급 헛걸음이다 */

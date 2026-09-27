@@ -146,14 +146,23 @@ export function PostPhotoField({
       })
     }
     setNotices(next)
+    // 읽어 줄 말은 이 한 줄에 모은다 — 넣은 결과 · 교체 고지 · 넣지 못한 파일. 화면의 알림 목록은 소리 내지 않는다
+    const spoken: string[] = []
     if (added.length > 0) {
       const nextItems = [...items, ...toPhotoItems(added)]
       onItemsChange(nextItems)
-      setLive(`사진 ${added.length}장을 넣었어요. 모두 ${nextItems.length}장이에요.`)
+      spoken.push(`사진 ${added.length}장을 넣었어요. 모두 ${nextItems.length}장이에요.`)
+      if (items.length === 0 && existing.length > 0) {
+        spoken.push(`저장하면 기존 사진 ${existing.length}장 대신 이 사진 ${nextItems.length}장이 올라가요.`)
+      }
       // 5장이 차서 [사진 추가]가 사라지면 마지막 사진의 빼기 버튼으로
       focusAfter.current =
         nextItems.length >= POST_IMAGE_MAX_COUNT ? `[data-key="${nextItems[nextItems.length - 1].key}"] [data-action="remove"]` : '[data-action="add"]'
     }
+    for (const notice of next) {
+      spoken.push(notice.name ? `${notice.name}: ${notice.message}` : notice.message)
+    }
+    if (spoken.length > 0) setLive(spoken.join(' '))
   }
 
   function move(index: number, delta: -1 | 1, focusAction: string | null) {
@@ -202,7 +211,7 @@ export function PostPhotoField({
     if (readOnly) return
     onRemoveExistingChange?.(true)
     setNotices([])
-    setLive(`저장하면 기존 사진 ${existing.length}장이 모두 지워져요.`)
+    setLive(`저장하면 기존 사진 ${existing.length}장이 모두 지워져요. 저장한 뒤에는 되돌릴 수 없어요.`)
     focusAfter.current = '[data-action="keep"]'
   }
 
@@ -464,7 +473,7 @@ export function PostPhotoField({
       ) : null}
 
       {notices.length > 0 ? (
-        <ul className={styles.notices} role="status">
+        <ul className={styles.notices}>
           {notices.map((notice) => (
             <li key={notice.id}>
               <WarningCircle />
@@ -501,7 +510,8 @@ export function PostPhotoField({
         }}
       />
 
-      <p className="sr-only" aria-live="polite">
+      {/* 알림 영역은 이것 하나다. 위의 안내 상자 · 알림 목록에 role="status" 를 또 달면 같은 문장을 두 번 읽는다 */}
+      <p className="sr-only" role="status" aria-live="polite">
         {live}
       </p>
     </div>
@@ -545,7 +555,7 @@ function TileButton({
 
 function StateNote({ tone, children }: { tone?: 'warn'; children: ReactNode }) {
   return (
-    <div className={styles.state} data-tone={tone} role="status">
+    <div className={styles.state} data-tone={tone}>
       {tone === 'warn' ? <WarningCircle className={styles.stateIcon} /> : null}
       <div className={styles.stateBody}>{children}</div>
     </div>

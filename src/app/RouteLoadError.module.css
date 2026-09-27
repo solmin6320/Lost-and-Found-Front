@@ -1,0 +1,7 @@
+/* 다른 화면의 오류 상자와 같은 면 — 700px 폭, 옅은 바탕 한 장 */
+.box {
+  max-width: var(--layout-max);
+  margin-inline: auto;
+  border-radius: var(--radius-md);
+  background-color: var(--surface-sunken);
+}
