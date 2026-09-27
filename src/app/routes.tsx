@@ -1,14 +1,14 @@
 import { Route, createBrowserRouter, createRoutesFromElements } from 'react-router-dom'
 
 import { RootLayout } from '@/app/layouts/RootLayout'
+import { RouteLoadError } from '@/app/RouteLoadError'
+import { PostFormSkeleton } from '@/features/posts'
 import { LoginPage } from '@/pages/login/LoginPage'
-import { MyPage } from '@/pages/my-page/MyPage'
+import { MyPageSkeleton } from '@/pages/my-page/MyPageSkeleton'
 import { NotFoundPage } from '@/pages/not-found/NotFoundPage'
-import { PostCreatePage } from '@/pages/post-create/PostCreatePage'
-import { PostDetailPage } from '@/pages/post-detail/PostDetailPage'
-import { PostEditPage } from '@/pages/post-edit/PostEditPage'
+import { PostDetailSkeleton } from '@/pages/post-detail/PostDetailSkeleton'
 import { PostListPage } from '@/pages/post-list/PostListPage'
-import { SettingsPage } from '@/pages/settings/SettingsPage'
+import { SettingsSkeleton } from '@/pages/settings/SettingsSkeleton'
 import { SignupPage } from '@/pages/signup/SignupPage'
 
 /**
@@ -39,6 +39,18 @@ import { SignupPage } from '@/pages/signup/SignupPage'
  * 데이터 라우터(`createBrowserRouter`)로 만든다(2026-09-27, 단계 4). 등록 · 수정 화면이 작성 중 이탈을
  * `useBlocker` 로 막는데, 이 훅은 데이터 라우터 안에서만 동작한다. 로더 · 액션은 쓰지 않는다 —
  * 데이터는 여전히 TanStack Query 가 맡고, 표는 같은 `<Route>` 요소로 적는다.
+ *
+ * **처음 받는 코드를 줄인다(2026-09-27, 단계 6).** 첫 방문은 대부분 목록이다(검색 · 공유 링크도 목록부터).
+ * 목록 · 로그인 · 회원가입 · 없는 화면은 바로 싣고, 등록 · 수정 · 상세 · 설정 · 내가 쓴 글은 들어갈 때 받는다(`lazy`).
+ * 지금 나뉘어 나가는 것은 화면 코드와 그 화면에서만 쓰는 조각(댓글 · 설정의 화면 모드 · 내가 쓴 글 등)이다.
+ * 폼 · 사진 줄이기처럼 `@/features/posts` 입구(index.ts)로 내보내는 것은 목록이 같은 입구를 쓰는 탓에 아직 첫 묶음에 남는다 —
+ * 번들러가 CSS 를 가져오는 모듈을 "부수 효과 있음"으로 보고 입구의 모든 모듈을 싣기 때문이다.
+ *
+ * - 화면 안에서 옮겨 갈 때 : 라우터가 조각을 받은 뒤에 화면을 바꾼다. 받는 동안은 보던 화면 그대로다
+ * - 그 주소로 바로 들어왔을 때(새로고침 · 공유 링크) : 헤더는 바로 그리고, 본문 자리에 **그 화면의 스켈레톤**을 둔다
+ *   (`hydrateFallbackElement`). 화면이 데이터를 받는 동안 그리는 스켈레톤과 같은 것이라, 코드 → 데이터로 넘어가도
+ *   모양이 바뀌지 않는다. 대체 화면은 조각 밖에 있어야 해서 스켈레톤을 따로 뗀 파일에서 가져온다
+ * - 조각을 받지 못하면(연결 끊김 · 새 버전 배포로 옛 조각이 사라짐) 본문 자리에 [다시 시도](새로고침)
  */
 export function createAppRouter() {
   return createBrowserRouter(
@@ -48,15 +60,40 @@ export function createAppRouter() {
 
         {/* 정적 세그먼트가 동적 세그먼트보다 우선 매칭되므로
             /posts/new 가 /posts/:postId 에 먹히지 않는다 */}
-        <Route path="/posts/new" element={<PostCreatePage />} />
-        <Route path="/posts/:postId" element={<PostDetailPage />} />
-        <Route path="/posts/:postId/edit" element={<PostEditPage />} />
+        <Route
+          path="/posts/new"
+          lazy={() => import('@/pages/post-create/PostCreatePage').then((m) => ({ Component: m.PostCreatePage }))}
+          hydrateFallbackElement={<PostFormSkeleton label="글 올리기 화면을 불러오는 중입니다" />}
+          errorElement={<RouteLoadError />}
+        />
+        <Route
+          path="/posts/:postId"
+          lazy={() => import('@/pages/post-detail/PostDetailPage').then((m) => ({ Component: m.PostDetailPage }))}
+          hydrateFallbackElement={<PostDetailSkeleton />}
+          errorElement={<RouteLoadError />}
+        />
+        <Route
+          path="/posts/:postId/edit"
+          lazy={() => import('@/pages/post-edit/PostEditPage').then((m) => ({ Component: m.PostEditPage }))}
+          hydrateFallbackElement={<PostFormSkeleton label="글 수정 화면을 불러오는 중입니다" />}
+          errorElement={<RouteLoadError />}
+        />
 
         <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<SignupPage />} />
 
-        <Route path="/me" element={<MyPage />} />
-        <Route path="/settings" element={<SettingsPage />} />
+        <Route
+          path="/me"
+          lazy={() => import('@/pages/my-page/MyPage').then((m) => ({ Component: m.MyPage }))}
+          hydrateFallbackElement={<MyPageSkeleton />}
+          errorElement={<RouteLoadError />}
+        />
+        <Route
+          path="/settings"
+          lazy={() => import('@/pages/settings/SettingsPage').then((m) => ({ Component: m.SettingsPage }))}
+          hydrateFallbackElement={<SettingsSkeleton />}
+          errorElement={<RouteLoadError />}
+        />
 
         <Route path="*" element={<NotFoundPage />} />
       </Route>,

@@ -26,9 +26,9 @@ import { getErrorMessage, hasErrorCode, isApiError } from '@/shared/lib/http'
 import { useDocumentTitle } from '@/shared/lib/useDocumentTitle'
 import { ErrorState } from '@/shared/ui/ErrorState'
 import { CalendarBlank, CaretLeft, MapPin, Tag } from '@/shared/ui/icons'
-import { Skeleton } from '@/shared/ui/Skeleton'
 
 import styles from './PostDetailPage.module.css'
+import { PostDetailSkeleton } from './PostDetailSkeleton'
 
 /** 이보다 긴 제목(최대 100자)은 한 단계 작게 — 휴대폰에서 제목이 첫 화면을 다 차지하지 않게 */
 const LONG_TITLE = 36
@@ -233,53 +233,5 @@ function BackToList() {
       <CaretLeft />
       {mineHref ? '내가 쓴 글' : '목록으로'}
     </Link>
-  )
-}
-
-/** 실제 화면과 같은 자리 · 같은 크기. 불러오면 그 자리에 글이 들어앉는다 */
-function PostDetailSkeleton() {
-  return (
-    <div className={styles.page} aria-busy="true">
-      <p className="sr-only" role="status">
-        글을 불러오는 중입니다
-      </p>
-      <div className={styles.back}>
-        <span className={styles.backLink} aria-hidden="true">
-          <CaretLeft />
-          목록으로
-        </span>
-      </div>
-      <div className={styles.head}>
-        <div className={styles.title}>
-          <Skeleton shape="text" width="92%" />
-          <Skeleton shape="text" width="54%" />
-        </div>
-        <div className={styles.badges}>
-          <p className={styles.flags}>
-            <Skeleton width="2.5rem" height="1.375rem" />
-            <Skeleton width="3.75rem" height="1.375rem" />
-          </p>
-        </div>
-      </div>
-      <div className={styles.gallery}>
-        <Skeleton className={styles.skeletonPhoto} />
-      </div>
-      <div className={styles.info}>
-        <div className={styles.facts}>
-          {[0, 1, 2].map((i) => (
-            <div key={i} className={styles.fact}>
-              <Skeleton shape="text" width="3.5rem" />
-              <Skeleton shape="text" width={i === 0 ? '80%' : '40%'} />
-            </div>
-          ))}
-        </div>
-        <div className={styles.content}>
-          <Skeleton shape="text" width="100%" />
-          <Skeleton shape="text" width="96%" />
-          <Skeleton shape="text" width="88%" />
-          <Skeleton shape="text" width="62%" />
-        </div>
-      </div>
-    </div>
   )
 }
