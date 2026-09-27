@@ -1,11 +1,12 @@
-import type { ButtonHTMLAttributes } from 'react'
+import type { ButtonHTMLAttributes, Ref } from 'react'
 import { Link, type LinkProps } from 'react-router-dom'
 
 import { cx } from '@/shared/lib/cx'
 
 import styles from './Button.module.css'
 
-type ButtonVariant = 'primary' | 'secondary' | 'ghost'
+/** `danger` · `dangerQuiet` 는 되돌릴 수 없는 삭제에만. 빨강은 이 자리 전용이다 */
+type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'dangerQuiet'
 type ButtonSize = 'md' | 'sm'
 
 interface ButtonLookProps {
@@ -21,7 +22,11 @@ function buttonClassName({ variant = 'secondary', size = 'md', block }: ButtonLo
   return cx(styles.button, styles[variant], size === 'sm' && styles.sm, block && styles.block, extra)
 }
 
-export type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & ButtonLookProps
+export type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> &
+  ButtonLookProps & {
+    /** 다이얼로그가 열릴 때 [취소]에 포커스를 주는 것처럼, 밖에서 이 버튼을 잡을 때 */
+    ref?: Ref<HTMLButtonElement>
+  }
 
 /** `type` 기본값은 `button` 이다. 폼 안에서 의도치 않게 제출되지 않게 한다 */
 export function Button({ variant, size, block, className, type = 'button', ...rest }: ButtonProps) {

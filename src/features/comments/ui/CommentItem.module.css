@@ -1,0 +1,146 @@
+/*
+ * 댓글 한 건 — 이름 · 글쓴이 표시 · 시각 한 줄, 그 아래 본문, 내 댓글이면 [수정] [삭제].
+ * 카드로 감싸지 않는다. 목록 쪽(CommentSection)이 건 사이에 가는 선 하나만 긋는다.
+ */
+
+.comment {
+  display: grid;
+  gap: var(--space-1-5);
+  min-width: 0;
+}
+
+/* 방금 남긴 댓글 — 아래에서 4px 떠오르며 나타난다. 어디에 붙었는지 눈이 따라간다 */
+.comment[data-fresh] {
+  animation: arrive var(--duration-slow) var(--ease-out);
+}
+
+@keyframes arrive {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-0-5) var(--space-2);
+  min-width: 0;
+  line-height: var(--leading-snug);
+}
+
+/* 닉네임은 20자까지 띄어쓰기 없이 온다 */
+.name {
+  min-width: 0;
+  color: var(--text-strong);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-bold);
+  overflow-wrap: anywhere;
+}
+
+/* 이름표(4px)와 같은 모양의 작은 표시. 색 없이 선만 — 분실 · 습득 색과 섞이지 않게 */
+.authorTag {
+  display: inline-flex;
+  align-items: center;
+  height: 1.25rem;
+  padding-inline: var(--space-1-5);
+  border: 1px solid var(--border-hover);
+  border-radius: var(--radius-xs);
+  color: var(--text-body);
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-bold);
+  line-height: 1;
+}
+
+.time {
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+}
+
+.edited {
+  white-space: nowrap;
+}
+
+/* 사용자 입력 원문 — 줄바꿈을 살리고, 띄어쓰기 없는 긴 주소도 칸을 밀지 않는다 */
+.content {
+  max-width: var(--measure);
+  color: var(--text-body);
+  font-size: var(--text-base);
+  line-height: var(--leading-normal);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: keep-all;
+}
+
+/* 글자 버튼 두 개 — 본문 아래에 늘 보인다(마우스를 올려야 나오는 버튼은 휴대폰에서 못 찾는다) */
+.actions {
+  display: flex;
+  gap: var(--space-1);
+  margin-left: calc(var(--space-3) * -1);
+}
+
+.actions button {
+  color: var(--text-muted);
+  font-weight: var(--weight-semibold);
+}
+
+.editForm {
+  display: grid;
+  gap: var(--space-2);
+  margin-top: var(--space-1);
+}
+
+.editActions,
+.confirmActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+
+.confirm {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-3);
+  margin-top: var(--space-1);
+  padding: var(--space-3);
+  border-radius: var(--radius-sm);
+  background-color: var(--danger-surface);
+  animation: appear var(--duration-base) var(--ease-out);
+}
+
+.confirmText {
+  flex: 1 1 12rem;
+  color: var(--text-strong);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  line-height: var(--leading-snug);
+  word-break: keep-all;
+}
+
+.error {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-1);
+  color: var(--text-strong);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  line-height: var(--leading-snug);
+  animation: appear var(--duration-base) var(--ease-out);
+}
+
+.error svg {
+  flex: none;
+  width: var(--icon-sm);
+  height: var(--icon-sm);
+  margin-top: var(--space-0-5);
+}
+
+@keyframes appear {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}

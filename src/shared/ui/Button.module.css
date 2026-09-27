@@ -40,6 +40,11 @@
   cursor: not-allowed;
 }
 
+/* 요청 중 — 포커스는 그대로 두고 누름만 막는다(버튼 글자가 "…하는 중"으로 바뀐다) */
+.button[aria-disabled='true'] {
+  cursor: progress;
+}
+
 .block {
   width: 100%;
 }
@@ -91,6 +96,29 @@
   color: var(--text-disabled);
 }
 
+/* 삭제 확인 버튼 — 빨강을 채운다. 다이얼로그 안에서만 */
+.danger {
+  background-color: var(--danger);
+  color: var(--danger-on);
+}
+
+.danger:disabled {
+  background-color: var(--action-disabled);
+  color: var(--on-action-disabled);
+}
+
+/* 삭제를 여는 버튼 — 선만 두르고 글자만 빨갛다. 누르면 확인이 뜨므로 면을 칠해 겁주지 않는다 */
+.dangerQuiet {
+  background-color: var(--surface);
+  border-color: var(--border-strong);
+  color: var(--danger-text);
+}
+
+.dangerQuiet:disabled {
+  background-color: var(--surface-sunken);
+  color: var(--text-disabled);
+}
+
 /* 터치 기기에서는 탭한 뒤 hover 색이 들러붙는다. 마우스에서만 */
 @media (hover: hover) {
   .primary:hover:not(:disabled) {
@@ -100,6 +128,15 @@
   .secondary:hover:not(:disabled) {
     border-color: var(--border-hover);
     background-color: var(--surface-sunken);
+  }
+
+  .danger:hover:not(:disabled) {
+    background-color: var(--danger-hover);
+  }
+
+  .dangerQuiet:hover:not(:disabled) {
+    border-color: var(--border-hover);
+    background-color: var(--danger-surface);
   }
 
   .ghost:hover:not(:disabled) {

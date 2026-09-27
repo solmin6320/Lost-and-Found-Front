@@ -36,3 +36,12 @@ export function todayIsoDate(now: Date = new Date()): string {
   const day = String(now.getDate()).padStart(2, '0')
   return `${now.getFullYear()}-${month}-${day}`
 }
+
+const ISO_TIME = /T(\d{2}):(\d{2})/
+
+/** `"2026-09-21T14:03:11.123"` → `"2026. 9. 21. 14:03"`. 댓글처럼 같은 날 여러 건이 오가는 자리에 쓴다 */
+export function formatDateTime(value: string): string {
+  const date = formatDate(value)
+  const time = ISO_TIME.exec(value)
+  return time ? `${date} ${time[1]}:${time[2]}` : date
+}
