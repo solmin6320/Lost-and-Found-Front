@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useRef } from 'react'
 import { useLocation, useNavigationType } from 'react-router-dom'
 
 /**
- * 화면을 오갈 때의 스크롤 위치. BrowserRouter 에는 데이터 라우터의 `<ScrollRestoration>` 이 없어 직접 둔다.
+ * 화면을 오갈 때의 스크롤 위치. 데이터 라우터의 `<ScrollRestoration>` 대신 직접 둔다(새 화면 · 뒤로가기 규칙과 새로고침 뒤 이어 두기가 이 앱에 맞춰져 있다).
  *
  * - **새 화면으로 가면(PUSH · REPLACE) 맨 위에서 시작한다.** 목록을 한참 내린 채 글을 누르면
  *   상세가 중간부터 열리던 것을 막는다. 같은 화면 안에서 주소만 바뀌는 것(목록의 필터 · 페이지)은 건드리지 않는다 —

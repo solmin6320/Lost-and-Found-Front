@@ -1,12 +1,165 @@
-import { RoutePlaceholder } from '@/app/RoutePlaceholder'
+import { useEffect, useState, type ReactNode } from 'react'
+import { Navigate, useNavigate, useParams } from 'react-router-dom'
 
-/** [4.4] 게시글 수정 + [4.5] 이미지 교체/삭제/유지 */
+import { paths } from '@/app/paths'
+import { usePostWritePage } from '@/app/usePostWritePage'
+import {
+  PostForm,
+  PostFormSkeleton,
+  PostWriteHeader,
+  postDraftKey,
+  postFormValuesOf,
+  toPostId,
+  usePostDetail,
+  useUpdatePost,
+  type LeaveFn,
+  type PostDetailResponse,
+} from '@/features/posts'
+import { showFlash } from '@/shared/lib/flash'
+import { getErrorMessage, hasErrorCode, isApiError } from '@/shared/lib/http'
+import { useDocumentTitle } from '@/shared/lib/useDocumentTitle'
+import { ButtonLink } from '@/shared/ui/Button'
+import { EmptyState } from '@/shared/ui/EmptyState'
+import { ErrorState } from '@/shared/ui/ErrorState'
+import { MagnifyingGlass } from '@/shared/ui/icons'
+
+import styles from './PostEditPage.module.css'
+
+/** 서버 `FORBIDDEN_ACCESS` 문장과 같다 — 남의 글 수정 주소로 들어왔을 때(보내기 전이라 서버 문장이 없다) */
+const FORBIDDEN_MESSAGE = '본인이 작성한 게시글, 댓글만 처리할 수 있습니다'
+
+/**
+ * SCR-04 게시글 수정 · `/posts/:postId/edit` — [4.4] 수정 + [4.5] 사진(유지 · 교체 · 전부 삭제)
+ *
+ * - 작성자 본인만. 불러온 글의 `memberId` 가 내가 아니면 **폼을 그리지 않고** 상세로 되돌린다(+ 서버와 같은 문장의 알림)
+ * - 로딩 : 폼 모양 스켈레톤(빈 폼을 먼저 보여 주지 않는다) · 없는 글 : 빈 상태 + [목록으로] · 오류 : message + [다시 시도]
+ * - 저장 중 403 → 상세 + message, 404(다른 기기에서 지움) → 목록 + message
+ * - 성공(200) → 상세로 기록을 바꿔 간다 + 짧은 알림. 상세 캐시는 `useUpdatePost` 가 응답으로 고친다
+ */
 export function PostEditPage() {
+  const postId = toPostId(useParams().postId)
+  const page = usePostWritePage()
+  const navigate = useNavigate()
+  const detail = usePostDetail(page.gate === 'form' ? postId : null)
+
+  // 한 번 불러온 글을 붙잡아 둔다. 로그인이 끊겨 캐시가 비워져도(재발급 거절) 폼이 내려가지 않아야 쓰던 글자를 보관한다
+  const [kept, setKept] = useState<PostDetailResponse | null>(null)
+  if (detail.data && kept === null) setKept(detail.data)
+  const post = kept ?? detail.data ?? null
+
+  const notOwner = post !== null && page.signedIn && page.memberId !== null && post.memberId !== page.memberId
+  useEffect(() => {
+    if (!notOwner || !post) return
+    showFlash(FORBIDDEN_MESSAGE, 'info')
+    navigate(paths.postDetail(post.id), { replace: true })
+  }, [notOwner, post, navigate])
+
+  useDocumentTitle('글 수정')
+
+  const missing =
+    postId === null ||
+    hasErrorCode(detail.error, 'POST_NOT_FOUND') ||
+    (isApiError(detail.error) && detail.error.status === 400)
+
+  if (missing) return <MissingPost />
+  if (page.gate === 'pending') return <PostFormSkeleton label="로그인을 확인하는 중입니다" />
+  if (page.gate === 'login' || page.memberId === null) return <Navigate to={page.loginHref} replace />
+  if (post === null) {
+    if (detail.isError) {
+      return (
+        <div className={styles.stateBox}>
+          <ErrorState
+            titleAs="h1"
+            message={getErrorMessage(detail.error)}
+            onRetry={() => void detail.refetch()}
+            retrying={detail.isFetching}
+          />
+        </div>
+      )
+    }
+    return <PostFormSkeleton label="고칠 글을 불러오는 중입니다" />
+  }
+  if (notOwner) return <PostFormSkeleton label="이 글로 돌아가는 중입니다" />
+
   return (
-    <RoutePlaceholder
-      title="게시글 수정"
-      spec="[4.4] 게시글 수정 · [4.5] 이미지 처리"
-      note="이미지 규칙이 직관과 어긋난다. 새로 올리면 기존 것이 전부 교체된다는 안내를 업로드 영역에 둔다."
+    <EditForm
+      key={post.id}
+      post={post}
+      memberId={page.memberId}
+      signedIn={page.signedIn}
+      intro={<PostWriteHeader title="글 수정" lead="사진만 빼고 모두 채워져 있어야 저장돼요." {...page.guide} />}
+      onSessionLost={page.onSessionLost}
     />
+  )
+}
+
+interface EditFormProps {
+  post: PostDetailResponse
+  memberId: number
+  signedIn: boolean
+  intro: ReactNode
+  onSessionLost: (draftSaved: boolean, leave: LeaveFn) => void
+}
+
+function EditForm({ post, memberId, signedIn, intro, onSessionLost }: EditFormProps) {
+  const update = useUpdatePost(post.id)
+  // 처음 값은 이 화면에 들어온 순간의 글 그대로. 뒤에서 다시 받아도 쓰던 칸을 덮지 않는다
+  const [initialValues] = useState(() => postFormValuesOf(post))
+
+  return (
+    <PostForm
+      mode="edit"
+      intro={intro}
+      initialValues={initialValues}
+      existingImages={post.images}
+      status={post.status}
+      draftKey={postDraftKey(post.id)}
+      memberId={memberId}
+      signedIn={signedIn}
+      pending={update.isPending}
+      phase={update.phase}
+      onSubmit={async (body, images) => {
+        const saved = await update.mutateAsync({ body, images })
+        return saved.id
+      }}
+      onDone={(postId, leave) => {
+        showFlash('고친 내용을 저장했어요.')
+        leave(paths.postDetail(postId), { replace: true })
+      }}
+      onFailure={(error, leave) => {
+        if (hasErrorCode(error, 'FORBIDDEN_ACCESS')) {
+          showFlash(getErrorMessage(error), 'info')
+          leave(paths.postDetail(post.id), { replace: true })
+          return true
+        }
+        if (hasErrorCode(error, 'POST_NOT_FOUND')) {
+          showFlash(getErrorMessage(error), 'info')
+          leave(paths.postList, { replace: true })
+          return true
+        }
+        return false
+      }}
+      onSessionLost={onSessionLost}
+      cancelTo={paths.postDetail(post.id)}
+    />
+  )
+}
+
+/** 없거나 지워진 글 — 상세와 같은 문장. 막다른 길이 되지 않게 목록으로 가는 문을 둔다 */
+function MissingPost() {
+  return (
+    <div className={styles.stateBox}>
+      <EmptyState
+        titleAs="h1"
+        icon={<MagnifyingGlass />}
+        title="없거나 삭제된 글이에요."
+        description="주소가 맞는지 확인하거나 목록에서 다시 찾아보세요."
+        action={
+          <ButtonLink to={paths.postList} variant="primary">
+            목록으로
+          </ButtonLink>
+        }
+      />
+    </div>
   )
 }

@@ -1,0 +1,188 @@
+/*
+ * 등록의 첫 질문 — 목록 첫 화면의 의도 칸(PostIntentPicker)과 같은 색 면 · 같은 말.
+ * 폼 안이라 첫 화면보다 한 단계 낮다(높이 · 글자). 넓은 면이라 마리골드는 --lost-face-wide 를 쓴다.
+ * 좁은 화면에서도 두 칸을 나란히 둔다 — 둘을 옆에 놓고 고르는 질문이다.
+ */
+
+.group {
+  display: grid;
+  gap: var(--space-2);
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.legend {
+  margin-bottom: var(--space-2);
+  padding: 0;
+  color: var(--text-strong);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-bold);
+  line-height: var(--leading-snug);
+}
+
+.choices {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-2);
+}
+
+@media (min-width: 40rem) {
+  .choices {
+    gap: var(--space-3);
+  }
+}
+
+.choice[data-concept='LOST'] {
+  --choice-face: var(--lost-face-wide);
+  --choice-face-hover: var(--lost-face-wide-hover);
+  --choice-ink: var(--lost-on-face);
+  --choice-line: transparent;
+}
+
+.choice[data-concept='FOUND'] {
+  --choice-face: var(--found-face-wide);
+  --choice-face-hover: var(--found-face-wide-hover);
+  --choice-ink: var(--found-on-face);
+  --choice-line: transparent;
+}
+
+/* 다른 쪽을 골랐다 — 연한 면으로 물러난다. 누르면 바로 바뀐다 */
+.choice[data-concept='LOST'][data-state='off'] {
+  --choice-face: var(--lost-tint);
+  --choice-face-hover: var(--lost-tint-hover);
+  --choice-ink: var(--lost-text);
+  --choice-line: var(--lost-tint-line);
+}
+
+.choice[data-concept='FOUND'][data-state='off'] {
+  --choice-face: var(--found-tint);
+  --choice-face-hover: var(--found-tint-hover);
+  --choice-ink: var(--found-text);
+  --choice-line: var(--found-tint-line);
+}
+
+.choice {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: var(--space-2);
+  min-height: 6.25rem;
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+  background-color: var(--choice-face);
+  box-shadow: inset 0 0 0 1px var(--choice-line);
+  color: var(--choice-ink);
+  cursor: pointer;
+  container-type: inline-size;
+  transition:
+    background-color var(--duration-base) var(--ease-out),
+    color var(--duration-base) var(--ease-out),
+    opacity var(--duration-fast) var(--ease-out);
+}
+
+.choice:has(.input:focus-visible) {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 3px;
+}
+
+.choice:has(.input[aria-disabled='true']) {
+  cursor: default;
+}
+
+@media (hover: hover) {
+  .choice:hover {
+    background-color: var(--choice-face-hover);
+  }
+}
+
+.input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/*
+ * 좁은 칸은 "물건을 / 잃어버렸어요" 두 줄. 두 칸의 줄 수가 같아 아래 한 줄이 나란히 선다.
+ * 오른쪽 위 체크는 짧은 첫 줄("물건을") 옆에 앉으므로 글자 자리를 비우지 않는다 — 320 폭에서도 "잃어버렸어요"가 한 줄이다
+ */
+.label {
+  display: grid;
+  font-size: clamp(1rem, 0.8rem + 2.4cqi, 1.5rem);
+  word-break: keep-all;
+  font-weight: var(--weight-extrabold);
+  line-height: var(--leading-tight);
+  letter-spacing: var(--tracking-tight);
+}
+
+.posts {
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  line-height: var(--leading-snug);
+}
+
+@container (min-width: 15rem) {
+  .choice {
+    padding: var(--space-5);
+  }
+
+  .label {
+    display: block;
+  }
+
+  .posts {
+    font-size: var(--text-sm);
+  }
+}
+
+/* 고른 칸의 체크 — 색만으로 고른 것을 알리지 않는다. 고르는 순간 살짝 떠오르며 나타난다 */
+.check {
+  position: absolute;
+  top: var(--space-3);
+  right: var(--space-3);
+  width: var(--icon-lg);
+  height: var(--icon-lg);
+  animation: check-in var(--duration-base) var(--ease-out);
+}
+
+.error {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-1);
+  margin-top: var(--space-1);
+  color: var(--text-strong);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  line-height: var(--leading-snug);
+  animation: error-in var(--duration-base) var(--ease-out);
+}
+
+.error svg {
+  flex: none;
+  width: var(--icon-sm);
+  height: var(--icon-sm);
+  margin-top: var(--space-0-5);
+}
+
+.note {
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+  line-height: var(--leading-snug);
+  word-break: keep-all;
+}
+
+@keyframes check-in {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+}
+
+@keyframes error-in {
+  from {
+    opacity: 0;
+    transform: translateY(calc(var(--space-1) * -1));
+  }
+}

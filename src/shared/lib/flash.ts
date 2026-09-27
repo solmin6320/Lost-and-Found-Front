@@ -9,6 +9,8 @@ import { useSyncExternalStore } from 'react'
 export interface FlashMessage {
   id: number
   text: string
+  /** `done` 끝났다(체크) · `info` 하려던 일이 안 됐고 그 이유(권한 없음 · 이미 지워진 글) */
+  tone: 'done' | 'info'
 }
 
 let current: FlashMessage | null = null
@@ -26,9 +28,9 @@ function subscribe(listener: () => void) {
   }
 }
 
-export function showFlash(text: string) {
+export function showFlash(text: string, tone: FlashMessage['tone'] = 'done') {
   seq += 1
-  current = { id: seq, text }
+  current = { id: seq, text, tone }
   emit()
 }
 

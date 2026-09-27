@@ -1,0 +1,390 @@
+/*
+ * 사진 영역 — 이름 · 격자 · 결과 고지 · 넣지 못한 파일 · 오류 순서로 쌓는다.
+ * 격자는 자기 칸의 폭을 본다(컨테이너 쿼리) : 좁으면 3열(375에서 칸 109px), 30rem 이상이면 5장이 한 줄.
+ * 사진 위 조작(빼기 · 앞으로 · 뒤로)은 사진 모서리에 둔다 — 상세의 "크게 보기"처럼 장식이 아니라 조작 표시다.
+ * 보이는 원은 28px, 누르는 면적은 44px.
+ */
+
+.field {
+  position: relative;
+  display: grid;
+  gap: var(--space-2);
+  min-width: 0;
+  container-type: inline-size;
+}
+
+/* 파일을 끌고 들어왔다(넓은 화면) — 영역 전체에 잉크 테 */
+.field[data-file-over]::after {
+  content: '';
+  position: absolute;
+  inset: calc(var(--space-2) * -1);
+  border: 2px dashed var(--selected-line);
+  border-radius: var(--radius-md);
+  background-color: color-mix(in srgb, var(--surface-sunken) 60%, transparent);
+  pointer-events: none;
+}
+
+.labelRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.label {
+  color: var(--text-strong);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-bold);
+  line-height: var(--leading-snug);
+}
+
+/* 필수가 기본이라 선택인 칸만 표시한다 */
+.optional {
+  margin-left: var(--space-1);
+  color: var(--text-muted);
+  font-weight: var(--weight-medium);
+}
+
+.count {
+  flex: none;
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+}
+
+/* ── 아직 한 장도 없을 때 — 넓게 누르는 면 하나 ── */
+.zone {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-1);
+  width: 100%;
+  min-height: 8rem;
+  padding: var(--space-5) var(--space-4);
+  border: 1px dashed var(--border-hover);
+  border-radius: var(--radius-md);
+  background-color: var(--surface-sunken);
+  color: var(--text-strong);
+  cursor: pointer;
+  transition:
+    background-color var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out),
+    opacity var(--duration-fast) var(--ease-out);
+}
+
+.zone[aria-disabled='true'] {
+  cursor: default;
+}
+
+@media (hover: hover) {
+  .zone:hover:not([aria-disabled='true']) {
+    border-color: var(--selected-line);
+  }
+}
+
+.zoneIcon {
+  width: var(--icon-lg);
+  height: var(--icon-lg);
+  margin-bottom: var(--space-1);
+}
+
+.zoneTitle {
+  font-size: var(--text-base);
+  font-weight: var(--weight-bold);
+  line-height: var(--leading-tight);
+}
+
+.zoneText {
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+  line-height: var(--leading-snug);
+  word-break: keep-all;
+}
+
+/* ── 격자 ── */
+.grid,
+.notices {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-2);
+}
+
+@container (min-width: 30rem) {
+  .grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+}
+
+.tile,
+.addCell {
+  position: relative;
+  aspect-ratio: 1;
+  border-radius: var(--radius-md);
+}
+
+.tile {
+  background-color: var(--surface-sunken);
+  animation: tile-in var(--duration-base) var(--ease-out);
+  transition: opacity var(--duration-fast) var(--ease-out);
+}
+
+/* 흰 사진이 종이에 녹지 않게 옅은 테(목록 카드와 같다) */
+.tile::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 1px var(--media-edge);
+  pointer-events: none;
+}
+
+.tile[draggable='true'] {
+  cursor: grab;
+}
+
+.tile[data-dragging] {
+  opacity: 0.4;
+}
+
+.tile[data-over]::after {
+  box-shadow: inset 0 0 0 2px var(--selected-line);
+}
+
+.photo {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  object-fit: cover;
+}
+
+/* 지우기로 한 기존 사진 — 흑백으로 물러난다. 저장 전까지는 되돌릴 수 있다 */
+.grid[data-dimmed] .photo {
+  filter: grayscale(1);
+  opacity: 0.38;
+}
+
+/* 첫 장 = 목록의 대표 사진. 사진 위 이름표(목록 배지와 같은 4px 모서리 · 테) */
+.lead {
+  position: absolute;
+  top: var(--space-1-5);
+  left: var(--space-1-5);
+  padding: var(--space-0-5) var(--space-1-5);
+  border-radius: var(--radius-xs);
+  background-color: var(--action);
+  box-shadow: 0 0 0 1.5px var(--badge-ring);
+  color: var(--on-action);
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-bold);
+  line-height: var(--leading-snug);
+  pointer-events: none;
+}
+
+.tileButton {
+  position: absolute;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: var(--radius-pill);
+  background-color: var(--on-photo-surface);
+  color: var(--on-photo-ink);
+  cursor: pointer;
+}
+
+/* 보이는 원은 28px, 누르는 면적은 44px */
+.tileButton::after {
+  content: '';
+  position: absolute;
+  inset: calc((var(--tap-min) - 1.75rem) / -2);
+}
+
+.tileButton svg {
+  width: var(--icon-sm);
+  height: var(--icon-sm);
+}
+
+.tileButton[aria-disabled='true'] {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.tileButton[data-place='remove'] {
+  top: var(--space-1);
+  right: var(--space-1);
+}
+
+.tileButton[data-place='earlier'] {
+  bottom: var(--space-1);
+  left: var(--space-1);
+}
+
+.tileButton[data-place='later'] {
+  right: var(--space-1);
+  bottom: var(--space-1);
+}
+
+/* [사진 추가] — 사진 칸과 같은 크기의 빈 칸 */
+.add {
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: var(--space-0-5);
+  width: 100%;
+  height: 100%;
+  border: 1px dashed var(--border-hover);
+  border-radius: inherit;
+  background-color: var(--surface);
+  color: var(--text-strong);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-bold);
+  line-height: var(--leading-tight);
+  cursor: pointer;
+}
+
+.add svg {
+  width: var(--icon-md);
+  height: var(--icon-md);
+  margin-bottom: var(--space-0-5);
+}
+
+.addLeft {
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+}
+
+@media (hover: hover) {
+  .add:hover:not([aria-disabled='true']) {
+    border-color: var(--selected-line);
+    background-color: var(--surface-sunken);
+  }
+}
+
+/* ── 결과 고지 · 되돌리기 ── */
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.hint {
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+  line-height: var(--leading-snug);
+  word-break: keep-all;
+}
+
+/* 지금 상태를 말하는 옅은 면 한 장 — 교체 · 삭제. 무엇이 일어날지 → 되돌리는 길 */
+.state {
+  display: flex;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  background-color: var(--surface-sunken);
+  animation: appear var(--duration-base) var(--ease-out);
+}
+
+.stateIcon {
+  flex: none;
+  width: var(--icon-md);
+  height: var(--icon-md);
+  margin-top: var(--space-0-5);
+  color: var(--text-strong);
+}
+
+.stateBody {
+  display: grid;
+  gap: var(--space-2);
+  min-width: 0;
+  color: var(--text-strong);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  line-height: var(--leading-snug);
+  word-break: keep-all;
+}
+
+.state[data-tone='warn'] .stateBody > p {
+  font-weight: var(--weight-bold);
+}
+
+/* 넣지 못한 파일 — 이름과 이유. 빨강이 아니라 아이콘 + 굵은 글자 */
+.notices {
+  display: grid;
+  gap: var(--space-1);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  background-color: var(--surface-sunken);
+  animation: appear var(--duration-base) var(--ease-out);
+}
+
+.notices li {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-1-5);
+  color: var(--text-strong);
+  font-size: var(--text-sm);
+  line-height: var(--leading-snug);
+  word-break: keep-all;
+}
+
+.notices svg {
+  flex: none;
+  width: var(--icon-sm);
+  height: var(--icon-sm);
+  margin-top: var(--space-0-5);
+}
+
+/* 파일 이름은 사용자 입력이다. 띄어쓰기 없는 긴 이름도 칸을 밀지 않는다 */
+.fileName {
+  margin-right: var(--space-1);
+  font-weight: var(--weight-bold);
+  overflow-wrap: anywhere;
+}
+
+.error {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-1);
+  color: var(--text-strong);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  line-height: var(--leading-snug);
+  animation: appear var(--duration-base) var(--ease-out);
+}
+
+.error svg {
+  flex: none;
+  width: var(--icon-sm);
+  height: var(--icon-sm);
+  margin-top: var(--space-0-5);
+}
+
+/* 파일 입력은 화면에서 숨긴다. [사진 고르기] 버튼이 연다 */
+.fileInput {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+@keyframes tile-in {
+  from {
+    opacity: 0;
+    transform: translateY(var(--space-1));
+  }
+}
+
+@keyframes appear {
+  from {
+    opacity: 0;
+    transform: translateY(calc(var(--space-1) * -1));
+  }
+}

@@ -3,7 +3,7 @@ import { useEffect } from 'react'
 import { dismissFlash, useFlash } from '@/shared/lib/flash'
 
 import styles from './Flash.module.css'
-import { CheckCircle } from './icons'
+import { CheckCircle, Info } from './icons'
 
 const SHOW_MS = 4000
 
@@ -25,7 +25,7 @@ export function FlashViewport() {
     <div className={styles.viewport} role="status" aria-live="polite" aria-atomic="true">
       {message ? (
         <p key={message.id} className={styles.flash}>
-          <CheckCircle />
+          {message.tone === 'info' ? <Info /> : <CheckCircle />}
           {message.text}
         </p>
       ) : null}

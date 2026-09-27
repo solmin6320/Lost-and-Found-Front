@@ -12,7 +12,7 @@ interface TextFieldProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'id
   hint?: ReactNode
   /** 입력 바로 아래 오류 문장. 서버 `message` 는 그대로 넣는다 */
   error?: string | null
-  /** 이름 오른쪽의 글자 수 `3/20` */
+  /** 이름 오른쪽의 글자 수 `3/20`. 넘치면 굵어진다(`maxLength` 로 자르지 않는 칸) */
   count?: { value: number; max: number }
   /** 입력칸 안 오른쪽의 버튼(비밀번호 보기 등). 44px 정사각 자리를 비워 둔다 */
   trailing?: ReactNode
@@ -53,7 +53,12 @@ export function TextField({
           {label}
         </label>
         {count ? (
-          <span id={countId} className={styles.count} data-numeric>
+          <span
+            id={countId}
+            className={styles.count}
+            data-over={count.value > count.max || undefined}
+            data-numeric
+          >
             <span className="sr-only">글자 수 </span>
             {count.value}/{count.max}
           </span>

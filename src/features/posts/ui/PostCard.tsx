@@ -12,8 +12,11 @@ import { TypeBadge } from './TypeBadge'
 
 interface PostCardProps {
   post: PostListResponse
-  /** 상세 주소. 경로는 app 이 정한다(`paths.postDetail(id)`) */
-  to: string
+  /**
+   * 상세 주소. 경로는 app 이 정한다(`paths.postDetail(id)`).
+   * 없으면 링크가 아닌 카드다 — 등록 · 수정 화면의 "목록에서 이렇게 보여요" 미리보기
+   */
+  to?: string
   /** 대표 사진 주소(`PostListResponse.thumbnailUrl`). 없거나 못 불러오면 포스터가 대신한다 */
   thumbnailUrl?: string | null
   /** 목록의 제목 구조에 맞춘다 */
@@ -46,9 +49,13 @@ export function PostCard({
     <article className={styles.card} data-status={post.status}>
       <div className={styles.body}>
         <Heading className={styles.title}>
-          <Link className={styles.link} to={to} state={linkState}>
-            {post.title}
-          </Link>
+          {to ? (
+            <Link className={styles.link} to={to} state={linkState}>
+              {post.title}
+            </Link>
+          ) : (
+            post.title
+          )}
         </Heading>
 
         {/* 게시중은 기본값이라 표시하지 않는다. 연락중 · 완료만 유형 옆에 붙는다.

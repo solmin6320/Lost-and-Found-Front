@@ -1,0 +1,180 @@
+/*
+ * 종류 다섯 칸. 목록 포스터의 그림(CategoryArt)을 작게 넣는다 — 색은 고른 유형을 따른다.
+ * 좁은 칸(22rem 미만, 320 폭)은 3 + 2 로 접고, 그 위로는 다섯 칸 한 줄. 누르는 면은 칸 전체(44px 이상).
+ */
+
+.group {
+  display: grid;
+  gap: var(--space-2);
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.legend {
+  margin-bottom: var(--space-2);
+  padding: 0;
+  color: var(--text-strong);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-bold);
+  line-height: var(--leading-snug);
+}
+
+.choices {
+  /* 유형을 고르기 전 — 무채색 그림 */
+  --art-body: var(--surface-sunken);
+  --art-shade: var(--border-strong);
+  --art-line: var(--text-body);
+  --art-light: var(--surface);
+  --art-hole: var(--surface);
+  --choice-tint: var(--surface-sunken);
+
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-1-5);
+}
+
+
+.choices[data-type='LOST'] {
+  --art-body: var(--lost-art-body);
+  --art-shade: var(--lost-art-shade);
+  --art-line: var(--lost-art-line);
+  --art-light: var(--lost-art-light);
+  --art-hole: var(--lost-art-hole);
+  --choice-tint: var(--lost-tint);
+}
+
+.choices[data-type='FOUND'] {
+  --art-body: var(--found-art-body);
+  --art-shade: var(--found-art-shade);
+  --art-line: var(--found-art-line);
+  --art-light: var(--found-art-light);
+  --art-hole: var(--found-art-hole);
+  --choice-tint: var(--found-tint);
+}
+
+@media (min-width: 22rem) {
+  .choices {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+}
+
+.choice {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: var(--space-1);
+  min-height: 5.25rem;
+  padding: var(--space-2) var(--space-1);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background-color: var(--surface);
+  cursor: pointer;
+  transition:
+    background-color var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out),
+    opacity var(--duration-fast) var(--ease-out);
+}
+
+.choice[data-checked] {
+  border-color: var(--selected-line);
+  box-shadow: inset 0 0 0 1px var(--selected-line);
+  background-color: var(--choice-tint);
+}
+
+.choice:has(.input:focus-visible) {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+@media (hover: hover) {
+  .choice:not([data-checked]):hover {
+    border-color: var(--border-hover);
+    background-color: var(--surface-sunken);
+  }
+}
+
+.input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.art {
+  width: 2.75rem;
+  height: auto;
+  transition: transform var(--duration-base) var(--ease-out);
+}
+
+/* 고른 칸의 그림이 살짝 기운다 — 목록 포스터에 붙는 스티커 기울기와 같은 말투 */
+.choice[data-checked] .art {
+  transform: rotate(-6deg);
+}
+
+.label {
+  color: var(--text-strong);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-bold);
+  line-height: var(--leading-tight);
+  white-space: nowrap;
+}
+
+.check {
+  position: absolute;
+  top: var(--space-1);
+  right: var(--space-1);
+  display: grid;
+  place-items: center;
+  width: 1.125rem;
+  height: 1.125rem;
+  border-radius: var(--radius-pill);
+  background-color: var(--action);
+  color: var(--on-action);
+  animation: check-in var(--duration-base) var(--ease-out);
+}
+
+.check svg {
+  width: 0.75rem;
+  height: 0.75rem;
+}
+
+.error {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-1);
+  color: var(--text-strong);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  line-height: var(--leading-snug);
+  animation: error-in var(--duration-base) var(--ease-out);
+}
+
+.error svg {
+  flex: none;
+  width: var(--icon-sm);
+  height: var(--icon-sm);
+  margin-top: var(--space-0-5);
+}
+
+.hint {
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+  line-height: var(--leading-snug);
+  word-break: keep-all;
+}
+
+@keyframes check-in {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+}
+
+@keyframes error-in {
+  from {
+    opacity: 0;
+    transform: translateY(calc(var(--space-1) * -1));
+  }
+}

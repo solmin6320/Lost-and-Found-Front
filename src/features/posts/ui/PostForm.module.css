@@ -1,0 +1,337 @@
+/*
+ * 등록 · 수정 폼.
+ *   휴대폰(기본)  한 줄, 칸 사이 28px. 제출 줄은 화면 아래에 붙어 따라온다(엄지가 닿는 곳, 긴 설명을 쓰다가도 보인다)
+ *   48rem 이상    제출 줄이 폼 끝에 제자리로 선다(오른쪽 정렬)
+ *   64rem 이상    두 칸 — 왼쪽 폼(40rem) · 오른쪽 "목록에서 이렇게 보여요" 미리보기(17rem, 따라 내려온다)
+ * 읽는 화면이라 한 줄일 때는 700px(--layout-max)을 넘지 않는다.
+ */
+
+.layout {
+  max-width: var(--layout-max);
+  margin-inline: auto;
+}
+
+@media (min-width: 64rem) {
+  .layout {
+    display: grid;
+    grid-template-columns: minmax(0, 40rem) 17rem;
+    justify-content: center;
+    align-items: start;
+    gap: var(--space-14);
+    max-width: none;
+  }
+}
+
+.form {
+  display: grid;
+  gap: var(--space-8);
+  min-width: 0;
+}
+
+.intro {
+  display: grid;
+  gap: var(--space-2);
+}
+
+/* 날짜 칸 아래 [오늘] [어제] */
+.dateField {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.quickDates {
+  display: flex;
+  gap: var(--space-1-5);
+}
+
+/* 조건을 켜는 조각이라 알약 모양(필터 칩과 같은 말투). 보이는 높이 36px, 누르는 면적 44px */
+.quickDate {
+  position: relative;
+  min-height: 2.25rem;
+  padding-inline: var(--space-4);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-pill);
+  background-color: var(--surface);
+  color: var(--text-strong);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  cursor: pointer;
+  transition:
+    background-color var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out),
+    opacity var(--duration-fast) var(--ease-out);
+}
+
+.quickDate::after {
+  content: '';
+  position: absolute;
+  inset-inline: 0;
+  top: 50%;
+  height: var(--tap-min);
+  transform: translateY(-50%);
+}
+
+.quickDate[aria-pressed='true'] {
+  border-color: var(--action);
+  background-color: var(--action);
+  color: var(--on-action);
+}
+
+.quickDate[aria-disabled='true'] {
+  cursor: default;
+}
+
+@media (hover: hover) {
+  .quickDate[aria-pressed='false']:hover:not([aria-disabled='true']) {
+    border-color: var(--border-hover);
+    background-color: var(--surface-sunken);
+  }
+}
+
+/* 개인정보 경고 — 도움말보다 한 단계 진하게. 적기 전에 읽혀야 한다 */
+.privacy {
+  color: var(--text-body);
+  font-weight: var(--weight-semibold);
+}
+
+/* ── 제출 줄 ── */
+.bar {
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
+  display: grid;
+  gap: var(--space-3);
+  margin-inline: calc(var(--gutter) * -1);
+  padding: var(--space-3) var(--gutter) max(var(--space-3), env(safe-area-inset-bottom));
+  border-top: var(--hairline);
+  background-color: var(--surface);
+}
+
+/* 아래에 붙은 제출 줄이 입력칸을 가리지 않게 — 포커스가 옮겨 갈 때 그만큼 비켜 스크롤한다 */
+:global(html):has(.bar) {
+  scroll-padding-bottom: 6rem;
+}
+
+.buttons {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+  gap: var(--space-2);
+}
+
+@media (min-width: 48rem) {
+  .bar {
+    position: static;
+    margin-inline: 0;
+    padding: var(--space-5) 0 0;
+  }
+
+  :global(html):has(.bar) {
+    scroll-padding-bottom: 0;
+  }
+
+  .buttons {
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  .submit {
+    min-width: 9rem;
+  }
+}
+
+/* 보내는 중 — 단계 두 개. 지나간 단계는 체크, 지금 단계는 굵은 잉크, 남은 단계는 흐리게 */
+.steps {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-4);
+  font-size: var(--text-sm);
+  line-height: var(--leading-snug);
+  animation: appear var(--duration-base) var(--ease-out);
+}
+
+@media (min-width: 48rem) {
+  .steps {
+    justify-content: flex-end;
+  }
+}
+
+.step {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1-5);
+  color: var(--text-muted);
+  font-weight: var(--weight-medium);
+}
+
+.step svg {
+  width: var(--icon-sm);
+  height: var(--icon-sm);
+}
+
+.step[data-state='done'] {
+  color: var(--text-body);
+}
+
+.step[data-state='now'] {
+  color: var(--text-strong);
+  font-weight: var(--weight-bold);
+}
+
+.stepMark {
+  width: 0.5rem;
+  height: 0.5rem;
+  border: 1.5px solid currentColor;
+  border-radius: var(--radius-pill);
+}
+
+.step[data-state='now'] .stepMark {
+  background-color: currentColor;
+}
+
+/* 폼 전체 문제(어느 칸인지 모름 · 연결 실패) — 제출 버튼 바로 위 한 줄 */
+.formAlert {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  background-color: var(--surface-sunken);
+  color: var(--text-strong);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  line-height: var(--leading-snug);
+  word-break: keep-all;
+  animation: appear var(--duration-base) var(--ease-out);
+}
+
+.formAlert svg {
+  flex: none;
+  width: var(--icon-md);
+  height: var(--icon-md);
+}
+
+.formAlert:focus-visible {
+  outline-offset: 3px;
+}
+
+/* ── 이어서 쓰기 ── */
+.draft {
+  display: flex;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
+  border-radius: var(--radius-md);
+  background-color: var(--surface-sunken);
+  animation: appear var(--duration-base) var(--ease-out);
+}
+
+.draftIcon {
+  flex: none;
+  width: var(--icon-lg);
+  height: var(--icon-lg);
+  color: var(--text-strong);
+}
+
+.draftBody {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.draftTitle {
+  font-size: var(--text-base);
+  font-weight: var(--weight-bold);
+  line-height: var(--leading-snug);
+  letter-spacing: var(--tracking-normal);
+  word-break: keep-all;
+}
+
+.draftName {
+  overflow: hidden;
+  color: var(--text-body);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.draftText {
+  color: var(--text-body);
+  font-size: var(--text-sm);
+  line-height: var(--leading-snug);
+  word-break: keep-all;
+}
+
+.draftActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+.restored {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-1-5);
+  color: var(--text-strong);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  line-height: var(--leading-snug);
+  word-break: keep-all;
+  animation: appear var(--duration-base) var(--ease-out);
+}
+
+.restored svg {
+  flex: none;
+  width: var(--icon-sm);
+  height: var(--icon-sm);
+  margin-top: var(--space-0-5);
+}
+
+/* ── 미리보기(64rem 이상) ── */
+.preview {
+  display: none;
+}
+
+@media (min-width: 64rem) {
+  .preview {
+    position: sticky;
+    top: calc(var(--header-h) + var(--space-8));
+    display: grid;
+    gap: var(--space-3);
+  }
+}
+
+.previewLabel {
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+}
+
+.previewCard {
+  width: 100%;
+}
+
+.previewEmpty {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 1;
+  padding: var(--space-6);
+  border: 1px dashed var(--border-hover);
+  border-radius: var(--radius-md);
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+  line-height: var(--leading-snug);
+  text-align: center;
+  word-break: keep-all;
+}
+
+@keyframes appear {
+  from {
+    opacity: 0;
+    transform: translateY(calc(var(--space-1) * -1));
+  }
+}

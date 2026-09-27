@@ -1,0 +1,7 @@
+/* 수정 화면의 빈 상태 · 오류 — 폼 자리(700px)에 옅은 면 한 장 */
+.stateBox {
+  max-width: var(--layout-max);
+  margin-inline: auto;
+  border-radius: var(--radius-md);
+  background-color: var(--surface-sunken);
+}

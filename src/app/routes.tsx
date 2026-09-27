@@ -1,4 +1,4 @@
-import { Route, Routes } from 'react-router-dom'
+import { Route, createBrowserRouter, createRoutesFromElements } from 'react-router-dom'
 
 import { RootLayout } from '@/app/layouts/RootLayout'
 import { LoginPage } from '@/pages/login/LoginPage'
@@ -35,10 +35,14 @@ import { SignupPage } from '@/pages/signup/SignupPage'
  * 목록의 검색·필터는 화면을 나누지 않고 `/` 의 쿼리스트링에 싣는다
  * (`/?keyword=지갑&type=LOST&page=1`). 뒤로가기·새로고침·링크 공유가
  * 그대로 동작하고, 백엔드 [4.2] 의 쿼리 파라미터와 이름이 같아진다.
+ *
+ * 데이터 라우터(`createBrowserRouter`)로 만든다(2026-09-27, 단계 4). 등록 · 수정 화면이 작성 중 이탈을
+ * `useBlocker` 로 막는데, 이 훅은 데이터 라우터 안에서만 동작한다. 로더 · 액션은 쓰지 않는다 —
+ * 데이터는 여전히 TanStack Query 가 맡고, 표는 같은 `<Route>` 요소로 적는다.
  */
-export function AppRoutes() {
-  return (
-    <Routes>
+export function createAppRouter() {
+  return createBrowserRouter(
+    createRoutesFromElements(
       <Route element={<RootLayout />}>
         <Route path="/" element={<PostListPage />} />
 
@@ -55,7 +59,7 @@ export function AppRoutes() {
         <Route path="/settings" element={<SettingsPage />} />
 
         <Route path="*" element={<NotFoundPage />} />
-      </Route>
-    </Routes>
+      </Route>,
+    ),
   )
 }

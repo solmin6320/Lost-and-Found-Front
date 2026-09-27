@@ -16,6 +16,11 @@ interface ConfirmDialogProps {
   confirmLabel: string
   /** 요청이 나가는 동안의 확인 버튼 글자 */
   pendingLabel?: string
+  /**
+   * 물러나는 버튼 글자. 기본 "취소". "작성 취소"를 묻는 창처럼 "취소"가 두 뜻으로 읽힐 때
+   * 무엇을 하는지로 바꾼다 — "계속 쓰기"
+   */
+  cancelLabel?: string
   /** `danger` 는 되돌릴 수 없는 삭제. 그 밖의 되돌릴 수 없는 변경은 `primary` */
   tone?: 'danger' | 'primary'
   /** 요청이 나가는 동안. 두 버튼을 잠그고 Esc · 바깥 누름으로도 닫히지 않는다 */
@@ -44,6 +49,7 @@ export function ConfirmDialog({
   children,
   confirmLabel,
   pendingLabel,
+  cancelLabel = '취소',
   tone = 'primary',
   pending = false,
   error,
@@ -144,7 +150,7 @@ export function ConfirmDialog({
               if (!pending) dialogRef.current?.close()
             }}
           >
-            취소
+            {cancelLabel}
           </Button>
           <Button
             variant={tone}
