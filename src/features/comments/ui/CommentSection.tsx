@@ -1,12 +1,13 @@
-import { useEffect, useId, useRef, useState, type FormEvent } from 'react'
+import { useEffect, useId, useRef, useState, type FormEvent, type Ref } from 'react'
 
 import type { PostDetailResponse } from '@/features/posts'
-import { getErrorMessage } from '@/shared/lib/http'
+import { getErrorMessage, subscribeSessionExpired } from '@/shared/lib/http'
 import { Button, ButtonLink } from '@/shared/ui/Button'
-import { ChatCircleDots, WarningCircle } from '@/shared/ui/icons'
+import { ChatCircleDots, Check, ClockCounterClockwise, WarningCircle } from '@/shared/ui/icons'
 import { Skeleton } from '@/shared/ui/Skeleton'
 
 import { COMMENT_MAX_LENGTH, type CommentResponse } from '../api/types'
+import { clearCommentDraft, loadCommentDraft, saveCommentDraft, type CommentDraft } from '../model/commentDraft'
 import { useCreateComment } from '../model/commentMutations'
 import { usePostComments } from '../model/commentQueries'
 import { checkCommentContent } from '../model/validation'
@@ -22,6 +23,11 @@ interface CommentSectionProps {
   authPending: boolean
   /** 로그인하고 이 글로 돌아오는 주소 */
   loginHref: string
+  /**
+   * 댓글을 쓰는 도중 로그인이 끊겼다(재발급 거절). 쓰던 글자는 이 탭에 보관했다(`draftSaved`).
+   * 부른 쪽이 로그인 화면으로 보낸다 — 돌아오면 쓰기 칸이 이어서 쓸지 묻는다. 쓰던 글자가 없으면 부르지 않는다
+   */
+  onSessionExpiredWhileWriting?: (draftSaved: boolean) => void
 }
 
 /** 누구나 읽는 곳이라는 안내 — 연락처를 적기 전에 알린다(결과 고지 : 누르기 전에, 한 번) */
@@ -33,7 +39,13 @@ const PUBLIC_HINT = '누구나 보는 댓글이에요. 전화번호를 적으면
  * 방금 남긴 댓글은 **목록 끝에 바로** 보인다. 마지막 페이지까지 펼쳐 두지 않았으면 캐시에는 개수만 늘므로,
  * 등록 응답을 따로 들고 있다가 [더 보기] 아래에 붙인다. 나중에 그 페이지를 받으면 하나만 남긴다(id).
  */
-export function CommentSection({ post, viewerId, authPending, loginHref }: CommentSectionProps) {
+export function CommentSection({
+  post,
+  viewerId,
+  authPending,
+  loginHref,
+  onSessionExpiredWhileWriting,
+}: CommentSectionProps) {
   const thread = usePostComments(post.id, post)
   const [recent, setRecent] = useState<CommentResponse[]>([])
   const [announcement, setAnnouncement] = useState('')
@@ -162,7 +174,12 @@ export function CommentSection({ post, viewerId, authPending, loginHref }: Comme
           </ButtonLink>
         </div>
       ) : (
-        <CommentComposer postId={post.id} onCreated={handleCreated} />
+        <CommentComposer
+          postId={post.id}
+          memberId={viewerId}
+          onCreated={handleCreated}
+          onSessionExpiredWhileWriting={onSessionExpiredWhileWriting}
+        />
       )}
 
       <p className="sr-only" role="status">
@@ -196,16 +213,75 @@ function EmptyComments({ postType, ownPost }: { postType: PostDetailResponse['ty
 
 interface CommentComposerProps {
   postId: number
+  memberId: number
   onCreated: (comment: CommentResponse) => void
+  onSessionExpiredWhileWriting?: (draftSaved: boolean) => void
 }
 
-/** 댓글 쓰기. 제출 중에는 입력을 읽기 전용으로 두고 버튼은 누름만 무시한다(두 번 눌러도 한 건). */
-function CommentComposer({ postId, onCreated }: CommentComposerProps) {
+/**
+ * 댓글 쓰기. 제출 중에는 입력을 읽기 전용으로 두고 버튼은 누름만 무시한다(두 번 눌러도 한 건).
+ *
+ * 쓰는 도중 로그인이 끊기면(재발급 거절) 쓰던 글자를 이 탭에 보관하고 부른 쪽에 알린다(`commentDraft`).
+ * 다시 로그인해 이 글로 오면 칸 위에서 이어서 쓸지 묻는다 — 그 자리까지 데려오고 포커스를 둔다.
+ * 사용자가 직접 로그아웃한 것은 보관하지 않는다(고른 일이다).
+ */
+function CommentComposer({ postId, memberId, onCreated, onSessionExpiredWhileWriting }: CommentComposerProps) {
   const create = useCreateComment(postId)
   const [value, setValue] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const [draft, setDraft] = useState<CommentDraft | null>(() => loadCommentDraft(postId, memberId))
+  const [restored, setRestored] = useState(false)
   const inputRef = useRef<HTMLTextAreaElement>(null)
+  const offerRef = useRef<HTMLElement>(null)
   const dirty = value.trim().length > 0
+
+  // 세션 만료 알림은 그리기 전에 온다(캐시가 비워지기 직전). 그때의 글자를 읽을 수 있게 늘 최신 값을 둔다
+  const latest = useRef({ value, memberId, onSessionExpiredWhileWriting })
+  useEffect(() => {
+    latest.current = { value, memberId, onSessionExpiredWhileWriting }
+  })
+  useEffect(
+    () =>
+      subscribeSessionExpired(() => {
+        const now = latest.current
+        if (!now.value.trim()) return
+        const saved = saveCommentDraft({ memberId: now.memberId, postId, savedAt: Date.now(), content: now.value })
+        now.onSessionExpiredWhileWriting?.(saved)
+      }),
+    [postId],
+  )
+
+  // 로그인하고 돌아왔다 — 글 맨 위에서 열리므로 묻는 칸까지 데려온다. 처음 한 번만
+  const offerOnMount = useRef(draft !== null)
+  useEffect(() => {
+    if (!offerOnMount.current) return
+    offerOnMount.current = false
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    requestAnimationFrame(() => {
+      offerRef.current?.scrollIntoView({ block: 'center', behavior: reduce ? 'instant' : 'smooth' })
+      offerRef.current?.focus({ preventScroll: true })
+    })
+  }, [])
+
+  function restoreDraft(saved: CommentDraft) {
+    setValue(saved.content)
+    setError(null)
+    clearCommentDraft(postId)
+    setDraft(null)
+    setRestored(true)
+    requestAnimationFrame(() => {
+      const input = inputRef.current
+      if (!input) return
+      input.focus()
+      input.setSelectionRange(input.value.length, input.value.length)
+    })
+  }
+
+  function discardDraft() {
+    clearCommentDraft(postId)
+    setDraft(null)
+    requestAnimationFrame(() => inputRef.current?.focus())
+  }
 
   // 쓰던 댓글이 있으면 창을 닫기 전에 한 번 묻는다
   useEffect(() => {
@@ -232,6 +308,7 @@ function CommentComposer({ postId, onCreated }: CommentComposerProps) {
         onSuccess: (comment) => {
           setValue('')
           setError(null)
+          setRestored(false)
           onCreated(comment)
         },
         // 입력은 지우지 않는다 — 고쳐서 다시 보낸다
@@ -244,6 +321,20 @@ function CommentComposer({ postId, onCreated }: CommentComposerProps) {
 
   return (
     <form className={styles.composer} onSubmit={submit} noValidate>
+      {draft ? (
+        <CommentDraftOffer
+          ref={offerRef}
+          draft={draft}
+          onRestore={() => restoreDraft(draft)}
+          onDiscard={discardDraft}
+        />
+      ) : null}
+      {restored ? (
+        <p className={styles.restored} role="status">
+          <Check />
+          쓰던 댓글을 불러왔어요.
+        </p>
+      ) : null}
       <CommentField
         ref={inputRef}
         label="댓글 남기기"
@@ -262,5 +353,39 @@ function CommentComposer({ postId, onCreated }: CommentComposerProps) {
         </Button>
       </div>
     </form>
+  )
+}
+
+interface CommentDraftOfferProps {
+  draft: CommentDraft
+  onRestore: () => void
+  onDiscard: () => void
+  ref?: Ref<HTMLElement>
+}
+
+/**
+ * 로그인 뒤 돌아왔다 — 쓰던 댓글을 이어서 쓸지 묻는다. 등록 · 수정 화면의 `이어서 쓰기`와 같은 모양 · 같은 말이다.
+ * 고르기 전에는 빈 칸에 새로 써도 이 칸이 남아 있다. 글자는 두 줄까지만 미리 보인다
+ */
+function CommentDraftOffer({ draft, onRestore, onDiscard, ref }: CommentDraftOfferProps) {
+  const headingId = useId()
+  return (
+    <section ref={ref} className={styles.draft} aria-labelledby={headingId} tabIndex={-1}>
+      <ClockCounterClockwise className={styles.draftIcon} />
+      <div className={styles.draftBody}>
+        <h3 id={headingId} className={styles.draftTitle}>
+          로그인이 끊기기 전에 쓰던 댓글이 있어요.
+        </h3>
+        <p className={styles.draftText}>{draft.content}</p>
+        <div className={styles.draftActions}>
+          <Button size="sm" variant="primary" onClick={onRestore}>
+            이어서 쓰기
+          </Button>
+          <Button size="sm" variant="ghost" onClick={onDiscard}>
+            새로 쓰기
+          </Button>
+        </div>
+      </div>
+    </section>
   )
 }

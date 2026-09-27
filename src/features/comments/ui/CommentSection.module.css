@@ -160,3 +160,87 @@
   line-height: var(--leading-snug);
   word-break: keep-all;
 }
+
+/*
+ * 로그인 뒤 돌아왔을 때 — 쓰던 댓글을 이어서 쓸지 묻는 옅은 면. 등록 · 수정의 같은 칸과 같은 모양이다.
+ * 이 칸으로 데려오며 포커스를 준다(누른 적 없는 곳이라 링은 두르지 않는다)
+ */
+.draft {
+  display: flex;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
+  border-radius: var(--radius-md);
+  background-color: var(--surface-sunken);
+  scroll-margin-block: calc(var(--header-h) + var(--space-4));
+  animation: appear var(--duration-base) var(--ease-out);
+}
+
+.draft:focus {
+  outline: none;
+}
+
+.draftIcon {
+  flex: none;
+  width: var(--icon-lg);
+  height: var(--icon-lg);
+  color: var(--text-strong);
+}
+
+.draftBody {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.draftTitle {
+  font-size: var(--text-base);
+  font-weight: var(--weight-bold);
+  line-height: var(--leading-snug);
+  word-break: keep-all;
+}
+
+/* 쓰던 글자 두 줄 — 무엇을 되살리는지 누르기 전에 보인다 */
+.draftText {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--text-body);
+  font-size: var(--text-sm);
+  line-height: var(--leading-snug);
+  overflow-wrap: anywhere;
+  white-space: pre-line;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+
+.draftActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+.restored {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-1-5);
+  color: var(--text-strong);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  line-height: var(--leading-snug);
+  animation: appear var(--duration-base) var(--ease-out);
+}
+
+.restored svg {
+  flex: none;
+  width: var(--icon-sm);
+  height: var(--icon-sm);
+  margin-top: var(--space-0-5);
+}
+
+@keyframes appear {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}

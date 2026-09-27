@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 
 import { loginPath } from '@/app/authRedirect'
 import { usePageGuide } from '@/app/onboarding'
-import { paths, readPostDetailEntry } from '@/app/paths'
+import { paths, readPostDetailEntry, type LoginNoticeState } from '@/app/paths'
 import { useAuth } from '@/features/auth'
 import { CommentSection } from '@/features/comments'
 import {
@@ -98,6 +98,17 @@ function PostDetail({ post }: { post: PostDetailResponse }) {
     root.querySelector<HTMLButtonElement>('button')?.focus({ preventScroll: true })
     setGuideOpen(true)
   })
+
+  // 댓글을 쓰는 도중 로그인이 끊겼다 — 쓰던 글자를 보관했으면 로그인 화면으로(돌아오면 이어서 쓸지 묻는다).
+  // 로그인 화면이 이 글을 기록에서 대신한다. 로그인하면 `?redirect=` 로 이 글에 돌아온다
+  function handleSessionExpiredWhileWriting(draftSaved: boolean) {
+    const notice: LoginNoticeState = {
+      notice: draftSaved
+        ? '로그인이 만료됐습니다. 다시 로그인하세요. 로그인하면 쓰던 댓글을 이어서 쓸 수 있어요.'
+        : '로그인이 만료됐습니다. 다시 로그인하세요.',
+    }
+    navigate(loginPath(here), { replace: true, state: notice })
+  }
 
   function handleDeleted(message: string) {
     showFlash(message)
@@ -194,6 +205,7 @@ function PostDetail({ post }: { post: PostDetailResponse }) {
           viewerId={viewerId}
           authPending={auth.status === 'unknown'}
           loginHref={loginPath(here)}
+          onSessionExpiredWhileWriting={handleSessionExpiredWhileWriting}
         />
       </div>
     </div>
