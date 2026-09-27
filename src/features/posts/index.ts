@@ -1,9 +1,11 @@
 export {
   changePostStatus,
+  createPost,
   deletePost,
   getPost,
   getPosts,
   normalizePostListParams,
+  updatePost,
 } from './api/postApi'
 export {
   postDetailQueryOptions,
@@ -12,7 +14,35 @@ export {
   usePostDetail,
   usePostList,
 } from './model/postQueries'
-export { useChangePostStatus, useDeletePost } from './model/postMutations'
+export {
+  useChangePostStatus,
+  useCreatePost,
+  useDeletePost,
+  useUpdatePost,
+} from './model/postMutations'
+export type {
+  CreatePostVariables,
+  PostSubmitPhase,
+  UpdatePostVariables,
+} from './model/postMutations'
+export {
+  POST_IMAGE_ACCEPT,
+  POST_IMAGE_EXTENSIONS,
+  POST_IMAGE_JPEG_QUALITY,
+  POST_IMAGE_MAX_BYTES,
+  POST_IMAGE_MAX_COUNT,
+  POST_IMAGE_MAX_EDGE,
+  POST_IMAGE_MESSAGES,
+  POST_REQUEST_MAX_BYTES,
+  checkPostImageCount,
+  checkPostImageFile,
+  checkPostImageSelection,
+  checkPreparedPostImages,
+  postImageExtension,
+  preparePostImage,
+  preparePostImages,
+} from './model/postImages'
+export type { PostImageErrorCode, PostImageExtension } from './model/postImages'
 export { canChangeStatus, isIrreversibleStatus, nextPostStatuses } from './model/postStatus'
 export { toPostId } from './model/postId'
 export {
@@ -56,7 +86,10 @@ export { StatusBadge } from './ui/StatusBadge'
 export { TypeBadge } from './ui/TypeBadge'
 export {
   POST_CATEGORIES,
+  POST_CONTENT_MAX_LENGTH,
+  POST_LOCATION_MAX_LENGTH,
   POST_STATUSES,
+  POST_TITLE_MAX_LENGTH,
   POST_TYPES,
   isPostCategory,
   isPostStatus,
@@ -64,13 +97,17 @@ export {
 } from './api/types'
 export type {
   PostCategory,
+  PostCreateRequest,
   PostDetailResponse,
+  PostImageChange,
   PostImageResponse,
   PostListParams,
   PostListResponse,
+  PostResponse,
   PostSearchCondition,
   PostStatus,
   PostStatusResponse,
   PostStatusUpdateRequest,
   PostType,
+  PostUpdateRequest,
 } from './api/types'

@@ -139,3 +139,84 @@ export interface PostStatusResponse {
   /** 같은 상태로 바꾸면 서버가 아무것도 안 해서 이전 값(첫 변경 전이면 `null`)이 그대로 온다 */
   updatedAt: string | null
 }
+
+/*
+ * 등록 · 수정([4.1] · [4.4]) — multipart/form-data
+ *
+ * 본문은 JSON 이 아니라 폼 필드다. 서버가 `@ModelAttribute` 로 레코드 생성자에 바인딩하므로
+ * **폼 필드 이름이 아래 속성 이름과 글자까지 같아야 한다**(`type` 이지 `postType` 이 아니다).
+ * 이름이 틀린 필드는 조용히 빠지고 "유형은 필수입니다" 같은 400 으로 돌아온다.
+ * 사진은 같은 요청의 `images` 파트(여러 개)다. FormData 는 `postApi` 의 `createPost` · `updatePost` 가 만든다.
+ */
+
+/** 제목 최대 길이. 원본 : `PostCreateRequest.title` `@Size(max = 100)` */
+export const POST_TITLE_MAX_LENGTH = 100
+/** 본문 최대 길이. 원본 : `PostCreateRequest.content` `@Size(max = 5000)` */
+export const POST_CONTENT_MAX_LENGTH = 5000
+/** 장소 최대 길이. 원본 : `PostCreateRequest.location` `@Size(max = 100)` */
+export const POST_LOCATION_MAX_LENGTH = 100
+
+/**
+ * [4.1] 등록 본문(폼 필드). 원본 : `dto/request/PostCreateRequest`
+ *
+ * 모두 필수다. 서버는 앞뒤 공백을 자르지 않는다 — 공백만이면 `@NotBlank` 로 400, 길이는 공백까지 센다.
+ */
+export interface PostCreateRequest {
+  type: PostType
+  /** 1~100자 */
+  title: string
+  /** 1~5000자 */
+  content: string
+  category: PostCategory
+  /** 1~100자 */
+  location: string
+  /** 분실·습득일 `"yyyy-MM-dd"`. 오늘 이후면 400(`@PastOrPresent` — "오늘"은 서버 시계 기준) */
+  lostFoundDate: string
+}
+
+/**
+ * [4.4] 수정 본문(폼 필드). 원본 : `dto/request/PostUpdateRequest` — 검증은 등록과 같다.
+ * `removeImages` 는 여기 두지 않고 `PostImageChange` 로 표현한다(아래).
+ */
+export type PostUpdateRequest = PostCreateRequest
+
+/**
+ * [4.4] 수정할 때 사진을 어떻게 할지. 서버 판정(`PostService.replaceImages`)과 1:1 이다.
+ *
+ * | kind | 보내는 것 | 서버 동작 |
+ * |---|---|---|
+ * | `keep` | `images` 파트 없음 · `removeImages` 없음 | **그대로 둔다** |
+ * | `replace` | `images` 파트 1~5개 | 기존 사진 **전부 지우고** 새 사진으로 바꾼다 |
+ * | `remove` | `removeImages=true` · `images` 파트 없음 | 기존 사진 **전부 지운다** |
+ *
+ * 일부만 지우거나 한 장만 더하는 방법은 없다. 한 장을 더하려면 기존 사진까지 다시 골라 `replace` 한다.
+ * 지운 사진은 되돌릴 수 없다(S3 에서 커밋 후 삭제).
+ */
+export type PostImageChange =
+  | { kind: 'keep' }
+  | { kind: 'replace'; files: readonly File[] }
+  | { kind: 'remove' }
+
+/**
+ * [4.1] · [4.4] 응답. 원본 : `dto/response/PostResponse`
+ *
+ * **사진(`images`)과 댓글이 없다.** 사진 주소가 필요하면 상세(`GET /api/posts/{id}`)를 다시 받는다.
+ */
+export interface PostResponse {
+  id: number
+  memberId: number
+  nickname: string
+  type: PostType
+  title: string
+  content: string
+  category: PostCategory
+  location: string
+  /** `LocalDate` — `"2026-09-20"` */
+  lostFoundDate: string
+  status: PostStatus
+  viewCount: number
+  /** `LocalDateTime` — 시간대 오프셋이 없다 */
+  createdAt: string
+  /** 등록 응답에서는 `null`. 수정 응답에서는 방금 수정한 시각(바뀐 칸이 없어도 갱신된다) */
+  updatedAt: string | null
+}

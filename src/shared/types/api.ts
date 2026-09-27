@@ -35,9 +35,11 @@ export type ErrorCode =
   | 'COMMENT_NOT_FOUND' // 404
   | 'FORBIDDEN_ACCESS' // 403 — 남의 글·댓글. `@PreAuthorize` 거부도 이 code 다
   | 'INVALID_STATUS_TRANSITION' // 409 — 완료(DONE)된 글의 상태를 되돌리려 함
-  // 이미지
-  | 'INVALID_IMAGE_EXTENSION' // 400
-  | 'EXCEEDED_IMAGE_COUNT' // 400
+  // 이미지 — 크기 한도(장당 10MB · 요청 60MB) 초과는 전용 code 가 **없다**.
+  // 413 이 아니라 전역 처리기의 500 `INTERNAL_SERVER_ERROR` 로 오거나, 연결이 끊겨 응답 자체가 없다.
+  // 그래서 크기는 보내기 전에 막는다(`features/posts` 의 `preparePostImages`)
+  | 'INVALID_IMAGE_EXTENSION' // 400 — 파일 이름의 확장자가 jpg · jpeg · png · gif 가 아님(이름에 `.` 이 없어도)
+  | 'EXCEEDED_IMAGE_COUNT' // 400 — 빈 파트를 뺀 사진이 5장 초과
   // 공통
   | 'INVALID_INPUT' // 400
   | 'RESOURCE_NOT_FOUND' // 404

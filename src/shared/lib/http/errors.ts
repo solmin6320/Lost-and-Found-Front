@@ -2,7 +2,8 @@ import type { ErrorCode, ErrorResponse } from '@/shared/types/api'
 
 /**
  * 서버 응답을 못 받았을 때 화면에 쓰는 유일한 문장(화면정의서 1.3).
- * 프론트가 직접 짓는 오류 문구는 이것뿐이다. 나머지는 서버 `message` 를 그대로 쓴다.
+ * 서버 오류에 프론트가 직접 짓는 문구는 이것뿐이다. 나머지는 서버 `message` 를 그대로 쓴다.
+ * (보내기 전에 브라우저가 멈춘 실패는 `ClientValidationError` 가 제 문장을 가진다)
  */
 export const CONNECTION_FAILED_MESSAGE =
   '연결에 실패했습니다. 네트워크를 확인하고 다시 시도하세요.'
@@ -42,6 +43,23 @@ export class NetworkError extends Error {
   }
 }
 
+/**
+ * 요청을 보내기 **전에** 브라우저에서 멈춘 실패(사진을 읽지 못함, 줄여도 한도를 넘음 등).
+ * 서버에는 아무것도 가지 않았다. `message` 는 화면에 그대로 보여줄 문장이다.
+ *
+ * `status` 를 두지 않지만 쓰기(mutation)는 재시도가 0 이라 다시 보내지지 않는다.
+ * `code` 는 서버 `ErrorCode` 와 겹치지 않는 이름을 쓴다(같은 뜻이면 서버 이름을 그대로 쓴다).
+ */
+export class ClientValidationError extends Error {
+  readonly code: string
+
+  constructor(code: string, message: string) {
+    super(message)
+    this.name = 'ClientValidationError'
+    this.code = code
+  }
+}
+
 export function isErrorResponse(body: unknown): body is ErrorResponse {
   if (typeof body !== 'object' || body === null) {
     return false
@@ -60,11 +78,16 @@ export function hasErrorCode(error: unknown, code: ErrorCode): error is ApiError
 }
 
 /**
- * 화면에 띄울 문장. 서버 `message` 가 있으면 그것을, 없으면 연결 실패 문장을 준다.
+ * 화면에 띄울 문장. 서버 `message`(또는 `ClientValidationError` 의 문장)가 있으면 그것을,
+ * 없으면 연결 실패 문장을 준다.
  * 스택트레이스나 예외 원문을 화면에 내보내지 않기 위해 모든 오류 표시는 이 함수를 거친다.
  */
 export function getErrorMessage(error: unknown): string {
-  if (error instanceof ApiError || error instanceof NetworkError) {
+  if (
+    error instanceof ApiError ||
+    error instanceof NetworkError ||
+    error instanceof ClientValidationError
+  ) {
     return error.message
   }
   return CONNECTION_FAILED_MESSAGE

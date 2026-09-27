@@ -1,6 +1,6 @@
 import { env } from '@/shared/config/env'
 
-import { getAccessToken } from './accessToken'
+import { getAccessToken, getAccessTokenRemainingMs } from './accessToken'
 import {
   ApiError,
   CONNECTION_FAILED_MESSAGE,
@@ -39,6 +39,11 @@ export interface RequestOptions {
  */
 export async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const url = buildUrl(path, options.query)
+
+  if (!options.skipAuth && options.body instanceof FormData) {
+    await refreshIfExpiring()
+  }
+
   const sentToken = options.skipAuth ? null : getAccessToken()
 
   try {
@@ -67,6 +72,27 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
 async function attempt<T>(url: string, options: RequestOptions, token: string | null): Promise<T> {
   const response = await send(url, buildInit(options, token))
   return readResult<T>(response, options.signal)
+}
+
+/** 이보다 적게 남았으면 multipart 를 보내기 전에 미리 재발급한다 */
+const MULTIPART_TOKEN_MARGIN_MS = 60_000
+
+/**
+ * 사진을 실은 요청(multipart)은 **토큰이 곧 끝나면 먼저 재발급하고** 보낸다.
+ *
+ * 글을 쓰는 데 5분이 넘게 걸리는 게 보통이라, 그냥 보내면 첫 시도가 거의 항상 401 이다.
+ * 401 은 인증 필터가 본문을 읽기 전에 내리는데, 몇 MB 짜리 본문을 서버(Tomcat)가 다 받아 주지 않고
+ * 연결을 끊으면 브라우저는 401 대신 네트워크 오류를 본다. 그러면 재발급 · 재시도 경로를 타지 못하고
+ * "연결에 실패했습니다"가 뜬다. 사진 수 MB 를 두 번 올리는 낭비도 막는다.
+ *
+ * 재발급은 `refreshAccessToken()` 을 거친다 — 동시에 여럿이 불러도 한 번만 나간다.
+ * 토큰이 없거나(비로그인) 수명을 못 읽으면 아무것도 하지 않고 평소 경로(401 → 재발급)에 맡긴다.
+ */
+async function refreshIfExpiring(): Promise<void> {
+  const remaining = getAccessTokenRemainingMs()
+  if (remaining !== null && remaining < MULTIPART_TOKEN_MARGIN_MS) {
+    await refreshAccessToken()
+  }
 }
 
 function isAccessTokenRejected(error: unknown): boolean {
@@ -107,7 +133,9 @@ function buildInit(options: RequestOptions, token: string | null): RequestInit {
   }
 
   if (options.body instanceof FormData) {
-    // Content-Type 을 직접 넣지 않는다. 브라우저가 boundary 를 붙여 채운다
+    // Content-Type 을 직접 넣지 않는다. 브라우저가 boundary 를 붙여 채운다.
+    // 401 뒤 재시도에 같은 FormData 를 다시 넣어도 된다 — fetch 가 보낼 때마다 새로 직렬화하고,
+    // 안의 File 은 Blob 이라 몇 번이고 다시 읽힌다(스트림처럼 소모되지 않는다)
     body = options.body
   } else if (options.body !== undefined) {
     headers.set('Content-Type', 'application/json')
