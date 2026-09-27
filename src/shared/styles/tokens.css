@@ -28,7 +28,8 @@
 :root {
   /* ───────── 타이포 ─────────
      Pretendard 하나. 굵기와 크기 대비로 위계를 만든다.
-     동적 서브셋(index.html)이라 실제로 화면에 뜬 글자만 내려받는다. */
+     동적 서브셋(main.tsx 가 pretendard 패키지에서 싣는다)이라 실제로 화면에 뜬 글자가 속한 조각만 내려받는다.
+     첫 이름은 패키지 CSS 의 font-family 와 같아야 한다 — 'Pretendard Variable' */
   --font-sans:
     'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont,
     'Apple SD Gothic Neo', 'Segoe UI', 'Malgun Gothic', system-ui, sans-serif;

@@ -283,12 +283,12 @@
 
 /* 지금 상태를 말하는 옅은 면 한 장 — 교체 · 삭제. 무엇이 일어날지 → 되돌리는 길 */
 .state {
+  composes: appear from '../../../shared/styles/motion.module.css';
   display: flex;
   gap: var(--space-2);
   padding: var(--space-3) var(--space-4);
   border-radius: var(--radius-md);
   background-color: var(--surface-sunken);
-  animation: appear var(--duration-base) var(--ease-out);
 }
 
 .stateIcon {
@@ -316,12 +316,12 @@
 
 /* 넣지 못한 파일 — 이름과 이유. 빨강이 아니라 아이콘 + 굵은 글자 */
 .notices {
+  composes: appear from '../../../shared/styles/motion.module.css';
   display: grid;
   gap: var(--space-1);
   padding: var(--space-3) var(--space-4);
   border-radius: var(--radius-md);
   background-color: var(--surface-sunken);
-  animation: appear var(--duration-base) var(--ease-out);
 }
 
 .notices li {
@@ -349,6 +349,7 @@
 }
 
 .error {
+  composes: appear from '../../../shared/styles/motion.module.css';
   display: flex;
   align-items: flex-start;
   gap: var(--space-1);
@@ -356,7 +357,6 @@
   font-size: var(--text-sm);
   font-weight: var(--weight-semibold);
   line-height: var(--leading-snug);
-  animation: appear var(--duration-base) var(--ease-out);
 }
 
 .error svg {
@@ -379,12 +379,5 @@
   from {
     opacity: 0;
     transform: translateY(var(--space-1));
-  }
-}
-
-@keyframes appear {
-  from {
-    opacity: 0;
-    transform: translateY(calc(var(--space-1) * -1));
   }
 }

@@ -42,7 +42,9 @@ export function PostEditPage() {
   const navigate = useNavigate()
   const detail = usePostDetail(page.gate === 'form' ? postId : null)
 
-  // 한 번 불러온 글을 붙잡아 둔다. 로그인이 끊겨 캐시가 비워져도(재발급 거절) 폼이 내려가지 않아야 쓰던 글자를 보관한다
+  // 한 번 불러온 글을 붙잡아 둔다. 로그인이 끊기면(재발급 거절 · 로그아웃) `forgetMember` 는 개인 캐시(회원 · 내가 쓴 글)만 지우고
+  // 이 글의 상세는 지우지 않고 다시 받게만 한다(공개 데이터). 다시 받는 사이에도, 받은 값이 바뀌어도 폼이 흔들리지 않아야
+  // 떠나기 전에 쓰던 글자를 보관한다(`onSessionLost`)
   const [kept, setKept] = useState<PostDetailResponse | null>(null)
   if (detail.data && kept === null) setKept(detail.data)
   const post = kept ?? detail.data ?? null

@@ -38,7 +38,7 @@ export const GUIDE_STEPS: readonly GuideStep[] = [
   {
     target: 'create',
     title: '찾는 물건이 없으면 글을 올려요',
-    body: '사진과 장소를 남기면 본 사람이 알아볼 수 있어요.',
+    body: '사진과 장소를 남기면 본 사람이 댓글로 알려 줘요.',
   },
 ]
 

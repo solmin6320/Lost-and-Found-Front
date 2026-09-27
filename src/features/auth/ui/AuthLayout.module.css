@@ -102,6 +102,7 @@
 /* ── 폼 위 안내(확인 문장) ── */
 
 .notice {
+  composes: appear from '../../../shared/styles/motion.module.css';
   display: flex;
   align-items: flex-start;
   gap: var(--space-2);
@@ -114,7 +115,6 @@
   font-weight: var(--weight-semibold);
   line-height: var(--leading-snug);
   word-break: keep-all;
-  animation: appear var(--duration-base) var(--ease-out);
 }
 
 .notice svg {
@@ -173,13 +173,6 @@
   content: '';
   position: absolute;
   inset: calc((var(--tap-min) - 1lh) / -2) calc(var(--space-2) * -1);
-}
-
-@keyframes appear {
-  from {
-    opacity: 0;
-    transform: translateY(calc(var(--space-1) * -1));
-  }
 }
 
 /* ── 넓은 화면 — 제목 칸 | 폼 칸 ── */

@@ -3,6 +3,9 @@ import { createRoot } from 'react-dom/client'
 
 import { App } from '@/app/App'
 import { startThemeSync } from '@/shared/lib/theme'
+// Pretendard — 패키지에서 번들로 싣는다(외부 CDN 요청 없음). 동적 서브셋이라 화면에 뜬 글자가 속한 조각(woff2)만 받는다.
+// 가변 글꼴이라 굵기(400~800)가 조각 하나에 다 들어 있다. `font-display: swap` — 조각이 오기 전에도 글자는 바로 보인다
+import 'pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css'
 import '@/shared/styles/global.css'
 
 const container = document.getElementById('root')
