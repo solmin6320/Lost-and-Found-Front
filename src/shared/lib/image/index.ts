@@ -1,3 +1,7 @@
 export { ImageDecodeError, encodeAsJpeg, isDecodableImage } from './downscale'
 export type { JpegEncodeOptions } from './downscale'
+export { readImageFormat, sniffImageFormat } from './format'
+export type { ImageFormat } from './format'
+export { stripImageMetadata } from './metadata'
+export type { StrippedImage } from './metadata'
 export { useObjectUrls } from './useObjectUrls'

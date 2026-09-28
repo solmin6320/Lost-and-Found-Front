@@ -23,7 +23,7 @@ export function parseMyPostsSearch(params: URLSearchParams): MyPostsSearch {
   const page = Number(params.get('page'))
   return {
     status: isPostStatus(status) ? status : undefined,
-    page: Number.isInteger(page) && page >= 1 ? page : 1,
+    page: Number.isSafeInteger(page) && page >= 1 ? page : 1,
   }
 }
 

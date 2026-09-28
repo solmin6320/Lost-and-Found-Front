@@ -37,6 +37,7 @@ export {
   POST_IMAGE_MAX_EDGE,
   POST_IMAGE_MESSAGES,
   POST_REQUEST_MAX_BYTES,
+  checkPostImageContent,
   checkPostImageCount,
   checkPostImageFile,
   checkPostImageSelection,

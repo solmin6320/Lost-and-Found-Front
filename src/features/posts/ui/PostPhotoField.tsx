@@ -6,7 +6,13 @@ import { Button } from '@/shared/ui/Button'
 import { ArrowUUpLeft, Camera, CaretLeft, CaretRight, Plus, Trash, WarningCircle, X } from '@/shared/ui/icons'
 
 import type { PostImageResponse } from '../api/types'
-import { POST_IMAGE_ACCEPT, POST_IMAGE_MAX_COUNT, POST_IMAGE_MESSAGES, checkPostImageFile } from '../model/postImages'
+import {
+  POST_IMAGE_ACCEPT,
+  POST_IMAGE_MAX_COUNT,
+  POST_IMAGE_MESSAGES,
+  checkPostImageContent,
+  checkPostImageFile,
+} from '../model/postImages'
 import styles from './PostPhotoField.module.css'
 
 /** 새로 고른 사진 한 장. `key` 는 순서를 바꿔도 같은 칸을 가리키게 하는 번호다 */
@@ -62,7 +68,8 @@ let nextNoticeId = 1
  *   - 삭제(remove)  : [사진 전부 삭제]. 저장 전까지는 [기존 사진 유지]로 돌아간다. 되돌릴 수 있으니 다이얼로그 없이 인라인
  *
  * 6장째는 고르는 순간 막는다 — 들어갈 수 있는 만큼만 넣고, 몇 장을 넣지 않았는지 알린다. 확장자 · 크기가 맞지 않는
- * 파일, 브라우저가 읽지 못하는 파일도 그 파일만 거르고 이름과 이유를 알린다. 서버까지 보내고 400 을 받지 않는다.
+ * 파일, 앞 바이트가 JPG · PNG · GIF 가 아닌 파일(이름만 바꾼 것), 브라우저가 읽지 못하는 파일도 그 파일만 거르고
+ * 이름과 이유를 알린다. 서버까지 보내고 400 을 받지 않는다.
  */
 export function PostPhotoField({
   items,
@@ -149,8 +156,17 @@ export function PostPhotoField({
     // 읽어 줄 말은 이 한 줄에 모은다 — 넣은 결과 · 교체 고지 · 넣지 못한 파일. 화면의 알림 목록은 소리 내지 않는다
     const spoken: string[] = []
     if (added.length > 0) {
-      const nextItems = [...items, ...toPhotoItems(added)]
+      const addedItems = toPhotoItems(added)
+      const nextItems = [...items, ...addedItems]
+      // 아래 내용 검사가 그리기 전에 끝나도 새 칸을 찾을 수 있게 바로 적어 둔다(`remove` 는 이 값을 본다)
+      latestItems.current = nextItems
       onItemsChange(nextItems)
+      // 이름은 맞아도 내용(앞 바이트)이 JPG · PNG · GIF 가 아니면 그 사진만 뺀다. 8바이트만 읽어 바로 끝난다
+      for (const item of addedItems) {
+        void checkPostImageContent(item.file).then((problem) => {
+          if (problem) remove(item.key, { id: nextNoticeId++, name: item.file.name, message: problem })
+        })
+      }
       spoken.push(`사진 ${added.length}장을 넣었어요. 모두 ${nextItems.length}장이에요.`)
       if (items.length === 0 && existing.length > 0) {
         spoken.push(`저장하면 기존 사진 ${existing.length}장 대신 이 사진 ${nextItems.length}장이 올라가요.`)

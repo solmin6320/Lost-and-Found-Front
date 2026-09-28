@@ -8,9 +8,11 @@
  *   탭을 닫으면 사라지고(sessionStorage), 6시간이 지나면 버리고, 이어 쓰기를 고르든 버리든 바로 지운다
  * - **같은 회원에게만** 묻는다. 공용 기기에서 다른 사람이 로그인하면 보이지 않는다(지우지도 않는다)
  * - 글마다 하나다(`comment-draft:v1:{postId}`). 다른 글의 댓글 칸에는 나오지 않는다
+ * - **직접 로그아웃하면 지운다**(공용 기기 — `shared/lib/writeDrafts`). 세션 만료 때는 남긴다 — 이어 쓰려고 두는 것이다
  */
 
-const PREFIX = 'comment-draft:v1:'
+import { COMMENT_DRAFT_PREFIX as PREFIX } from '@/shared/lib/writeDrafts'
+
 const MAX_AGE_MS = 6 * 60 * 60 * 1000
 
 export interface CommentDraft {

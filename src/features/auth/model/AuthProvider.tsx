@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useReducer, type ReactNode } from 'rea
 import { memberKeys, meQueryOptions, type PasswordUpdateRequest } from '@/features/members'
 import { postKeys } from '@/features/posts'
 import { subscribeSessionExpired } from '@/shared/lib/http'
+import { clearWriteDrafts } from '@/shared/lib/writeDrafts'
 
 import type { LoginRequest } from '../api/types'
 import { AuthContext, type AuthContextValue } from './AuthContext'
@@ -19,7 +20,8 @@ import { restoreSession, signIn, signOut, updatePasswordAndEndSession } from './
  * - **공개 게시글 · 댓글은 두고 다시 받게만 한다**(`invalidateQueries`). 누가 봐도 같은 데이터다.
  *   통째로 비우면(`clear()`) 보던 상세 · 목록이 스켈레톤으로 깜빡이고 높이가 줄어 스크롤이 튄다
  *
- * 쓰던 댓글 · 글의 보관(`comment-draft:v1` · `post-draft:v1`)은 sessionStorage 라 여기서 건드리지 않는다
+ * 쓰던 댓글 · 글의 보관(`comment-draft:v1` · `post-draft:v1`)은 여기서 건드리지 않는다 — 세션 만료 뒤 이어 쓰려고 둔 것이다.
+ * **직접 로그아웃**할 때만 `logout` 이 따로 지운다(공용 기기)
  */
 function forgetMember(queryClient: QueryClient) {
   queryClient.getMutationCache().clear()
@@ -71,6 +73,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await signOut()
     // 안 지우면 같은 기기의 다음 사용자가 이전 사용자의 데이터를 본다(보안명세서 8장)
     forgetMember(queryClient)
+    // 스스로 로그아웃했다 — 이어 쓸 일이 없다. 쓰던 글 · 댓글의 보관도 지운다(공용 기기, 보안명세서 3장)
+    clearWriteDrafts()
     dispatch({ type: 'LOGGED_OUT' })
   }, [queryClient])
 

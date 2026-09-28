@@ -4,11 +4,13 @@ import {
   POST_IMAGE_MAX_BYTES,
   POST_IMAGE_MESSAGES,
   POST_REQUEST_MAX_BYTES,
+  checkPostImageContent,
   checkPostImageCount,
   checkPostImageFile,
   checkPostImageSelection,
   checkPreparedPostImages,
   postImageExtension,
+  safePostImageBaseName,
 } from './postImages'
 
 /** 검사 함수는 name · size 만 본다. 큰 파일을 실제로 만들지 않는다 */
@@ -99,5 +101,61 @@ describe('checkPreparedPostImages — 줄인 뒤 보내기 직전', () => {
     const files = Array.from({ length: 5 }, (_, i) => fakeFile(`${i}.jpg`, POST_IMAGE_MAX_BYTES))
     expect(checkPreparedPostImages(files)).toBeUndefined()
     expect(5 * POST_IMAGE_MAX_BYTES).toBeLessThan(POST_REQUEST_MAX_BYTES - MB)
+  })
+})
+
+describe('checkPostImageContent — 앞 바이트가 JPG · PNG · GIF 인지', () => {
+  const file = (head: number[], name: string, size?: number) => {
+    const real = new File([new Uint8Array(head)], name)
+    return size === undefined ? real : Object.defineProperty(real, 'size', { value: size })
+  }
+  const codes = (text: string) => Array.from(text, (char) => char.charCodeAt(0))
+  const JPEG = [0xff, 0xd8, 0xff, 0xe0]
+  const GIF = codes('GIF89a')
+
+  it('이름과 달라도 실제 그림이면 통과', async () => {
+    expect(await checkPostImageContent(file(JPEG, 'scan.png'))).toBeUndefined()
+  })
+
+  it('이름만 .jpg 인 HTML · WebP 는 거른다', async () => {
+    expect(await checkPostImageContent(file(codes('<html><script>'), 'photo.jpg'))).toBe(POST_IMAGE_MESSAGES.format)
+    expect(await checkPostImageContent(file([...codes('RIFF'), 0, 0, 0, 0, ...codes('WEBP')], 'photo.jpg'))).toBe(
+      POST_IMAGE_MESSAGES.format,
+    )
+  })
+
+  it('이름이 .jpg 여도 내용이 GIF 면 GIF 한도(줄이지 않는다)를 본다', async () => {
+    expect(await checkPostImageContent(file(GIF, 'anim.jpg', POST_IMAGE_MAX_BYTES + 1))).toBe(
+      POST_IMAGE_MESSAGES.fileSize,
+    )
+    expect(await checkPostImageContent(file(JPEG, 'big.jpg', POST_IMAGE_MAX_BYTES + 1))).toBeUndefined()
+  })
+})
+
+describe('safePostImageBaseName — 서버가 누구에게나 내려주는 원래 이름', () => {
+  it.each([
+    ['../../etc/passwd.jpg', '_.._etc_passwd'],
+    ['C:\\Users\\me\\사진.jpg', 'C__Users_me_사진'],
+    ['a:b*c?d"e<f>g|h.png', 'a_b_c_d_e_f_g_h'],
+    ['   ..hidden.jpg', 'hidden'],
+    ['name\u0000\u001f\u007f\u009f.jpg', 'name'],
+    ['invoice\u202egpj.exe.jpg', 'invoicegpj.exe'],
+    ['zero\u200bwidth\ufeff.jpg', 'zerowidth'],
+    ['tab\t\tspace   name.jpg', 'tab space name'],
+    ['.jpg', 'image'],
+    ['', 'image'],
+  ])('%j → %j', (input, expected) => {
+    expect(safePostImageBaseName(input)).toBe(expected)
+  })
+
+  it('macOS 의 풀어 쓴 한글(NFD)을 모아 쓴다(NFC)', () => {
+    const nfd = '지갑'.normalize('NFD')
+    expect(safePostImageBaseName(`${nfd}.jpg`)).toBe('지갑')
+  })
+
+  it('100자(코드 포인트)에서 자른다 — 이모지를 반으로 가르지 않는다', () => {
+    const result = safePostImageBaseName(`${'😀'.repeat(150)}.jpg`)
+    expect(Array.from(result)).toHaveLength(100)
+    expect(result).toBe('😀'.repeat(100))
   })
 })
