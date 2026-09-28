@@ -17,7 +17,9 @@ export function safeRedirectPath(raw: string | null | undefined): string {
   }
 
   const url = new URL(raw, window.location.origin)
-  if (url.origin !== window.location.origin) {
+  // 앞 검사는 원문만 본다. `/..//evil.com` 은 `new URL()` 이 점 구간을 정리한 뒤에야 `//evil.com` 이 된다 —
+  // 오리진은 같게 나오지만 이 값을 그대로 넘기면 브라우저가 프로토콜 상대 주소로 읽는다. 정리된 경로로 한 번 더 막는다
+  if (url.origin !== window.location.origin || url.pathname.startsWith('//')) {
     return paths.postList
   }
   if (url.pathname === paths.login || url.pathname === paths.signup) {
