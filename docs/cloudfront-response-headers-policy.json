@@ -1,0 +1,64 @@
+{
+  "Name": "lost-and-found-front-security",
+  "Comment": "SPA(/*) 응답 보안 헤더. CSP 는 build/csp.ts 의 buildHeaderCsp() 와 같아야 한다(build/csp.test.ts 가 확인)",
+  "SecurityHeadersConfig": {
+    "ContentSecurityPolicy": {
+      "Override": true,
+      "ContentSecurityPolicy": "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' blob: https://lostfound-images-solmin-seoul.s3.ap-northeast-2.amazonaws.com; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; require-trusted-types-for 'script'; trusted-types 'none'; upgrade-insecure-requests; frame-ancestors 'none'"
+    },
+    "StrictTransportSecurity": {
+      "Override": true,
+      "AccessControlMaxAgeSec": 31536000,
+      "IncludeSubdomains": true,
+      "Preload": false
+    },
+    "ContentTypeOptions": {
+      "Override": true
+    },
+    "FrameOptions": {
+      "Override": true,
+      "FrameOption": "DENY"
+    },
+    "ReferrerPolicy": {
+      "Override": true,
+      "ReferrerPolicy": "same-origin"
+    },
+    "XSSProtection": {
+      "Override": true,
+      "Protection": false
+    }
+  },
+  "CustomHeadersConfig": {
+    "Quantity": 4,
+    "Items": [
+      {
+        "Header": "Permissions-Policy",
+        "Value": "camera=(), microphone=(), geolocation=(), payment=(), usb=(), serial=(), bluetooth=(), browsing-topics=()",
+        "Override": true
+      },
+      {
+        "Header": "Cross-Origin-Opener-Policy",
+        "Value": "same-origin",
+        "Override": true
+      },
+      {
+        "Header": "Cross-Origin-Resource-Policy",
+        "Value": "same-origin",
+        "Override": true
+      },
+      {
+        "Header": "X-Permitted-Cross-Domain-Policies",
+        "Value": "none",
+        "Override": true
+      }
+    ]
+  },
+  "RemoveHeadersConfig": {
+    "Quantity": 1,
+    "Items": [
+      {
+        "Header": "Server"
+      }
+    ]
+  }
+}
