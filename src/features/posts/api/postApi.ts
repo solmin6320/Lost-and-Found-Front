@@ -1,4 +1,5 @@
 import { request } from '@/shared/lib/http'
+import { safeImageUrl } from '@/shared/lib/url'
 import type { PagedModel } from '@/shared/types/api'
 
 import {
@@ -50,7 +51,24 @@ export function normalizePostListParams(params: PostListParams): PostListParams 
 }
 
 function isPositiveInteger(value: number | undefined): value is number {
-  return Number.isInteger(value) && (value as number) > 0
+  return Number.isSafeInteger(value) && (value as number) > 0
+}
+
+/*
+ * 응답의 사진 주소는 `<img src>` 로 바로 들어간다. http(s) 가 아닌 주소(`javascript:` · `data:` 등)는
+ * 여기서 한 번에 버린다 — 화면 코드 어디서 그리든 걸러진 값만 본다(보안명세서 2장).
+ * 목록 · 내 글은 대표 사진을 `null` 로(카드가 카테고리 그림으로 채운다), 상세는 그 사진만 뺀다.
+ */
+function withSafeThumbnails(page: PagedModel<PostListResponse>): PagedModel<PostListResponse> {
+  return { ...page, content: page.content.map((post) => ({ ...post, thumbnailUrl: safeImageUrl(post.thumbnailUrl) })) }
+}
+
+function withSafeImages(post: PostDetailResponse): PostDetailResponse {
+  const images = (post.images ?? []).flatMap((image) => {
+    const url = safeImageUrl(image.url)
+    return url ? [{ ...image, url }] : []
+  })
+  return { ...post, images }
 }
 
 /**
@@ -65,7 +83,7 @@ export function getPosts(
   return request<PagedModel<PostListResponse>>('/api/posts', {
     query: { ...normalizePostListParams(params) },
     signal,
-  })
+  }).then(withSafeThumbnails)
 }
 
 /** 내 글 조회 조건을 서버에 보낼 모양으로. 모르는 상태 · 0쪽 · 잘못된 크기는 뺀다(요청과 쿼리 키가 같은 결과를 쓴다) */
@@ -91,7 +109,7 @@ export function getMyPosts(
   return request<PagedModel<PostListResponse>>('/api/members/me/posts', {
     query: { ...normalizeMyPostsParams(params) },
     signal,
-  })
+  }).then(withSafeThumbnails)
 }
 
 /**
@@ -104,7 +122,7 @@ export function getMyPosts(
  * 실패 code : `POST_NOT_FOUND`(404) · `INVALID_INPUT`(400, id 가 숫자가 아님)
  */
 export function getPost(postId: number, signal?: AbortSignal): Promise<PostDetailResponse> {
-  return request<PostDetailResponse>(`/api/posts/${postId}`, { signal })
+  return request<PostDetailResponse>(`/api/posts/${postId}`, { signal }).then(withSafeImages)
 }
 
 /**

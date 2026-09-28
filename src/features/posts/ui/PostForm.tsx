@@ -11,7 +11,7 @@ import {
 import { useLocation, useNavigate, type NavigateOptions, type To } from 'react-router-dom'
 
 import { todayIsoDate } from '@/shared/lib/date'
-import { ClientValidationError, getErrorMessage, hasErrorCode } from '@/shared/lib/http'
+import { ClientValidationError, getErrorMessage, hasErrorCode, subscribeSessionExpired } from '@/shared/lib/http'
 import { useObjectUrls } from '@/shared/lib/image'
 import { useLeaveGuard } from '@/shared/lib/useLeaveGuard'
 import { Button } from '@/shared/ui/Button'
@@ -71,7 +71,10 @@ interface PostFormProps {
   draftKey: string
   /** 로그인한 회원. 임시 보관은 이 회원에게만 되살려 준다 */
   memberId: number
-  /** 로그인이 끊기면 거짓이 된다 — 쓰던 글자를 보관하고 `onSessionLost` 를 부른다 */
+  /**
+   * 로그인이 끊기면 거짓이 된다 — `onSessionLost` 를 부른다. 쓰던 글자는 **세션이 만료됐을 때만** 보관한다.
+   * 직접 로그아웃했으면 보관하지 않는다(공용 기기 — 로그아웃이 보관을 모두 지운다, 보안명세서 3장)
+   */
   signedIn: boolean
   pending: boolean
   phase: PostSubmitPhase
@@ -181,17 +184,21 @@ export function PostForm({
     focusAfterRender.current = null
   })
 
-  // 로그인이 끊겼다(재발급 거절 · 로그아웃) — 쓰던 글자를 보관하고 화면에 알린다. 한 번만
+  // 로그인이 끊겼다(재발급 거절 · 로그아웃) — 화면에 알린다. 한 번만.
+  // 쓰던 글자는 **만료**일 때만 보관한다. 만료 알림은 로그아웃 상태가 그려지기 전에 온다
   const latest = useRef({ values, items, removeExisting, dirty, memberId, onSessionLost })
   useEffect(() => {
     latest.current = { values, items, removeExisting, dirty, memberId, onSessionLost }
   })
+  const expired = useRef(false)
+  useEffect(() => subscribeSessionExpired(() => (expired.current = true)), [])
   const lostHandled = useRef(false)
   useEffect(() => {
     if (signedIn || lostHandled.current) return
     lostHandled.current = true
     const now = latest.current
     const saved =
+      expired.current &&
       now.dirty &&
       savePostDraft(draftKey, {
         memberId: now.memberId,

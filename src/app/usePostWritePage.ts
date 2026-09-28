@@ -13,7 +13,8 @@ import { subscribeSessionExpired } from '@/shared/lib/http'
  *
  * - `gate` : `pending`(세션 복구 중 — 폼 모양 스켈레톤) · `login`(처음부터 비로그인 — 로그인으로 보낸다) · `form`
  * - 쓰는 도중 로그인이 끊기면(재발급 거절 · 로그아웃) 폼을 **내리지 않는다.** 폼이 쓰던 글자를 보관한 뒤
- *   `onSessionLost` 를 부르고, 여기서 로그인 화면으로 보낸다(돌아올 곳 · 안내 한 줄을 싣는다)
+ *   `onSessionLost` 를 부르고, 여기서 로그인 화면으로 보낸다(돌아올 곳 · 안내 한 줄을 싣는다).
+ *   보관은 만료일 때만이다 — 직접 로그아웃하면 남기지 않는다(공용 기기, 보안명세서 3장)
  */
 export function usePostWritePage() {
   const auth = useAuth()

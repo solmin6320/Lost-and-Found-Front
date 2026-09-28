@@ -1,5 +1,12 @@
 import { ClientValidationError } from '@/shared/lib/http'
-import { ImageDecodeError, encodeAsJpeg, isDecodableImage } from '@/shared/lib/image'
+import {
+  ImageDecodeError,
+  encodeAsJpeg,
+  isDecodableImage,
+  readImageFormat,
+  stripImageMetadata,
+  type ImageFormat,
+} from '@/shared/lib/image'
 
 /*
  * 게시글 사진 규칙 — 등록 · 수정([4.1] · [4.4] · [4.5])
@@ -62,6 +69,7 @@ export const POST_IMAGE_MESSAGES = {
   fileSize: '사진은 한 장에 10MB까지 올릴 수 있습니다',
   totalSize: '사진은 모두 합쳐 60MB까지 올릴 수 있습니다',
   unreadable: '사진을 읽을 수 없습니다. 다른 사진을 골라 주세요',
+  format: 'JPG · PNG · GIF 사진이 아닙니다. 이름만 바꾼 파일일 수 있어요',
 } as const
 
 /**
@@ -74,6 +82,7 @@ export type PostImageErrorCode =
   | 'IMAGE_TOO_LARGE'
   | 'REQUEST_TOO_LARGE'
   | 'UNREADABLE_IMAGE'
+  | 'INVALID_IMAGE_FORMAT'
 
 /** 서버와 같은 방식으로 확장자를 뽑는다(마지막 `.` 뒤, 소문자). 허용 목록에 없으면 `null` */
 export function postImageExtension(fileName: string): PostImageExtension | null {
@@ -116,6 +125,24 @@ export function checkPostImageSelection(files: readonly File[]): string | undefi
 }
 
 /**
+ * 고른 직후 파일 **내용** 검사(비동기) — 앞 8바이트(매직 바이트)가 JPEG · PNG · GIF 인지.
+ * 이름만 `.jpg` 로 바꾼 WebP · HEIC · HTML · SVG 를 그 파일만 거른다. 문제 있으면 문장, 없으면 `undefined`.
+ *
+ * 확장자가 아니라 **실제 형식**으로 GIF 한도를 본다 — 이름이 `.jpg` 인 GIF 도 줄이지 않고 보내기 때문이다.
+ * 서버는 확장자만 본다(백엔드 개선 목록 24-5). 여기서 거르는 것은 심층 방어이고, 서버 쪽 검증이 따로 있어야 한다.
+ */
+export async function checkPostImageContent(file: File): Promise<string | undefined> {
+  const format = await readImageFormat(file)
+  if (format === null) {
+    return POST_IMAGE_MESSAGES.format
+  }
+  if (format === 'gif' && file.size > POST_IMAGE_MAX_BYTES) {
+    return POST_IMAGE_MESSAGES.fileSize
+  }
+  return undefined
+}
+
+/**
  * **줄인 뒤** 보내기 직전 검사. 장당 10MB · 합계 60MB(여유 1MB 를 뺀 값) · 5장.
  * `preparePostImages()` 가 마지막에 부른다. 직접 FormData 를 만들 때만 따로 부른다.
  */
@@ -138,16 +165,19 @@ const prepared = new WeakMap<File, Promise<File>>()
 /**
  * 사진 한 장을 올릴 모양으로 만든다.
  *
+ * 형식은 이름이 아니라 **앞 바이트**로 정한다(`readImageFormat`). JPEG · PNG · GIF 가 아니면 거른다.
+ *
  * - **JPEG · PNG** : 긴 변 2048px · JPEG 0.85 로 다시 그린다(EXIF 방향 적용, EXIF 제거, 투명 → 흰색).
- *   결과가 원본보다 크면 원본을 쓴다(이미 작고 잘 압축된 사진, 단색 PNG)
- * - **GIF** : 줄이지 않고 그대로 보낸다. 캔버스는 첫 장면만 그려서 움직이는 GIF 가 멈춘 그림이 된다.
- *   대신 그림으로 읽히는지만 확인한다
+ *   결과가 원본보다 크면 원본을 쓴다(이미 작고 잘 압축된 사진, 단색 PNG) — 단, 원본에서 메타데이터(EXIF GPS · XMP ·
+ *   글자 덩어리)를 **걷어 낸 것**을 보낸다. JPEG 원본에 메타데이터가 있었으면 커져도 다시 그린 쪽을 보낸다(방향 때문)
+ * - **GIF** : 줄이지 않고 보낸다. 캔버스는 첫 장면만 그려서 움직이는 GIF 가 멈춘 그림이 된다.
+ *   그림으로 읽히는지 확인하고 주석 · XMP 만 걷는다
  *
- * 파일 이름은 `원래이름.jpg` 처럼 확장자를 실제 형식에 맞춘다. 서버는 이름의 확장자로 허용 여부를 보고,
- * 파트의 Content-Type 을 S3 에 그대로 적는다. 서버는 저장 이름을 UUID 로 바꾸지만(`S3Service.upload`)
- * 원래 이름은 `original_filename` 에 남겨 **상세 응답으로 누구에게나 내려준다.**
+ * 파일 이름은 `원래이름.jpg` 처럼 확장자를 실제 형식에 맞추고, 경로 · 제어 문자를 뺀다(`safePostImageBaseName`).
+ * 서버는 이름의 확장자로 허용 여부를 보고, 파트의 Content-Type 을 S3 에 그대로 적는다. 서버는 저장 이름을 UUID 로
+ * 바꾸지만(`S3Service.upload`) 원래 이름은 `original_filename` 에 남겨 **상세 응답으로 누구에게나 내려준다.**
  *
- * 실패하면 `ClientValidationError`(`INVALID_IMAGE_EXTENSION` · `IMAGE_TOO_LARGE` · `UNREADABLE_IMAGE`).
+ * 실패하면 `ClientValidationError`(`INVALID_IMAGE_EXTENSION` · `INVALID_IMAGE_FORMAT` · `IMAGE_TOO_LARGE` · `UNREADABLE_IMAGE`).
  */
 export function preparePostImage(file: File): Promise<File> {
   let result = prepared.get(file)
@@ -188,12 +218,18 @@ async function prepare(file: File): Promise<File> {
   if (extension === null) {
     throw new ClientValidationError('INVALID_IMAGE_EXTENSION', POST_IMAGE_MESSAGES.extension)
   }
+  // 이름이 아니라 앞 바이트로 형식을 정한다. 고를 때(`checkPostImageContent`) 걸렀어도 보내기 직전에 한 번 더 본다
+  const format = await readImageFormat(file)
+  if (format === null) {
+    throw new ClientValidationError('INVALID_IMAGE_FORMAT', POST_IMAGE_MESSAGES.format)
+  }
 
-  if (extension === 'gif') {
+  if (format === 'gif') {
     if (!(await isDecodableImage(file))) {
       throw new ClientValidationError('UNREADABLE_IMAGE', POST_IMAGE_MESSAGES.unreadable)
     }
-    return withinFileLimit(rename(file, file.name, 'gif'))
+    // 움직임이 깨지므로 다시 그리지 않는다. 주석 · XMP 만 걷는다
+    return withinFileLimit(rename((await withoutMetadata(file, format)).blob, file.name, 'gif'))
   }
 
   let encoded: Blob | null = null
@@ -206,13 +242,43 @@ async function prepare(file: File): Promise<File> {
     if (error instanceof ImageDecodeError) {
       throw new ClientValidationError('UNREADABLE_IMAGE', POST_IMAGE_MESSAGES.unreadable)
     }
-    // 읽기는 됐는데 캔버스가 실패했다(메모리 부족 등). 원본이 한도 안이면 원본을 보낸다
+    // 읽기는 됐는데 캔버스가 실패했다(메모리 부족 등). 원본(메타데이터를 걷은 것)이 한도 안이면 그것을 보낸다
   }
 
+  // 다시 그린 쪽이 작으면 그것 — EXIF 가 이미 다 빠져 있다(대부분의 휴대폰 사진)
   if (encoded && encoded.size < file.size) {
     return withinFileLimit(rename(encoded, file.name, 'jpg'))
   }
-  return withinFileLimit(rename(file, file.name, extension))
+
+  // 원본을 보내는 경로 — 여기서도 GPS 가 나가지 않게 메타데이터를 걷는다
+  const original = await withoutMetadata(file, format)
+  // JPEG 원본에 메타데이터가 있었거나 구조를 끝까지 읽지 못했으면(걷었는지 알 수 없다) 다시 그린 쪽을 쓴다(조금 커져도).
+  // 걷은 원본은 EXIF 방향까지 빠져 세로 사진이 누울 수 있다
+  const originalUnsure = original.stripped || !original.parsed
+  if (encoded && format === 'jpeg' && originalUnsure && encoded.size <= POST_IMAGE_MAX_BYTES) {
+    return rename(encoded, file.name, 'jpg')
+  }
+  const originalExtension: PostImageExtension = format === 'png' ? 'png' : extension === 'jpeg' ? 'jpeg' : 'jpg'
+  return withinFileLimit(rename(original.blob, file.name, originalExtension))
+}
+
+/**
+ * 메타데이터(EXIF GPS · 주석 · XMP)를 걷은 원본. 걷을 것이 없거나 구조를 끝까지 읽지 못하면 원본 그대로다.
+ * `parsed` 가 거짓이면 걷지 못한 것이다 — 부르는 쪽이 다시 그린 결과를 고를 수 있게 알려 준다
+ */
+async function withoutMetadata(
+  file: File,
+  format: ImageFormat,
+): Promise<{ blob: Blob; stripped: boolean; parsed: boolean }> {
+  try {
+    const result = stripImageMetadata(new Uint8Array(await file.arrayBuffer()), format)
+    if (!result) return { blob: file, stripped: false, parsed: false }
+    return result.stripped
+      ? { blob: new Blob([result.bytes]), stripped: true, parsed: true }
+      : { blob: file, stripped: false, parsed: true }
+  } catch {
+    return { blob: file, stripped: false, parsed: false }
+  }
 }
 
 function withinFileLimit(file: File): File {
@@ -223,18 +289,47 @@ function withinFileLimit(file: File): File {
 }
 
 /**
- * 보낼 파일 이름 `이름.확장자`. 확장자는 실제 형식으로 바꾸고, 이름은 100자(코드 포인트)에서 자른다.
+ * 보낼 파일 이름 `이름.확장자`. 확장자는 실제 형식으로 바꾸고, 이름은 `safePostImageBaseName` 으로 다듬는다.
  * Content-Type 도 확장자에 맞춰 붙인다 — 비어 있으면 브라우저가 `application/octet-stream` 으로 보내고
  * S3 가 그 형식으로 내려준다.
  */
 function rename(blob: Blob, originalName: string, extension: PostImageExtension): File {
-  const dot = originalName.lastIndexOf('.')
-  const base = Array.from((dot < 0 ? originalName : originalName.slice(0, dot)).trim())
-    .slice(0, FILE_BASENAME_MAX_LENGTH)
-    .join('')
-  const name = `${base || 'image'}.${extension}`
+  const name = `${safePostImageBaseName(originalName)}.${extension}`
   const lastModified = blob instanceof File ? blob.lastModified : Date.now()
   return new File([blob], name, { type: MIME_OF[extension], lastModified })
+}
+
+/**
+ * 원래 이름에서 확장자를 뗀 앞부분을 **보여 줘도 되는 글자**로 다듬는다. 서버가 `original_filename` 에 그대로 넣고
+ * 상세 응답으로 누구에게나 내려준다.
+ *
+ * - 경로 문자(`/` `\`)와 Windows 예약 문자(`: * ? " < > |`)는 `_` 로 — 누가 이 이름으로 파일을 만들 때 경로가 되지 않게
+ * - 제어 문자(C0 · C1) · 방향 제어(U+202E 등 — `exe.jpg` 가 `gpj.exe` 처럼 뒤집혀 보이게 만든다) · 폭 없는 글자는 뺀다
+ * - 유니코드 NFC 로 맞춘다 — macOS 가 준 이름(NFD)은 한글이 자모로 풀려 보인다
+ * - 앞뒤 공백 · 점을 떼고(숨김 파일 · `..`), 100자(코드 포인트)에서 자른다. 비면 `image`
+ */
+export function safePostImageBaseName(originalName: string): string {
+  const dot = originalName.lastIndexOf('.')
+  // 탭 · 줄바꿈은 제어 문자이기 전에 공백이다 — 먼저 띄어쓰기로 바꾼다
+  const base = Array.from((dot < 0 ? originalName : originalName.slice(0, dot)).normalize('NFC').replace(/\s/g, ' '))
+    .filter((char) => !isUnsafeNameChar(char.codePointAt(0) ?? 0))
+    .join('')
+    .replace(/[/\\:*?"<>|]/g, '_')
+    .replace(/\s+/g, ' ')
+    .replace(/^[\s.]+|[\s.]+$/g, '')
+  return Array.from(base).slice(0, FILE_BASENAME_MAX_LENGTH).join('') || 'image'
+}
+
+/** 제어 문자(C0 · DEL · C1) · 폭 없는 글자와 방향 표시 · 방향 제어(LRE ~ RLO · LRI ~ PDI) · BOM */
+function isUnsafeNameChar(code: number): boolean {
+  return (
+    code < 0x20 ||
+    (code >= 0x7f && code <= 0x9f) ||
+    (code >= 0x200b && code <= 0x200f) ||
+    (code >= 0x202a && code <= 0x202e) ||
+    (code >= 0x2060 && code <= 0x2069) ||
+    code === 0xfeff
+  )
 }
 
 function firstDefined<T>(items: readonly T[], check: (item: T) => string | undefined) {

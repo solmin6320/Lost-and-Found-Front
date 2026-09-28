@@ -92,7 +92,7 @@ export function parsePostListSearch(params: URLSearchParams): PostListSearch {
     location: (params.get('location') ?? '').trim().slice(0, LOCATION_MAX_LENGTH),
     from,
     to,
-    page: Number.isInteger(page) && page >= 1 ? page : 1,
+    page: Number.isSafeInteger(page) && page >= 1 ? page : 1,
   }
 }
 
