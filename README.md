@@ -44,6 +44,13 @@ npm run dev          # http://localhost:5173
 DEV_PROXY_TARGET=http://localhost:8090 npm run dev   # 다른 포트의 백엔드 · 목 서버로 붙일 때
 ```
 
+운영 빌드는 `index.html`에 CSP meta를 심는다(보안명세서 4장). 사진 출처(`img-src`)는 빌드 환경변수 `CSP_IMAGE_ORIGINS`이고,
+배포 때는 CloudFront 도메인을 넣는다. 비우면 백엔드 로컬의 서울 버킷 주소를 쓰고 경고한다.
+
+```bash
+CSP_IMAGE_ORIGINS=https://dxxxx.cloudfront.net npm run build
+```
+
 ## 폴더
 
 ```

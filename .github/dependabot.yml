@@ -1,0 +1,34 @@
+# 의존성 업데이트 알림(보안명세서 6장). 자동 머지는 하지 않는다 — PR 을 읽고 CI 가 통과한 것만 사람이 합친다.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: '09:00'
+      timezone: Asia/Seoul
+    # 새 버전이 나오고 7일 뒤에 제안한다. 탈취된 계정으로 올린 악성 버전은 대개 며칠 안에 내려간다.
+    # 보안 업데이트(취약점 고침)는 이 대기와 상관없이 바로 온다
+    cooldown:
+      default-days: 7
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: 'deps'
+    groups:
+      # 부 · 수 버전은 한 PR 로 묶는다. 주 버전은 따로 와서 하나씩 판단한다
+      minor-and-patch:
+        update-types: [minor, patch]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: '09:00'
+      timezone: Asia/Seoul
+    commit-message:
+      prefix: 'ci'
+    groups:
+      actions:
+        patterns: ['*']

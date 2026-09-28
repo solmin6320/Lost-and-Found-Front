@@ -25,6 +25,15 @@ jobs:
           cache: npm
 
       - run: npm ci
+
+      # 공급망(보안명세서 6장). 받은 패키지가 레지스트리가 서명한 그대로인지
+      - run: npm audit signatures
+      # 운영 번들에 들어가는 의존성(react · router · query 등)에 high 이상 취약점이 있으면 멈춘다
+      - run: npm audit --omit=dev --audit-level=high
+      # 개발 도구(vite · vitest · oxlint)까지 — 개발 서버 쪽 알림이 잦아 경고만 남긴다(번들에는 들어가지 않는다)
+      - run: npm audit --audit-level=high
+        continue-on-error: true
+
       - run: npm run typecheck
       - run: npx oxlint --max-warnings=0
       - run: npm test
