@@ -1,3 +1,4 @@
+/// <reference types="vitest/config" />
 import { fileURLToPath, URL } from 'node:url'
 
 import react from '@vitejs/plugin-react'
@@ -90,6 +91,11 @@ export default defineConfig(({ command, mode }) => {
           changeOrigin: true,
         },
       },
+    },
+
+    // 에이전트 작업용 git worktree(`.claude/worktrees/`)가 리포 안에 생기면 그 테스트까지 두 번 돈다(2026-09-29 350개 사건)
+    test: {
+      exclude: ['**/node_modules/**', '**/dist/**', '.claude/**'],
     },
 
     build: {
