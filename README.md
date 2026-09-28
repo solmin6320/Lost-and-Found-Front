@@ -20,6 +20,7 @@ npm run dev          # http://localhost:5173
 | `npm run preview` | 빌드 결과를 로컬에서 확인 |
 | `npm run typecheck` | 타입 검사만 |
 | `npm run lint` | oxlint |
+| `npm test` | vitest 단위 테스트(순수 로직, 한 번 실행) |
 
 ## API 주소를 잡는 방식
 
