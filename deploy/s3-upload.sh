@@ -11,10 +11,13 @@
 #   2. 해시 없는 파일(theme-init.js · favicon.svg) → 마지막에 index.html — no-cache.
 #      index.html 이 먼저 바뀌면 새 청크가 올라가기 전의 짧은 틈에 새 index.html 이 없는 파일을 부른다
 #   3. 해시 없는 파일만 무효화
+# prune 은 지금 배포(index.html)가 PRUNE_DAYS 일(기본 7)을 넘긴 뒤에만 지운다 — 까닭은 아래 prune 부분.
 # Content-Type 은 확장자별로 직접 붙인다. 윈도우의 AWS CLI 는 레지스트리에서 형식을 읽어 .js 를 text/plain 으로 올리는 일이 있고,
 # CloudFront 응답 헤더의 nosniff 때문에 그러면 브라우저가 스크립트를 실행하지 않는다(화면이 하얗다).
 #
 # 액세스 키를 이 파일 · 명령줄에 적지 않는다. `aws configure` 로 만든 프로필을 쓴다(AWS_PROFILE).
+# 누구로 도는지 먼저 확인한다(aws sts get-caller-identity). 배포 전용 사용자(DEPLOY_IAM_USER, 기본 lostfound-front-deployer)가
+# 아니면 --apply 는 멈춘다 — 기본 프로필(관리자 키 · 백엔드 키)로 잘못 돌리는 것을 막는다. 미리보기는 경고만 한다.
 
 set -euo pipefail
 
@@ -28,6 +31,14 @@ NO_CACHE='no-cache'
 
 die() { printf '\n[중단] %s\n' "$*" >&2; exit 1; }
 step() { printf '\n== %s\n' "$*"; }
+warn() { printf '\n[경고] %s\n' "$*" >&2; }
+
+# 윈도우의 aws.exe 는 줄 끝을 CRLF 로 찍을 수 있다. Git Bash 에서 받으면 값 끝에 \r 이 붙어
+# 키 비교(지금 빌드의 파일인지)가 전부 어긋난다 — 받은 출력은 모두 이것을 거친다
+strip_cr() { tr -d '\r'; }
+
+# S3 · CLI v2 의 시각(ISO 8601, UTC) — 2026-09-29T01:23:45+00:00 · 2026-09-29T01:23:45.000Z
+ISO_UTC='^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?(Z|\+00:00)$'
 
 content_type() {
   case "$1" in
@@ -67,41 +78,110 @@ command -v aws >/dev/null 2>&1 || die 'aws 명령이 없습니다. AWS CLI v2 �
 case "$FRONT_BUCKET" in
   s3://* | */*) die "FRONT_BUCKET 에는 버킷 이름만 넣습니다(s3:// · / 없이): $FRONT_BUCKET" ;;
 esac
+# S3 버킷 이름 규칙(3~63자, 소문자 · 숫자 · 점 · 하이픈, 처음과 끝은 소문자나 숫자). 공백 · 대문자 · 붙여 넣다 딸려 온 글자를 AWS 에 묻기 전에 걸러 낸다
+if ! [[ "$FRONT_BUCKET" =~ ^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$ ]] || [[ "$FRONT_BUCKET" == *..* ]]; then
+  die "버킷 이름 모양이 아닙니다(3~63자, 소문자 · 숫자 · 점 · 하이픈): $FRONT_BUCKET"
+fi
 [ "$FRONT_BUCKET" != "$IMAGE_BUCKET" ] || die "사진 버킷($IMAGE_BUCKET)입니다. 프론트 버킷을 따로 만들어 넣으세요."
+
+DEPLOY_IAM_USER="${DEPLOY_IAM_USER:-lostfound-front-deployer}"
+[[ "$DEPLOY_IAM_USER" =~ ^[A-Za-z0-9+=,.@_-]{1,64}$ ]] \
+  || die "DEPLOY_IAM_USER 에는 IAM 사용자 이름만 넣습니다(ARN 이 아니라 이름): $DEPLOY_IAM_USER"
+
+if [ "$MODE" = upload ]; then
+  [ -n "${DISTRIBUTION_ID:-}" ] || die 'DISTRIBUTION_ID 가 비어 있습니다. CloudFront 배포 ID(E 로 시작)를 넣으세요.'
+  [[ "$DISTRIBUTION_ID" =~ ^E[A-Z0-9]+$ ]] || die "배포 ID 모양이 아닙니다(E 로 시작하는 대문자 · 숫자): $DISTRIBUTION_ID"
+else
+  DAYS="${PRUNE_DAYS:-7}"
+  [[ "$DAYS" =~ ^[0-9]+$ ]] && [ "$DAYS" -ge 1 ] || die "PRUNE_DAYS 는 1 이상의 정수입니다: $DAYS"
+  CUTOFF="$(date -u -d "$DAYS days ago" +%Y-%m-%dT%H:%M:%S)" || die 'date -d 를 쓸 수 없는 환경입니다(Git Bash · 리눅스에서 돌리세요).'
+fi
+
 [ -f "$DIST/index.html" ] || die "$DIST/index.html 이 없습니다. 리포 맨 위에서 빌드부터 하세요: CSP_IMAGE_ORIGINS=https://<사진 도메인> npm run build"
 [ -d "$DIST/assets" ] || die "$DIST/assets 가 없습니다. 빌드가 끝까지 됐는지 확인하세요."
 
 # 지금 dist/assets 에 있는 파일 이름(정리할 때 지우지 않을 목록)
 mapfile -t CURRENT_ASSETS < <(cd "$DIST/assets" && find . -type f | sed 's|^\./||' | sort)
+[ "${#CURRENT_ASSETS[@]}" -gt 0 ] || die "$DIST/assets 가 비어 있습니다. 빌드가 끝까지 됐는지 확인하세요."
+
+# ---- 자격 확인 : 누구로 도는지 ------------------------------------------------
+# 배포 전용 사용자는 프론트 버킷 · 이 배포만 만질 수 있다(docs/배포.md 2.2). 다른 키(관리자 · 백엔드 lostfound-app)로
+# --apply 하면 버킷 이름 하나 틀린 것이 다른 버킷을 덮거나 지우는 일이 된다. 이름을 바꿨으면 DEPLOY_IAM_USER 로 알려 준다.
+# 우회 플래그는 두지 않는다 — 다른 사용자로 올려야 하면 DEPLOY_IAM_USER 에 그 이름을 적는다(명령에 남아 보인다)
+
+caller_is_deployer() {
+  [[ "$1" =~ ^arn:aws:iam::[0-9]{12}:user/(.+/)?([^/]+)$ ]] && [ "${BASH_REMATCH[2]}" = "$DEPLOY_IAM_USER" ]
+}
+
+step "자격 확인 — 프로필 ${AWS_PROFILE:-(기본)}, 기대하는 사용자 $DEPLOY_IAM_USER"
+CALLER_ARN=''
+if ! CALLER_ARN="$(aws sts get-caller-identity --query Arn --output text | strip_cr)" || [ -z "$CALLER_ARN" ]; then
+  [ "$APPLY" != 1 ] || die '누구로 실행하는지 확인하지 못했습니다(aws sts get-caller-identity). AWS_PROFILE 이 배포 프로필인지, 키가 살아 있는지 보세요(docs/배포.md 2.2). 아무것도 바꾸지 않았습니다.'
+  warn '누구로 실행하는지 확인하지 못했습니다. 미리보기는 계속하지만 --apply 는 여기서 멈춥니다.'
+else
+  printf '  %s\n' "$CALLER_ARN"
+  if ! caller_is_deployer "$CALLER_ARN"; then
+    WRONG_USER="배포 전용 사용자($DEPLOY_IAM_USER)가 아닙니다. export AWS_PROFILE=lostfound-deploy 로 바꾸세요(docs/배포.md 2.2). 사용자 이름을 바꿨다면 DEPLOY_IAM_USER 에 그 이름을 넣으세요."
+    [ "$APPLY" != 1 ] || die "$WRONG_USER 아무것도 바꾸지 않았습니다."
+    warn "$WRONG_USER 미리보기는 계속하지만 --apply 는 여기서 멈춥니다."
+  fi
+fi
 
 # ---- prune : 오래된 해시 파일 정리 -------------------------------------------
+#
+# 지워도 되는 옛 청크 = 그 청크를 부르는 옛 index.html 을 가진 탭이 더는 없을 만한 것.
+# 옛 index.html 은 **지금 배포가 올라가기 전에만** 받을 수 있었다. 그러니 기준은 파일 날짜가 아니라 지금 배포의 날짜다.
+#   - 파일마다 마지막으로 올라간 날짜로만 보면 틀린다 : 빌드 A(0일) → B(10일) 바로 뒤에 정리하면 A 의 청크는 10일 묵었지만
+#     9일에 A 의 index.html 을 받은 탭이 아직 그것을 부른다
+#   - 그래서 지금 배포된 index.html 이 PRUNE_DAYS 일을 넘긴 뒤에만 정리한다. 그러면 옛 청크를 부를 탭은
+#     지금 배포 전에 열어 PRUNE_DAYS 일 넘게 새로고침하지 않은 탭뿐이다
+#   - 조회(받기 · 날짜 · 목록)가 하나라도 실패하거나 모양이 낯설면 아무것도 지우지 않고 멈춘다
 
 if [ "$MODE" = prune ]; then
-  DAYS="${PRUNE_DAYS:-7}"
-  [[ "$DAYS" =~ ^[0-9]+$ ]] && [ "$DAYS" -ge 1 ] || die "PRUNE_DAYS 는 1 이상의 정수입니다: $DAYS"
-
   # 지금 배포된 index.html 과 dist 의 index.html 이 같아야 한다. 다르면 dist 가 배포된 빌드가 아니라서
   # "지금 쓰는 파일" 목록을 믿을 수 없다(배포 안 한 새 빌드로 정리하면 살아 있는 청크를 지운다)
-  step "배포된 index.html 이 dist 와 같은지 확인"
+  step '1/3 배포된 index.html 이 dist 와 같은지'
   # 임시 파일 대신 표준 출력(-)으로 받는다 — 윈도우의 aws.exe 는 Git Bash 의 /tmp 경로를 모른다
   if ! aws s3 cp "s3://$FRONT_BUCKET/index.html" - --only-show-errors | cmp -s - "$DIST/index.html"; then
-    die '배포된 index.html 이 dist 와 다릅니다(또는 받지 못했습니다). 정리는 배포를 마친 그 dist 로만 합니다.'
+    die '배포된 index.html 이 dist 와 다릅니다(또는 받지 못했습니다). 정리는 배포를 마친 그 dist 로만 합니다. 아무것도 지우지 않았습니다.'
+  fi
+  echo '  같습니다.'
+
+  step "2/3 지금 배포가 $DAYS 일을 넘겼는지 (기준 $CUTOFF UTC 보다 먼저 올라갔어야 한다)"
+  DEPLOYED_AT="$(aws s3api head-object --bucket "$FRONT_BUCKET" --key index.html --query LastModified --output text | strip_cr)" \
+    || die '배포된 index.html 의 날짜를 받지 못했습니다. 아무것도 지우지 않았습니다.'
+  [[ "$DEPLOYED_AT" =~ $ISO_UTC ]] \
+    || die "index.html 날짜 모양을 모릅니다: $DEPLOYED_AT — AWS CLI v2 · cli_timestamp_format=iso8601(기본)인지 보세요. 아무것도 지우지 않았습니다."
+  echo "  지금 배포 : $DEPLOYED_AT"
+  if ! [[ "${DEPLOYED_AT:0:19}" < "$CUTOFF" ]]; then
+    READY_AT="$(date -u -d "${DEPLOYED_AT:0:10} ${DEPLOYED_AT:11:8} UTC $DAYS days" '+%Y-%m-%d %H:%M UTC' 2>/dev/null)" || READY_AT=''
+    printf '\n정리하지 않습니다. 지금 배포가 올라간 지 %d일이 안 돼서, 그 전에 옛 index.html 을 받아 둔 탭이 아직 옛 파일을 부를 수 있습니다.\n' "$DAYS"
+    [ -z "$READY_AT" ] || printf '%s 뒤에 다시 돌리세요(그사이 다시 배포하면 그 배포부터 %d일).\n' "$READY_AT" "$DAYS"
+    exit 0
   fi
 
-  CUTOFF="$(date -u -d "$DAYS days ago" +%Y-%m-%dT%H:%M:%S)" || die 'date -d 를 쓸 수 없는 환경입니다(Git Bash · 리눅스에서 돌리세요).'
-  step "assets/ 에서 지금 빌드에 없고 $DAYS 일 넘게 다시 올라가지 않은 파일 (기준 $CUTOFF UTC)"
+  step "3/3 assets/ 에서 지금 빌드에 없고 $DAYS 일 넘게 다시 올라가지 않은 파일"
 
   declare -A KEEP=()
   for name in "${CURRENT_ASSETS[@]}"; do KEEP["assets/$name"]=1; done
 
+  # 목록을 먼저 통째로 받는다. 받다가 실패하면(권한 · 연결) 반쯤 받은 목록으로 판단하지 않고 멈춘다
+  LISTING="$(aws s3api list-objects-v2 --bucket "$FRONT_BUCKET" --prefix assets/ \
+    --query 'Contents[].[LastModified,Key]' --output text | strip_cr)" \
+    || die 'assets/ 목록을 받지 못했습니다. 아무것도 지우지 않았습니다.'
+
   STALE=()
   while IFS=$'\t' read -r modified key; do
-    [ -n "${key:-}" ] && [ "$modified" != None ] || continue
+    [ -n "$modified" ] && [ "$modified" != None ] || continue # 빈 줄 · 파일이 하나도 없을 때
+    [[ "$modified" =~ $ISO_UTC ]] || die "목록의 날짜 모양을 모릅니다: $modified. 아무것도 지우지 않았습니다."
+    # 지우는 것은 assets/ 아래의 평범한 이름뿐(IAM 도 assets/* 만 지울 수 있다). 낯선 이름이 섞이면 전부 멈춘다
+    if ! [[ "$key" =~ ^assets/[A-Za-z0-9._~/-]+$ ]] || [[ "$key" == *..* ]]; then
+      die "assets/ 목록에 예상 밖의 이름이 있습니다: $(printf '%q' "$key"). 아무것도 지우지 않았습니다."
+    fi
     [ -z "${KEEP[$key]:-}" ] || continue
-    [[ "$modified" < "$CUTOFF" ]] || continue
+    [[ "${modified:0:19}" < "$CUTOFF" ]] || continue
     STALE+=("$key")
-  done < <(aws s3api list-objects-v2 --bucket "$FRONT_BUCKET" --prefix assets/ \
-    --query 'Contents[].[LastModified,Key]' --output text)
+  done <<<"$LISTING"
 
   if [ "${#STALE[@]}" -eq 0 ]; then
     echo '지울 파일이 없습니다.'
@@ -118,9 +198,6 @@ if [ "$MODE" = prune ]; then
 fi
 
 # ---- upload ----------------------------------------------------------------
-
-[ -n "${DISTRIBUTION_ID:-}" ] || die 'DISTRIBUTION_ID 가 비어 있습니다. CloudFront 배포 ID(E 로 시작)를 넣으세요.'
-[[ "$DISTRIBUTION_ID" =~ ^E[A-Z0-9]+$ ]] || die "배포 ID 모양이 아닙니다(E 로 시작하는 대문자 · 숫자): $DISTRIBUTION_ID"
 
 step '빌드 점검'
 grep -q '<meta http-equiv="Content-Security-Policy"' "$DIST/index.html" \
