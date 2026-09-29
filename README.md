@@ -59,6 +59,8 @@ src/
   pages/          라우트 1:1 화면. 조립만 하고 로직은 두지 않는다
   features/       도메인 단위 (auth · posts · comments · members)
   shared/         도메인이 없는 것 (ui · lib · styles · config · types)
+build/            빌드가 쓰는 코드 (CSP 정책 문자열)
+deploy/           배포에만 쓰는 것 — CloudFront Function(spa-rewrite.js) · S3 업로드 스크립트(docs/배포.md)
 ```
 
 자세한 규칙은 `src/features/README.md`, `src/shared/README.md` 에 있다.
@@ -79,8 +81,9 @@ src/
 목록의 검색·필터·페이지는 화면을 나누지 않고 `/` 의 쿼리스트링에 싣는다.
 뒤로가기·새로고침·링크 공유가 그대로 동작하고, 백엔드 `[4.2]` 의 쿼리 파라미터와 이름이 같다.
 
-라우터는 `BrowserRouter` 다. 배포에서 `/posts/3` 직접 접근은 CloudFront 커스텀 오류 응답
-(403/404 → `/index.html`, 200)이 받는다(기능명세서 11장).
+라우터는 History API 를 쓰는 데이터 라우터(`createBrowserRouter`)다. 배포에서 `/posts/3` 직접 접근은
+기본 동작(`/*`)에만 붙인 CloudFront Function(`deploy/cloudfront/spa-rewrite.js`)이 `/index.html` 로 돌린다(기능명세서 11장).
+커스텀 오류 응답(403/404 → `/index.html`)은 쓰지 않는다 — `/api/*` 의 403 · 404 까지 HTML 이 된다. 배포 절차는 `docs/배포.md`.
 
 ## 디자인
 
