@@ -4,7 +4,7 @@ import { Navigate, useLocation, type To } from 'react-router-dom'
 
 import { loginPath } from '@/app/authRedirect'
 import { paths, postDetailFromMine, type LoginNoticeState } from '@/app/paths'
-import { useAuth } from '@/features/auth'
+import { subscribeSignedOutElsewhere, useAuth } from '@/features/auth'
 import {
   ConceptButtonLink,
   POST_STATUSES,
@@ -67,13 +67,21 @@ export function MyPage() {
   const [seen, setSeen] = useState(false)
   if (auth.status === 'authenticated' && !seen) setSeen(true)
 
-  // 재발급이 거절돼 끝났는지(만료), 사용자가 로그아웃했는지 — 로그인 화면의 문장이 다르다
+  // 재발급이 거절돼 끝났는지(만료), 사용자가 로그아웃했는지(이 창 · 다른 창) — 로그인 화면의 문장이 다르다
   const [expired, setExpired] = useState(false)
   useEffect(() => subscribeSessionExpired(() => setExpired(true)), [])
+  const [elsewhere, setElsewhere] = useState(false)
+  useEffect(() => subscribeSignedOutElsewhere(() => setElsewhere(true)), [])
 
   if (auth.status === 'anonymous') {
     const state: LoginNoticeState | undefined = seen
-      ? { notice: expired ? '로그인이 만료됐어요. 다시 로그인하세요.' : '로그아웃했어요.' }
+      ? {
+          notice: expired
+            ? '로그인이 만료됐어요. 다시 로그인하세요.'
+            : elsewhere
+              ? '다른 창에서 로그아웃했어요.'
+              : '로그아웃했어요.',
+        }
       : undefined
     return <Navigate to={loginPath(here)} replace state={state} />
   }

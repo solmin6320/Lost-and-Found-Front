@@ -4,7 +4,7 @@ import { useLocation } from 'react-router-dom'
 import { loginPath } from '@/app/authRedirect'
 import { usePageGuide } from '@/app/onboarding'
 import type { LoginNoticeState } from '@/app/paths'
-import { useAuth } from '@/features/auth'
+import { subscribeSignedOutElsewhere, useAuth } from '@/features/auth'
 import type { LeaveFn } from '@/features/posts'
 import { subscribeSessionExpired } from '@/shared/lib/http'
 
@@ -27,16 +27,22 @@ export function usePostWritePage() {
   // 그리는 중에 맞춘다(effect 로 한 박자 늦게 맞추면 끊긴 순간에 아직 null 일 수 있다)
   if (currentId !== null && currentId !== lastMemberId) setLastMemberId(currentId)
 
-  // 재발급이 거절돼 끝났는지(만료), 사용자가 로그아웃했는지 — 로그인 화면의 문장이 다르다
+  // 재발급이 거절돼 끝났는지(만료), 사용자가 로그아웃했는지(이 창 · 다른 창) — 로그인 화면의 문장이 다르다
   const expired = useRef(false)
   useEffect(() => subscribeSessionExpired(() => (expired.current = true)), [])
+  const elsewhere = useRef(false)
+  useEffect(() => subscribeSignedOutElsewhere(() => (elsewhere.current = true)), [])
 
   const memberId = currentId ?? lastMemberId
   const gate: 'pending' | 'login' | 'form' =
     auth.status === 'unknown' ? 'pending' : memberId === null ? 'login' : 'form'
 
   function onSessionLost(draftSaved: boolean, leave: LeaveFn) {
-    const first = expired.current ? '로그인이 만료됐어요. 다시 로그인하세요.' : '로그아웃했어요.'
+    const first = expired.current
+      ? '로그인이 만료됐어요. 다시 로그인하세요.'
+      : elsewhere.current
+        ? '다른 창에서 로그아웃했어요.'
+        : '로그아웃했어요.'
     const state: LoginNoticeState = {
       notice: draftSaved ? `${first} 로그인하면 쓰던 글을 이어서 쓸 수 있어요.` : first,
     }
