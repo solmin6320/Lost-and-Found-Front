@@ -12,8 +12,9 @@ import { IconProvider } from '@/shared/ui/icons'
  *
  * 라우터는 History API 를 쓰는 데이터 라우터(`createBrowserRouter`)다. 해시 라우터가 아니다.
  * 작성 중 이탈 확인(`useBlocker`)이 데이터 라우터에서만 동작해서 단계 4 에서 BrowserRouter 에서 옮겼다.
- * 배포에서 `/posts/3` 직접 접근은 CloudFront 커스텀 오류 응답
- * (403/404 → /index.html, 200)이 받아 준다 (기능명세서 11장).
+ * 배포에서 `/posts/3` 직접 접근은 기본 동작(`/*` → S3)에만 붙인 CloudFront Function 이
+ * `/index.html` 로 돌려 준다(`deploy/cloudfront/spa-rewrite.js`, 기능명세서 11장).
+ * 커스텀 오류 응답(403/404 → index.html)은 쓰지 않는다 — 배포 전체에 걸려 API 의 403 · 404 까지 HTML 이 된다.
  */
 export function App() {
   // 모듈 최상단이 아니라 useState 로 만든다. 모듈 스코프에 두면 개발 중 HMR 이
