@@ -98,6 +98,31 @@ describe('spa-rewrite — API 는 손대지 않는다', () => {
   })
 })
 
+/*
+ * 경로 우회 입력(2026-09-29 보안 검수). 이 함수는 방어선이 아니다 — 버킷에는 빌드 결과(공개 파일)만 있고 OAC 로만 열린다.
+ * 지키는 것은 둘 : ① `/api` 처럼 보이는 변형이 "API 라서 그대로" 통과하지 않는다(대소문자 · 이중 슬래시 · 인코딩은 앱 주소)
+ * ② 점 조각을 인코딩해도(`%2e`) S3 의 다른 키로 가지 않는다 — 전부 `/index.html` 이 된다. uri 를 풀어 읽지 않는다(풀면 이 둘이 깨진다)
+ */
+describe('spa-rewrite — 우회 입력은 index.html 이거나 받은 그대로다', () => {
+  it.each(['/API/posts', '/Api', '//api/posts', '/%61pi/posts', '/api%2Fposts', '/%2e%2e/api/x'])(
+    '%s — API 처럼 보여도 앱 주소다(CloudFront 경로 패턴도 대소문자를 가린다)',
+    (uri) => {
+      expect(rewrite(uri).uri).toBe('/index.html')
+    },
+  )
+
+  it.each(['/%2eenv', '/%2Egit/config', '/posts/3%2Ejs', '/index.html%00', '/index.html.'])(
+    '%s — 인코딩 · 끝 점은 파일로 보지 않는다',
+    (uri) => {
+      expect(rewrite(uri).uri).toBe('/index.html')
+    },
+  )
+
+  it.each(['/assets/../.env', '/..', '/.'])('%s — 점 조각은 받은 그대로(없는 키라 S3 가 403)', (uri) => {
+    expect(rewrite(uri).uri).toBe(uri)
+  })
+})
+
 describe('spa-rewrite — uri 만 바꾼다', () => {
   it('쿼리스트링 · 메서드 · 헤더는 그대로 넘긴다', () => {
     const querystring = { keyword: { value: '지갑' }, type: { value: 'LOST' }, page: { value: '2' } }
