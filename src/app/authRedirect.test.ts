@@ -51,6 +51,32 @@ describe('safeRedirectPath — 열린 리다이렉트 방지', () => {
     },
   )
 
+  // 라우터는 대소문자를 가리지 않고 끝의 `/` 를 무시하고 `%xx` 를 풀어 맞춘다 — 모두 로그인 · 가입 화면이 열린다(2026-09-29 검수 L3)
+  it.each([
+    ['/LOGIN'],
+    ['/Login?redirect=/settings'],
+    ['/login/'],
+    ['/login//'],
+    ['/Signup'],
+    ['/SIGNUP/#x'],
+    ['/%6Cogin'],
+    ['/%4C%4F%47%49%4E'],
+    ['/sign%75p/'],
+  ])('라우터가 로그인 · 가입으로 읽는 %s 도 목록으로 바꾼다', (raw) => {
+    expect(safeRedirectPath(raw)).toBe('/')
+  })
+
+  it.each([['/login%2F'], ['/loginx'], ['/posts/login'], ['/%ZZlogin']])(
+    '로그인 화면이 아닌 %s 는 그대로 따른다(라우터도 다른 화면으로 읽는다)',
+    (raw) => {
+      expect(safeRedirectPath(raw)).toBe(raw)
+    },
+  )
+
+  it('대소문자만 다른 앱 안 경로는 원문 그대로 돌려준다', () => {
+    expect(safeRedirectPath('/Settings')).toBe('/Settings')
+  })
+
   // `/..//evil.com` 은 원문 검사를 모두 통과하고 `new URL()` 이 점 구간을 정리한 뒤에야 `//evil.com` 이 된다.
   // 단위 테스트가 찾은 우회(2026-09-28) — 정리된 pathname 으로 한 번 더 막는다
   it.each([['/..//evil.com'], ['/.//evil.com'], ['/a/..//evil.com'], ['/%2e%2e//evil.com']])(

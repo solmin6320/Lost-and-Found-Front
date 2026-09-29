@@ -9,7 +9,8 @@ import { paths } from './paths'
  *
  *   따른다   `/posts/new?type=LOST` · `/settings` · `/posts/12`
  *   버린다   `https://…` · `//evil.com`(프로토콜 상대) · `/\evil.com`(브라우저가 `//` 로 읽는다)
- *            · 제어 문자가 섞인 값(브라우저가 지우고 다시 읽는다) · `/login` · `/signup`(되돌아오는 고리)
+ *            · 제어 문자가 섞인 값(브라우저가 지우고 다시 읽는다) · `/login` · `/signup`(되돌아오는 고리 —
+ *            `/LOGIN` · `/login/` 처럼 라우터가 같은 화면으로 읽는 값까지)
  */
 export function safeRedirectPath(raw: string | null | undefined): string {
   if (!raw || !raw.startsWith('/') || raw.startsWith('//') || raw.includes('\\') || hasControlChar(raw)) {
@@ -22,10 +23,33 @@ export function safeRedirectPath(raw: string | null | undefined): string {
   if (url.origin !== window.location.origin || url.pathname.startsWith('//')) {
     return paths.postList
   }
-  if (url.pathname === paths.login || url.pathname === paths.signup) {
+  if (AUTH_SCREENS.has(routeKey(url.pathname))) {
     return paths.postList
   }
   return `${url.pathname}${url.search}${url.hash}`
+}
+
+/** 로그인 뒤 다시 가면 되돌아오는 고리가 되는 화면 */
+const AUTH_SCREENS: ReadonlySet<string> = new Set([paths.login, paths.signup])
+
+/**
+ * React Router 가 경로를 맞춰 보는 방식대로 다듬은 값. 되돌아오는 고리 검사를 **라우터가 보는 값**으로 하려는 것이다.
+ *
+ * 라우터(v7 `matchRoutes`)는 대소문자를 가리지 않고(`caseSensitive` 기본 거짓), 끝의 `/` 를 몇 개든 무시하고,
+ * 구간마다 `%xx` 를 풀어서 맞춘다(`/` 로 풀리는 `%2F` 만 그대로 둔다). 그래서 `/LOGIN` · `/login/` · `/Signup` ·
+ * `/%6Cogin` 이 모두 로그인 · 가입 화면을 연다 — 원문(`url.pathname`) 비교로는 통과했다(2026-09-29 검수 L3)
+ */
+function routeKey(pathname: string): string {
+  let decoded = pathname
+  try {
+    decoded = pathname
+      .split('/')
+      .map((segment) => decodeURIComponent(segment).replace(/\//g, '%2F'))
+      .join('/')
+  } catch {
+    // 잘못된 `%` — 라우터도 풀지 않고 원문으로 맞춘다
+  }
+  return decoded.toLowerCase().replace(/\/+$/, '') || '/'
 }
 
 function hasControlChar(value: string): boolean {
