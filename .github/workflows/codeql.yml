@@ -28,19 +28,23 @@ jobs:
       contents: read
       actions: read
 
+    # 액션은 커밋 SHA 로 고정한다(ci.yml 과 같은 까닭). init · analyze 는 같은 리포라 같은 SHA 여야 한다
     steps:
+      # 결과 올리기는 analyze 가 API 토큰으로 한다 — git 자격은 필요 없다
       - name: 코드 체크아웃
-        uses: actions/checkout@v5
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          persist-credentials: false
 
       # JS · TS 는 빌드 없이 소스를 그대로 읽는다(build-mode: none)
       - name: CodeQL 초기화
-        uses: github/codeql-action/init@v4
+        uses: github/codeql-action/init@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4.38.2
         with:
           languages: javascript-typescript
           build-mode: none
           queries: security-extended
 
       - name: CodeQL 분석
-        uses: github/codeql-action/analyze@v4
+        uses: github/codeql-action/analyze@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4.38.2
         with:
           category: /language:javascript-typescript
