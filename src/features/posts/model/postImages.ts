@@ -169,7 +169,9 @@ const prepared = new WeakMap<File, Promise<File>>()
  *
  * - **JPEG · PNG** : 긴 변 2048px · JPEG 0.85 로 다시 그린다(EXIF 방향 적용, EXIF 제거, 투명 → 흰색).
  *   결과가 원본보다 크면 원본을 쓴다(이미 작고 잘 압축된 사진, 단색 PNG) — 단, 원본에서 메타데이터(EXIF GPS · XMP ·
- *   글자 덩어리)를 **걷어 낸 것**을 보낸다. JPEG 원본에 메타데이터가 있었으면 커져도 다시 그린 쪽을 보낸다(방향 때문)
+ *   글자 덩어리)를 **걷어 낸 것**을 보낸다. JPEG 원본에 메타데이터가 있었으면 커져도 다시 그린 쪽을 보낸다(방향 때문).
+ *   원본 구조를 끝까지 읽지 못하면(걷었는지 모른다) 원본을 보내지 않는다 — 다시 그린 쪽을 보내고, 캔버스까지 실패했으면
+ *   그 사진만 `UNREADABLE_IMAGE` 로 막는다. **걷지 않은 원본은 어떤 경로로도 나가지 않는다**
  * - **GIF** : 줄이지 않고 보낸다. 캔버스는 첫 장면만 그려서 움직이는 GIF 가 멈춘 그림이 된다.
  *   그림으로 읽히는지 확인하고 주석 · XMP 만 걷는다
  *
@@ -242,7 +244,7 @@ async function prepare(file: File): Promise<File> {
     if (error instanceof ImageDecodeError) {
       throw new ClientValidationError('UNREADABLE_IMAGE', POST_IMAGE_MESSAGES.unreadable)
     }
-    // 읽기는 됐는데 캔버스가 실패했다(메모리 부족 등). 원본(메타데이터를 걷은 것)이 한도 안이면 그것을 보낸다
+    // 읽기는 됐는데 캔버스가 실패했다(메모리 부족 등). 원본에서 메타데이터를 걷을 수 있고 한도 안이면 그것을 보낸다
   }
 
   // 다시 그린 쪽이 작으면 그것 — EXIF 가 이미 다 빠져 있다(대부분의 휴대폰 사진)
@@ -252,10 +254,14 @@ async function prepare(file: File): Promise<File> {
 
   // 원본을 보내는 경로 — 여기서도 GPS 가 나가지 않게 메타데이터를 걷는다
   const original = await withoutMetadata(file, format)
-  // JPEG 원본에 메타데이터가 있었거나 구조를 끝까지 읽지 못했으면(걷었는지 알 수 없다) 다시 그린 쪽을 쓴다(조금 커져도).
-  // 걷은 원본은 EXIF 방향까지 빠져 세로 사진이 누울 수 있다
-  const originalUnsure = original.stripped || !original.parsed
-  if (encoded && format === 'jpeg' && originalUnsure && encoded.size <= POST_IMAGE_MAX_BYTES) {
+  // 원본 구조를 끝까지 읽지 못했다 — 걷었는지 알 수 없으니 **원본은 보내지 않는다**(2026-09-29 검수 L4).
+  // 다시 그린 쪽이 있으면 그것(조금 커져도 · PNG 면 투명이 흰색이 된다), 그것도 없으면 이 사진만 막는다
+  if (!original.parsed) {
+    if (encoded) return withinFileLimit(rename(encoded, file.name, 'jpg'))
+    throw new ClientValidationError('UNREADABLE_IMAGE', POST_IMAGE_MESSAGES.unreadable)
+  }
+  // JPEG 원본에 메타데이터가 있었으면 다시 그린 쪽을 쓴다(조금 커져도). 걷은 원본은 EXIF 방향까지 빠져 세로 사진이 누울 수 있다
+  if (encoded && format === 'jpeg' && original.stripped && encoded.size <= POST_IMAGE_MAX_BYTES) {
     return rename(encoded, file.name, 'jpg')
   }
   const originalExtension: PostImageExtension = format === 'png' ? 'png' : extension === 'jpeg' ? 'jpeg' : 'jpg'
