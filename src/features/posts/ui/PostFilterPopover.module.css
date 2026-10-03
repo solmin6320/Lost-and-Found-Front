@@ -1,0 +1,30 @@
+/*
+ * 칩 바로 아래 펼침 칸(넓은 화면). 실제로 떠 있는 것이라 그림자를 쓴다(이름표 안내 · 드롭다운과 같은 12px 면).
+ * 칩 쪽 위 모서리에서 4px 내려오며 나타난다 — 어느 칩에서 나왔는지 이어 준다. 모션 줄이기면 그냥 뜬다.
+ */
+
+.popover {
+  composes: appear from '../../../shared/styles/motion.module.css';
+
+  position: absolute;
+  z-index: var(--z-dropdown);
+  width: max-content;
+  padding: var(--space-2);
+  border: var(--hairline);
+  border-radius: var(--radius-md);
+  background-color: var(--surface-raised);
+  box-shadow: var(--shadow-overlay);
+  overscroll-behavior: contain;
+}
+
+/* 고르기 목록 — 가장 긴 "전자기기" · 상태 도움말 두 줄이 들어가는 폭 */
+.popover[data-size='menu'] {
+  min-width: 13rem;
+  max-width: 18rem;
+}
+
+/* 장소 · 기간 — 날짜 칸 둘이 한 줄에 선다 */
+.popover[data-size='form'] {
+  width: min(24rem, calc(100vw - 2 * var(--space-4)));
+  padding: var(--space-5);
+}

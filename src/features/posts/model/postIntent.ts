@@ -10,6 +10,9 @@ import type { PostType } from '../api/types'
  *
  * 색은 사용자가 한 일(`concept`)에 붙는다. `잃어버렸어요` 는 분실 색이고,
  * 결과 끝의 "분실 글 올리기" 도 분실 색이다. 보여주는 글(`shows`)의 색이 아니다.
+ *
+ * 같은 묶음은 같은 뿌리의 말로 부른다(RV-9). 습득 글은 어디서나 "주워 둔 물건"(면 둘째 줄은 칸이 좁아 "누가"),
+ * 분실 글은 어디서나 "주인이 찾는 물건". 같은 일을 하는 입구는 어디서나 같은 이름(`분실 글 올리기`)이다.
  */
 export interface PostIntent {
   /** 사용자가 한 일. 선택지의 색과 "올리기" 의 유형이 이것을 따른다 */
@@ -26,13 +29,15 @@ export interface PostIntent {
   next: { title: string; description: string; action: string }
   /** 이 의도만 걸었는데 글이 하나도 없을 때 */
   empty: { title: string; description: string }
+  /** 결과 제목 줄 아래 한 줄 — 의도를 고른 순간의 글쓰기 입구. 링크 글자는 `next.action` 과 같다 */
+  write: { lead: string }
 }
 
 const I_LOST: PostIntent = {
   concept: 'LOST',
   shows: 'FOUND',
   label: ['물건을', '잃어버렸어요'],
-  sees: '주워진 물건',
+  sees: '누가 주워 둔 물건',
   heading: '누군가 주워 둔 물건',
   next: {
     title: '찾는 물건이 없나요?',
@@ -40,9 +45,10 @@ const I_LOST: PostIntent = {
     action: '분실 글 올리기',
   },
   empty: {
-    title: '아직 주워 둔 물건이 없어요.',
+    title: '아직 누군가 주워 둔 물건이 없어요.',
     description: '분실 글을 올려 두면 주운 사람이 연락할 수 있어요.',
   },
+  write: { lead: '주운 사람이 연락할 수 있게' },
 }
 
 const I_FOUND: PostIntent = {
@@ -50,7 +56,7 @@ const I_FOUND: PostIntent = {
   shows: 'LOST',
   label: ['물건을', '주웠어요'],
   sees: '주인이 찾는 물건',
-  heading: '주인이 찾고 있는 물건',
+  heading: '주인이 찾는 물건',
   next: {
     title: '주운 물건과 맞는 글이 없나요?',
     description: '습득 글을 올려 두면 잃어버린 사람이 찾아볼 수 있어요.',
@@ -60,6 +66,7 @@ const I_FOUND: PostIntent = {
     title: '아직 주인이 찾는 물건이 없어요.',
     description: '습득 글을 올려 두면 잃어버린 사람이 찾아볼 수 있어요.',
   },
+  write: { lead: '주인이 찾아볼 수 있게' },
 }
 
 /** 화면 순서 그대로. 잃어버린 사람이 더 급하므로 앞에 둔다 */
@@ -82,6 +89,15 @@ export function intentHintTail(count: number | null | undefined, active: boolean
   const amount = count === undefined ? '모두' : `${count.toLocaleString('ko-KR')}건`
   return `${amount} ${verb}`
 }
+
+/**
+ * 의도를 고르지 않았을 때의 등록 권유(빈 결과 자리). 색 면이 아니라 옅은 면 + 잉크 버튼 — 올릴 글의 유형을 아직 모른다
+ */
+export const ANY_INTENT_NEXT = {
+  title: '찾는 물건이 없나요?',
+  description: '잃어버렸거나 주운 물건을 올려 두면 본 사람이 댓글로 알려 줘요.',
+  action: '글 올리기',
+} as const
 
 /** 유형을 걸지 않은 목록의 제목 */
 export const ALL_POSTS_HEADING = '최근 올라온 물건'
