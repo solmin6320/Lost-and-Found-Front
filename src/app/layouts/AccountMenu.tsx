@@ -6,6 +6,7 @@ import type { MemberResponse } from '@/features/members'
 import { CaretDown, User } from '@/shared/ui/icons'
 
 import styles from './AccountMenu.module.css'
+import { STAY_SIGNED_IN_NOTE, useGuardedLogout } from './useGuardedLogout'
 
 interface AccountMenuProps {
   me: MemberResponse
@@ -17,17 +18,24 @@ interface AccountMenuProps {
  * 로그인한 사용자의 헤더 메뉴. 펼침 버튼 + 링크 목록(disclosure)이다.
  * `role="menu"` 를 쓰지 않는다 — 화살표 키 조작을 약속하게 되는데, 항목이 셋뿐인 링크 목록에는 Tab 이 맞다.
  *
+ * 로그인하면 헤더에 설정 톱니가 없다 — 설정은 이 메뉴의 "설정" 하나로 간다(회의 UI-6 c, 같은 목적지가 두 곳이면 헤더 목표가 넷).
+ * [로그아웃] 바로 아래 흐린 한 줄이 7일 로그인 유지를 알린다(SE-9). 쓰던 글자가 있으면 로그아웃 전에 묻는다(SE-5).
+ *
  * 닫히는 때 : 다시 누름 · Esc(버튼으로 포커스 복귀) · 바깥 누름 · 포커스가 밖으로 나감 · 항목 선택
  */
 export function AccountMenu({ me, onLogout }: AccountMenuProps) {
   const [open, setOpen] = useState(false)
-  const [loggingOut, setLoggingOut] = useState(false)
   const rootRef = useRef<HTMLDivElement>(null)
   const toggleRef = useRef<HTMLButtonElement>(null)
   const panelId = useId()
+  const noteId = useId()
+  // 끝나면 이 메뉴는 사라지고 헤더가 [로그인]으로 포커스를 옮긴다(RootLayout)
+  const logout = useGuardedLogout(onLogout)
+  const { loggingOut, confirmOpen } = logout
 
   useEffect(() => {
-    if (!open) {
+    // 로그아웃을 묻는 창이 떠 있는 동안은 창이 Esc · 바깥 누름을 맡는다(메뉴는 그대로 두어 닫히면 [로그아웃]으로 돌아온다)
+    if (!open || confirmOpen) {
       return
     }
     function handlePointerDown(event: PointerEvent) {
@@ -47,23 +55,14 @@ export function AccountMenu({ me, onLogout }: AccountMenuProps) {
       document.removeEventListener('pointerdown', handlePointerDown)
       document.removeEventListener('keydown', handleKeyDown)
     }
-  }, [open])
+  }, [open, confirmOpen])
 
   function handleBlur(event: FocusEvent<HTMLDivElement>) {
+    if (confirmOpen) return
     const next = event.relatedTarget
     if (next instanceof Node && !event.currentTarget.contains(next)) {
       setOpen(false)
     }
-  }
-
-  async function handleLogout() {
-    // 되돌릴 수 있는 동작이라 확인하지 않는다(화면정의서 1.10). 요청이 겹치지 않게 누름만 무시한다.
-    // 끝나면 이 메뉴는 사라지고 헤더가 [로그인]으로 포커스를 옮긴다(RootLayout)
-    if (loggingOut) return
-    setLoggingOut(true)
-    await onLogout()
-    setLoggingOut(false)
-    setOpen(false)
   }
 
   const close = () => setOpen(false)
@@ -106,14 +105,19 @@ export function AccountMenu({ me, onLogout }: AccountMenuProps) {
           <button
             type="button"
             className={styles.item}
-            onClick={handleLogout}
+            onClick={logout.request}
             // 잠그지 않는다 — 누르던 버튼이 잠기면 포커스가 문서 맨 앞으로 빠진다
             aria-disabled={loggingOut || undefined}
+            aria-describedby={noteId}
           >
             {loggingOut ? '로그아웃하는 중…' : '로그아웃'}
           </button>
+          <p id={noteId} className={styles.note}>
+            {STAY_SIGNED_IN_NOTE}
+          </p>
         </div>
       ) : null}
+      {logout.dialog}
     </div>
   )
 }

@@ -47,6 +47,11 @@ export function LoginForm({ initialEmail = '', lockedExit }: LoginFormProps) {
   const [password, setPassword] = useState('')
   const [errors, setErrors] = useState<Errors>({})
   const [lock, setLock] = useState<Lock | null>(null)
+  /** 이메일 칸을 벗어나며 생긴 오류만 바로 읽어 준다. 제출 때 붙은 것은 포커스가 간 칸이 읽는다(회의 UI2-9) */
+  const [liveEmail, setLiveEmail] = useState(false)
+  // 제출이 막혀 첫 칸으로 포커스를 옮기는 동안 생기는 blur 는 "칸을 벗어난 것"이 아니다 — 그 칸 오류를 따로 읽어 주지 않는다
+  // (iOS 처럼 버튼이 포커스를 받지 않거나 Enter 로 제출하면, 쓰던 칸의 blur 가 제출 뒤에 온다)
+  const movingFocus = useRef(false)
   const emailRef = useRef<HTMLInputElement>(null)
   const passwordRef = useRef<HTMLInputElement>(null)
   const alertRef = useRef<HTMLDivElement>(null)
@@ -70,8 +75,11 @@ export function LoginForm({ initialEmail = '', lockedExit }: LoginFormProps) {
     const found: Errors = { email: checkEmail(email), password: checkPassword(password) }
     if (found.email || found.password) {
       setErrors(found)
+      setLiveEmail(false)
       const firstInvalid = found.email ? emailRef : passwordRef
+      movingFocus.current = true
       firstInvalid.current?.focus()
+      movingFocus.current = false
       return
     }
 
@@ -95,6 +103,7 @@ export function LoginForm({ initialEmail = '', lockedExit }: LoginFormProps) {
         const field = hasErrorCode(failure, 'INVALID_INPUT') ? fieldOfMessage(message) : null
         if (field === 'email' || field === 'password') {
           setErrors({ [field]: message })
+          setLiveEmail(false)
           const target = field === 'email' ? emailRef : passwordRef
           target.current?.focus()
           return
@@ -135,6 +144,7 @@ export function LoginForm({ initialEmail = '', lockedExit }: LoginFormProps) {
         value={email}
         readOnly={busy}
         error={errors.email}
+        announceError={liveEmail}
         onChange={(event) => {
           setEmail(event.target.value)
           if (errors.email || errors.form) setErrors((prev) => ({ ...prev, email: undefined, form: undefined }))
@@ -142,7 +152,10 @@ export function LoginForm({ initialEmail = '', lockedExit }: LoginFormProps) {
         // 벗어날 때 검사한다. 비어 있으면 탭으로 지나가는 중일 수 있어 제출 때까지 기다린다
         onBlur={(event) => {
           const value = event.currentTarget.value
-          if (value.trim()) setErrors((prev) => ({ ...prev, email: checkEmail(value) }))
+          if (!value.trim()) return
+          const message = checkEmail(value)
+          setErrors((prev) => ({ ...prev, email: message }))
+          setLiveEmail(Boolean(message) && !movingFocus.current)
         }}
       />
 
@@ -155,6 +168,7 @@ export function LoginForm({ initialEmail = '', lockedExit }: LoginFormProps) {
         readOnly={busy}
         disabled={locked}
         error={errors.password}
+        announceError={false}
         onChange={(value) => {
           setPassword(value)
           if (errors.password || errors.form) setErrors((prev) => ({ ...prev, password: undefined, form: undefined }))

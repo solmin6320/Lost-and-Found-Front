@@ -37,11 +37,23 @@ export function SignupForm({ signup, onSignedUpWithoutLogin }: SignupFormProps) 
   const [password, setPassword] = useState('')
   const [nickname, setNickname] = useState('')
   const [errors, setErrors] = useState<Errors>({})
+  /** 칸을 벗어나며 생긴 오류만 바로 읽어 준다. 제출 때 한꺼번에 붙은 것은 포커스가 간 첫 칸이 읽는다(회의 UI2-9) */
+  const [liveField, setLiveField] = useState<AuthField | null>(null)
   const emailRef = useRef<HTMLInputElement>(null)
   const passwordRef = useRef<HTMLInputElement>(null)
   const nicknameRef = useRef<HTMLInputElement>(null)
-  const focusField = (field: AuthField) =>
-    ({ email: emailRef, password: passwordRef, nickname: nicknameRef })[field].current?.focus()
+  // 제출이 막혀 첫 칸으로 포커스를 옮기는 동안 생기는 blur 는 "칸을 벗어난 것"이 아니다 — 그 칸 오류를 따로 읽어 주지 않는다
+  // (iOS 처럼 버튼이 포커스를 받지 않거나 Enter 로 제출하면, 쓰던 칸의 blur 가 제출 뒤에 온다)
+  const movingFocus = useRef(false)
+  const focusField = (field: AuthField) => {
+    const refs = { email: emailRef, password: passwordRef, nickname: nicknameRef }
+    movingFocus.current = true
+    try {
+      refs[field].current?.focus()
+    } finally {
+      movingFocus.current = false
+    }
+  }
   const alertRef = useRef<HTMLDivElement>(null)
 
   const focusAfterRender = useRef<(() => void) | null>(null)
@@ -67,6 +79,7 @@ export function SignupForm({ signup, onSignedUpWithoutLogin }: SignupFormProps) 
       nickname: checkNickname(nickname),
     }
     const firstInvalid = (['email', 'password', 'nickname'] as const).find((field) => found[field])
+    setLiveField(null)
     if (firstInvalid) {
       setErrors(found)
       focusField(firstInvalid)
@@ -118,17 +131,21 @@ export function SignupForm({ signup, onSignedUpWithoutLogin }: SignupFormProps) 
         spellCheck={false}
         enterKeyHint="next"
         maxLength={EMAIL_MAX_LENGTH}
-        hint="로그인할 때 씁니다. 다른 사람에게는 보이지 않아요."
+        hint="로그인할 때 써요. 다른 사람에게는 보이지 않아요."
         value={email}
         readOnly={busy}
         error={errors.email}
+        announceError={liveField === 'email'}
         onChange={(event) => {
           setEmail(event.target.value)
           clear('email')
         }}
         onBlur={(event) => {
           const value = event.currentTarget.value
-          if (value.trim()) setErrors((prev) => ({ ...prev, email: checkEmail(value, { signup: true }) }))
+          if (!value.trim()) return
+          const message = checkEmail(value, { signup: true })
+          setErrors((prev) => ({ ...prev, email: message }))
+          if (message && !movingFocus.current) setLiveField('email')
         }}
       />
 
@@ -138,17 +155,21 @@ export function SignupForm({ signup, onSignedUpWithoutLogin }: SignupFormProps) 
         label="비밀번호"
         name="new-password"
         autoComplete="new-password"
-        // 오류 문장이 같은 규칙을 말할 때는 도움말을 거둔다(같은 말 두 번)
-        hint={errors.password ? undefined : '8~20자'}
+        // 오류가 떠 있는 동안 도움말은 칸이 알아서 거둔다(TextField)
+        hint="8~20자"
         value={password}
         readOnly={busy}
         error={errors.password}
+        announceError={liveField === 'password'}
         onChange={(value) => {
           setPassword(value)
           clear('password')
         }}
         onBlur={(value) => {
-          if (value) setErrors((prev) => ({ ...prev, password: checkPassword(value, { signup: true }) }))
+          if (!value) return
+          const message = checkPassword(value, { signup: true })
+          setErrors((prev) => ({ ...prev, password: message }))
+          if (message && !movingFocus.current) setLiveField('password')
         }}
       />
 
@@ -164,13 +185,17 @@ export function SignupForm({ signup, onSignedUpWithoutLogin }: SignupFormProps) 
         value={nickname}
         readOnly={busy}
         error={errors.nickname}
+        announceError={liveField === 'nickname'}
         onChange={(event) => {
           setNickname(event.target.value)
           clear('nickname')
         }}
         onBlur={(event) => {
           const value = event.currentTarget.value
-          if (value) setErrors((prev) => ({ ...prev, nickname: checkNickname(value) }))
+          if (!value) return
+          const message = checkNickname(value)
+          setErrors((prev) => ({ ...prev, nickname: message }))
+          if (message && !movingFocus.current) setLiveField('nickname')
         }}
       />
 

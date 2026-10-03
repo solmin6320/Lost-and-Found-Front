@@ -281,6 +281,20 @@
   word-break: keep-all;
 }
 
+/* 사진 속 개인정보 한 줄. 도움말보다 한 단계 진하고, 카드 · 지갑이면 한 단계 더(빨강은 쓰지 않는다 — 경고에는 빨강 금지) */
+.privacy {
+  color: var(--text-body);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  line-height: var(--leading-snug);
+  word-break: keep-all;
+}
+
+.privacy[data-strong] {
+  color: var(--text-strong);
+  font-weight: var(--weight-bold);
+}
+
 /* 지금 상태를 말하는 옅은 면 한 장 — 교체 · 삭제. 무엇이 일어날지 → 되돌리는 길 */
 .state {
   composes: appear from '../../../shared/styles/motion.module.css';
@@ -353,7 +367,7 @@
   display: flex;
   align-items: flex-start;
   gap: var(--space-1);
-  color: var(--text-strong);
+  color: var(--error-text);
   font-size: var(--text-sm);
   font-weight: var(--weight-semibold);
   line-height: var(--leading-snug);

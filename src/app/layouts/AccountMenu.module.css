@@ -43,7 +43,7 @@
   white-space: nowrap;
 }
 
-/* 헤더에 톱니가 함께 서므로 닉네임은 36rem 부터. 그보다 좁으면 사람 아이콘 + 펼침 표시만 */
+/* 닉네임은 36rem 부터. 그보다 좁으면 사람 아이콘 + 펼침 표시만(320 에서 로고 · [+] · 안내와 한 줄) */
 @media (min-width: 36rem) {
   .name {
     display: inline;
@@ -127,6 +127,15 @@
   .item:hover:not([aria-disabled='true']) {
     background-color: var(--surface-sunken);
   }
+}
+
+/* [로그아웃] 바로 아래 흐린 한 줄(SE-9) — 버튼과 붙여(4px) 같은 묶음으로 읽힌다 */
+.note {
+  padding: 0 var(--space-3) var(--space-2);
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+  line-height: var(--leading-snug);
+  word-break: keep-all;
 }
 
 .divider {

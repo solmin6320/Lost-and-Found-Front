@@ -65,3 +65,23 @@
   border-radius: var(--radius-md);
   background-color: var(--surface-sunken);
 }
+
+/*
+ * 끝의 [로그아웃] — 조용하게. 선만 두른 보조 버튼 + 바로 아래 흐린 한 줄(SE-9, 4px 로 붙여 한 묶음).
+ * 테 없는 글자 버튼은 섹션 제목처럼 읽혀 누를 수 있는지 안 보였다(2026-10-03 실측). 칠하지 않는다 — 이 화면의 채움은 저장 · 바꾸기다.
+ * 비밀번호 바꾸기와 다른 묶음이라 선 하나와 24px 로 뗀다
+ */
+.signOut {
+  display: grid;
+  justify-items: start;
+  gap: var(--space-1);
+  padding-top: var(--space-6);
+  border-top: var(--hairline);
+}
+
+.signOutNote {
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+  line-height: var(--leading-snug);
+  word-break: keep-all;
+}

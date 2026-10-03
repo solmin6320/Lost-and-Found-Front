@@ -1,6 +1,7 @@
 import { useId, useRef, useState, type FormEvent } from 'react'
 
 import { formatDate } from '@/shared/lib/date'
+import { useDirtyField } from '@/shared/lib/dirtyRegistry'
 import { getErrorMessage } from '@/shared/lib/http'
 import { Button } from '@/shared/ui/Button'
 import { Check } from '@/shared/ui/icons'
@@ -12,9 +13,9 @@ import { useUpdateNickname } from '../model/memberMutations'
 import styles from './ProfileSection.module.css'
 
 /** 결과 고지 — 누르기 전에, 한 번(화면정의서 1.6). 입력 아래 상시 */
-const NICKNAME_NOTICE = '닉네임을 바꾸면 지금까지 쓴 글과 댓글의 이름도 함께 바뀝니다.'
-/** 서버 `@NotBlank` 문구와 같다. 보내기 전에 화면이 먼저 막는다 */
-const NICKNAME_REQUIRED = '닉네임은 필수입니다'
+const NICKNAME_NOTICE = '닉네임을 바꾸면 지금까지 쓴 글과 댓글의 이름도 함께 바뀌어요.'
+/** 보내기 전 검사 — 프론트가 짓는 문장이라 해요체(회의 RV-7). 첫 낱말은 칸 이름 */
+const NICKNAME_REQUIRED = '닉네임을 적어 주세요'
 
 /**
  * [3.7] 내 정보 + [3.6] 닉네임 바꾸기. 로그인했을 때만 그린다.
@@ -74,6 +75,8 @@ function NicknameForm({ current }: { current: string }) {
 
   const trimmed = value.trim()
   const changed = trimmed !== current
+  // 지금 닉네임과 다르게 고쳐 둔 채 떠나거나 로그아웃하면 묻는다(쓰던 칸 등록부, 회의 AR2-3)
+  useDirtyField(changed)
   const validate = (text: string) => (text.trim() ? null : NICKNAME_REQUIRED)
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -117,7 +120,8 @@ function NicknameForm({ current }: { current: string }) {
         count={{ value: value.length, max: NICKNAME_MAX_LENGTH }}
         readOnly={mutation.isPending}
         error={error}
-        hint={NICKNAME_NOTICE}
+        // 결과 고지 — 오류가 떠 있어도 남는다(도움말과 달리 숨기지 않는다)
+        note={NICKNAME_NOTICE}
         onChange={(event) => {
           setValue(event.target.value)
           setSaved(false)
@@ -131,7 +135,7 @@ function NicknameForm({ current }: { current: string }) {
           variant="primary"
           unavailable={!changed && !mutation.isPending}
           aria-disabled={mutation.isPending || undefined}
-          aria-describedby={`${inputId}-hint`}
+          aria-describedby={`${inputId}-note`}
         >
           {mutation.isPending ? '저장하는 중…' : '닉네임 저장'}
         </Button>
