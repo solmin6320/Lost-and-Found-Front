@@ -21,6 +21,12 @@
   box-shadow: inset 0 0 0 1px var(--found-tint-line);
 }
 
+/* 의도를 고르지 않았다 — 올릴 글의 유형을 모르니 색을 칠하지 않는다. 옅은 면 + 잉크 버튼 */
+.next[data-concept='ANY'] {
+  background-color: var(--surface-sunken);
+  box-shadow: inset 0 0 0 1px var(--border-subtle);
+}
+
 @media (min-width: 40rem) {
   .next {
     padding: var(--space-6) var(--space-8);

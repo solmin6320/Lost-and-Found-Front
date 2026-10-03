@@ -89,10 +89,12 @@ export function PostIntentPicker({ selected, hrefFor, showCounts, onReselect }: 
 }
 
 /**
- * 무엇을 보게 되는지 한 줄 — "주워진 물건 · 12건 보기". 좁은 칸에서는 두 조각을 두 줄로 끊는다.
+ * 무엇을 보게 되는지 한 줄 — "누가 주워 둔 물건 · 12건 보기". 좁은 칸에서는 두 조각을 두 줄로 끊는다
+ * (넓은 칸에서는 면 오른쪽 끝에 한 줄로 선다 — CSS).
  * 건수는 목록과 별개로 불러온다 — 목록을 막지 않는다.
  * 불러오는 동안 숫자 자리를 비워 두어 글자가 밀리지 않고, 실패하면 숫자 대신 "모두" 를 쓴다.
- * 검색어 · 필터가 걸려 있으면 숫자를 빼고 "보기" 만 남긴다.
+ * 검색어 · 필터가 걸려 있으면 숫자를 빼고 **한 줄로 이어 쓴다**("누가 주워 둔 물건 보기") —
+ * 두 줄로 끊으면 "보기" 한 단어가 둘째 줄에 홀로 남는다.
  */
 function IntentHint({ intent, on, showCount }: { intent: PostIntent; on: boolean; showCount: boolean }) {
   const count = useQuery({
@@ -102,8 +104,8 @@ function IntentHint({ intent, on, showCount }: { intent: PostIntent; on: boolean
 
   if (!showCount) {
     return (
-      <span className={styles.hint}>
-        <span>{intent.sees}</span> <span>{intentHintTail(null, on)}</span>
+      <span className={styles.hint} data-single="">
+        {intent.sees} {intentHintTail(null, on)}
       </span>
     )
   }
