@@ -38,13 +38,31 @@ export const paths = {
 } as const
 
 /**
+ * 상세의 댓글 자리 조각. 로그인 권유 칸에서 로그인하고 돌아오면 이 조각을 보고 "댓글" 제목으로 데려간다(①-b).
+ * 돌아갈 곳(`?redirect=`)에 붙어도 되는 조각은 **이것 하나뿐**이다(`safeRedirectPath` 가 문자열로 비교한다)
+ */
+export const POST_COMMENTS_HASH = '#comments'
+
+/**
  * 로그인 화면에 넘기는 안내 한 줄(`navigate(paths.login, { state })`). 로그인 화면이 폼 위에 띄운다(SCR-05).
  * 설정의 비밀번호 변경 뒤 · 가입은 됐는데 이어진 로그인만 실패했을 때 쓴다
  */
-export interface LoginNoticeState {
+export interface LoginNoticeState extends AuthReturnState {
   notice: string
   /** 이메일 칸을 미리 채운다(가입 직후). 비밀번호는 싣지 않는다 — 기록(history)에 남는다 */
   email?: string
+}
+
+/**
+ * 상세에서 로그인 · 가입을 거쳐 그 글로 돌아올 때, 상세의 **진입 상태를 들고 다닌다**(API2-2).
+ *
+ * 상세 → 로그인은 기록을 바꿔치기(replace)하고, 로그인 → 상세도 바꿔치기한다. 그래서 기록은 `[목록, 상세']` 로 남는다.
+ * 여기에 상세가 원래 갖고 있던 `PostDetailEntryState` 를 다시 실어야 돌아온 상세의 [목록으로]가 **뒤로 가기**가 된다 —
+ * 보던 필터 · 의도 · 스크롤 그대로. 싣지 않으면 목록 첫 화면을 새로 연다.
+ * 받는 쪽은 `readReturnEntry()` 로 모양을 검사한 뒤 새로 만든 값만 넘긴다(기록의 state 는 누구나 만들 수 있다)
+ */
+export interface AuthReturnState {
+  returnEntry?: PostDetailEntryState
 }
 
 /**
@@ -83,10 +101,27 @@ export function postDetailFromMine(search: string): PostDetailEntryState {
  * `search` 는 `?` 로 시작하는 쿼리만 받는다 — 경로를 바꿔치기하는 값(`//evil`)이 끼어들 수 없다
  */
 export function readPostDetailEntry(state: unknown): { fromList: boolean; mineHref: string | null } {
-  if (typeof state !== 'object' || state === null) return { fromList: false, mineHref: null }
+  const entry = toPostDetailEntry(state)
+  if (!entry) return { fromList: false, mineHref: null }
+  if (entry.from !== 'mine') return { fromList: true, mineHref: null }
+  return { fromList: true, mineHref: `${paths.myPage}${entry.search ?? ''}` }
+}
+
+/**
+ * 기록 state 에서 상세 진입 상태만 **새로 만들어** 꺼낸다. 모양이 틀리면 `undefined`.
+ * `search` 는 `?` 로 시작하는 쿼리만 받는다 — 경로를 바꿔치기하는 값(`//evil`)이 끼어들 수 없다
+ */
+export function toPostDetailEntry(state: unknown): PostDetailEntryState | undefined {
+  if (typeof state !== 'object' || state === null) return undefined
   const { fromList, from, search } = state as Record<string, unknown>
-  if (fromList !== true) return { fromList: false, mineHref: null }
-  if (from !== 'mine') return { fromList: true, mineHref: null }
+  if (fromList !== true) return undefined
+  if (from !== 'mine') return POST_DETAIL_FROM_LIST
   const query = typeof search === 'string' && /^\?[\w=&%-]*$/.test(search) ? search : ''
-  return { fromList: true, mineHref: `${paths.myPage}${query}` }
+  return postDetailFromMine(query)
+}
+
+/** 로그인 · 가입 화면이 받은 state 에서 돌아갈 상세의 진입 상태를 꺼낸다(모양 검사 뒤) */
+export function readReturnEntry(state: unknown): PostDetailEntryState | undefined {
+  if (typeof state !== 'object' || state === null) return undefined
+  return toPostDetailEntry((state as Record<string, unknown>).returnEntry)
 }

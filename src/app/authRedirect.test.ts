@@ -73,6 +73,18 @@ describe('safeRedirectPath — 열린 리다이렉트 방지', () => {
     },
   )
 
+  // 돌아온 화면이 조각을 보고 하는 일은 상세의 "댓글로 데려가기" 하나다 — 그 조각만 남기고 나머지는 경로만 따른다(①-b)
+  it.each([
+    ['/posts/12#comment', '/posts/12'],
+    ['/posts/12#COMMENTS', '/posts/12'],
+    ['/posts/12#comments-x', '/posts/12'],
+    ['/posts/12#%3Cimg%3E', '/posts/12'],
+    ['/settings#comments', '/settings#comments'],
+    ['/?page=2#top', '/?page=2'],
+  ])('조각은 #comments 만 남긴다 — %s → %s', (raw, expected) => {
+    expect(safeRedirectPath(raw)).toBe(expected)
+  })
+
   it('대소문자만 다른 앱 안 경로는 원문 그대로 돌려준다', () => {
     expect(safeRedirectPath('/Settings')).toBe('/Settings')
   })

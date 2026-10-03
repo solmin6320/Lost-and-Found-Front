@@ -1,4 +1,4 @@
-import { paths } from './paths'
+import { paths, POST_COMMENTS_HASH } from './paths'
 
 /**
  * 로그인 · 가입 뒤 돌아갈 곳(`?redirect=`). 화면정의서 1.5 · 보안명세서 2장.
@@ -11,6 +11,8 @@ import { paths } from './paths'
  *   버린다   `https://…` · `//evil.com`(프로토콜 상대) · `/\evil.com`(브라우저가 `//` 로 읽는다)
  *            · 제어 문자가 섞인 값(브라우저가 지우고 다시 읽는다) · `/login` · `/signup`(되돌아오는 고리 —
  *            `/LOGIN` · `/login/` 처럼 라우터가 같은 화면으로 읽는 값까지)
+ *   떼어 낸다 조각(`#…`)은 상세의 `#comments` 하나만 남긴다(문자열 비교). 다른 조각은 경로만 따른다 —
+ *            돌아온 화면이 조각을 보고 하는 일이 그것 하나라, 남이 만든 조각으로 화면을 움직이지 못하게
  */
 export function safeRedirectPath(raw: string | null | undefined): string {
   if (!raw || !raw.startsWith('/') || raw.startsWith('//') || raw.includes('\\') || hasControlChar(raw)) {
@@ -26,7 +28,8 @@ export function safeRedirectPath(raw: string | null | undefined): string {
   if (AUTH_SCREENS.has(routeKey(url.pathname))) {
     return paths.postList
   }
-  return `${url.pathname}${url.search}${url.hash}`
+  const hash = url.hash === POST_COMMENTS_HASH ? url.hash : ''
+  return `${url.pathname}${url.search}${hash}`
 }
 
 /** 로그인 뒤 다시 가면 되돌아오는 고리가 되는 화면 */
@@ -78,6 +81,11 @@ export interface ReturnTarget {
 }
 
 const POST_PATH = /^\/posts\/\d+$/
+
+/** 돌아갈 곳이 글 상세인가. 상세로 돌아갈 때만 상세의 진입 상태(`returnEntry`)를 싣는다. `safeRedirectPath` 를 거친 값만 넣는다 */
+export function isPostDetailPath(path: string): boolean {
+  return POST_PATH.test(new URL(path, window.location.origin).pathname)
+}
 const POST_EDIT_PATH = /^\/posts\/\d+\/edit$/
 
 /**

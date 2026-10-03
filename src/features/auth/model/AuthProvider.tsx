@@ -18,8 +18,11 @@ import { restoreSession, signIn, signOut, updatePasswordAndEndSession } from './
  * - **회원 개인 데이터는 지운다** — 내 정보(`memberKeys.all`) · 내가 쓴 글(`postKeys.mines()`).
  *   같은 기기의 다음 사용자가 이전 사용자의 것을 보면 안 된다
  * - **요청 기록도 지운다**(mutation 캐시). 비밀번호 변경의 입력값(현재 · 새 비밀번호)이 몇 분간 메모리에 남는다
- * - **공개 게시글 · 댓글은 두고 다시 받게만 한다**(`invalidateQueries`). 누가 봐도 같은 데이터다.
+ * - **공개 목록 · 댓글은 두고 다시 받게만 한다**(`invalidateQueries`). 누가 봐도 같은 데이터다.
  *   통째로 비우면(`clear()`) 보던 상세 · 목록이 스켈레톤으로 깜빡이고 높이가 줄어 스크롤이 튄다
+ * - **글 상세 자체는 무효화하지 않는다**(API2-1). 상세 요청은 조회수를 센다(회원마다 하루 한 번) — 세션이 끊겨 다시 로그인하고
+ *   돌아온 같은 사람이 같은 글을 한 번 더 센다. 상세에는 보는 사람에 따라 달라지는 값이 없다(내 글 판정은 `memberId` 로 화면이 한다).
+ *   상세는 평소처럼 1분 신선도(`postDetailQueryOptions`)를 따른다
  *
  * 쓰던 댓글 · 글의 보관(`comment-draft:v1` · `post-draft:v1`)은 여기서 건드리지 않는다 — 세션 만료 뒤 이어 쓰려고 둔 것이다.
  * **직접 로그아웃**할 때만 `logout` 이 따로 지운다(공용 기기). 다른 탭에서 직접 로그아웃했을 때도 같다(`authChannel`)
@@ -28,7 +31,13 @@ function forgetMember(queryClient: QueryClient) {
   queryClient.getMutationCache().clear()
   queryClient.removeQueries({ queryKey: memberKeys.all })
   queryClient.removeQueries({ queryKey: postKeys.mines() })
-  void queryClient.invalidateQueries({ queryKey: postKeys.all })
+  void queryClient.invalidateQueries({ queryKey: postKeys.all, predicate: (query) => !isPostDetailKey(query.queryKey) })
+}
+
+/** `postKeys.detail(id)` 그 자체(그 아래 댓글 키는 아니다) */
+function isPostDetailKey(key: readonly unknown[]): boolean {
+  const detail = postKeys.details()
+  return key.length === detail.length + 1 && detail.every((part, i) => key[i] === part)
 }
 
 /**
