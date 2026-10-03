@@ -1,6 +1,8 @@
 /*
  * 등록 · 수정 폼.
- *   휴대폰(기본)  한 줄, 칸 사이 28px. 제출 줄은 화면 아래에 붙어 따라온다(엄지가 닿는 곳, 긴 설명을 쓰다가도 보인다)
+ *   휴대폰(기본)  한 줄, 칸 사이 32px. 제출 줄은 화면 아래에 붙어 따라온다(엄지가 닿는 곳, 긴 설명을 쓰다가도 보인다)
+ *                 단 화면 높이 40rem 미만(가로 휴대폰 · 확대 · 글자 키움)은 폼 끝 제자리 — 붙는 것은 헤더 + 줄 하나까지,
+ *                 둘째 줄은 높이 40rem 부터(회의 총량 규칙). 낮은 화면에서 줄이 칸을 가리지 않게
  *   48rem 이상    제출 줄이 폼 끝에 제자리로 선다(오른쪽 정렬)
  *   64rem 이상    두 칸 — 왼쪽 폼(40rem) · 오른쪽 "목록에서 이렇게 보여요" 미리보기(17rem, 따라 내려온다)
  * 읽는 화면이라 한 줄일 때는 700px(--layout-max)을 넘지 않는다.
@@ -44,11 +46,17 @@
   gap: var(--space-1-5);
 }
 
-/* 조건을 켜는 조각이라 알약 모양(필터 칩과 같은 말투). 보이는 높이 36px, 누르는 면적 44px */
+/*
+ * 하나만 고르기 — 알약 안 앞머리의 점이 고른 것을 말한다(채운 점, 회의 ⑤-a). 칠한 알약은 주 버튼과 무게를 다퉈 쓰지 않는다.
+ * 보이는 높이 36px, 누르는 면적 44px
+ */
 .quickDate {
   position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1-5);
   min-height: 2.25rem;
-  padding-inline: var(--space-4);
+  padding-inline: var(--space-3) var(--space-4);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-pill);
   background-color: var(--surface);
@@ -71,10 +79,39 @@
   transform: translateY(-50%);
 }
 
+/* 점 — 고리는 늘, 고른 쪽만 가운데가 찬다(등록 첫 질문의 점과 같은 모양) */
+.quickDot {
+  position: relative;
+  flex: none;
+  width: 0.875rem;
+  height: 0.875rem;
+  border: 1.5px solid var(--border-hover);
+  border-radius: var(--radius-pill);
+  transition: border-color var(--duration-fast) var(--ease-out);
+}
+
+.quickDot::after {
+  content: '';
+  position: absolute;
+  inset: 2px;
+  border-radius: inherit;
+  background-color: var(--selected-line);
+  transform: scale(0);
+  transition: transform var(--duration-fast) var(--ease-out);
+}
+
 .quickDate[aria-pressed='true'] {
-  border-color: var(--action);
-  background-color: var(--action);
-  color: var(--on-action);
+  border-color: var(--selected-line);
+  box-shadow: inset 0 0 0 1px var(--selected-line);
+  font-weight: var(--weight-bold);
+}
+
+.quickDate[aria-pressed='true'] .quickDot {
+  border-color: var(--selected-line);
+}
+
+.quickDate[aria-pressed='true'] .quickDot::after {
+  transform: scale(1);
 }
 
 .quickDate[aria-disabled='true'] {
@@ -88,28 +125,43 @@
   }
 }
 
-/* 개인정보 경고 — 도움말보다 한 단계 진하게. 적기 전에 읽혀야 한다 */
-.privacy {
-  color: var(--text-body);
-  font-weight: var(--weight-semibold);
-}
-
-/* ── 제출 줄 ── */
+/* ── 제출 줄 ── 기본은 폼 끝 제자리. 휴대폰 · 높이 40rem 이상에서만 화면 아래에 붙는다 */
 .bar {
-  position: sticky;
-  bottom: 0;
-  z-index: 10;
   display: grid;
   gap: var(--space-3);
-  margin-inline: calc(var(--gutter) * -1);
-  padding: var(--space-3) var(--gutter) max(var(--space-3), env(safe-area-inset-bottom));
-  border-top: var(--hairline);
-  background-color: var(--surface);
+  padding-top: var(--space-5);
 }
 
-/* 아래에 붙은 제출 줄이 입력칸을 가리지 않게 — 포커스가 옮겨 갈 때 그만큼 비켜 스크롤한다 */
-:global(html):has(.bar) {
-  scroll-padding-bottom: 6rem;
+@media (max-width: 47.99rem) and (min-height: 40rem) {
+  .bar {
+    position: sticky;
+    bottom: 0;
+    z-index: 10;
+    margin-inline: calc(var(--gutter) * -1);
+    padding: var(--space-3) var(--gutter) max(var(--space-3), env(safe-area-inset-bottom));
+    border-top: var(--hairline);
+    background-color: var(--surface);
+  }
+
+  /* 붙은 제출 줄이 입력칸을 가리지 않게 — 줄의 실제 높이(--form-bar-h, PostForm 이 잰다) + 여유만큼 비켜 스크롤한다 */
+  :global(html):has(.bar) {
+    scroll-padding-bottom: calc(var(--form-bar-h, 6rem) + var(--space-4));
+  }
+}
+
+/*
+ * 제출이 막혔을 때 남은 수 — 버튼 바로 위 13px 잉크 글자 한 줄. 색 · 면 없음(줄 높이 증가 20px 이하).
+ * 비어 있어도 알림 영역으로 남아 있어야 나타날 때 읽힌다 — 높이 0 으로 접고 줄 간격도 거둔다
+ */
+.remaining {
+  color: var(--text-strong);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-bold);
+  line-height: var(--leading-snug);
+}
+
+.remaining:empty {
+  margin-bottom: calc(var(--space-3) * -1);
 }
 
 .buttons {
@@ -119,14 +171,8 @@
 }
 
 @media (min-width: 48rem) {
-  .bar {
-    position: static;
-    margin-inline: 0;
-    padding: var(--space-5) 0 0;
-  }
-
-  :global(html):has(.bar) {
-    scroll-padding-bottom: 0;
+  .remaining {
+    text-align: right;
   }
 
   .buttons {
@@ -191,6 +237,51 @@
 
 .step[data-state='now'] .stepMark {
   background-color: currentColor;
+}
+
+/* ── 다른 창에서 로그아웃(SE2-10) — 이어서 쓰기와 같은 옅은 면. 빨강이 아니다(상태 알림) ── */
+.stranded {
+  composes: appear from '../../../shared/styles/motion.module.css';
+
+  display: flex;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
+  border-radius: var(--radius-md);
+  background-color: var(--surface-sunken);
+}
+
+.stranded:focus-visible {
+  outline-offset: 3px;
+}
+
+.strandedIcon {
+  flex: none;
+  width: var(--icon-lg);
+  height: var(--icon-lg);
+  color: var(--text-strong);
+}
+
+.strandedBody {
+  display: grid;
+  gap: var(--space-1);
+  justify-items: start;
+  min-width: 0;
+}
+
+.strandedTitle {
+  color: var(--text-strong);
+  font-size: var(--text-base);
+  font-weight: var(--weight-bold);
+  line-height: var(--leading-snug);
+  word-break: keep-all;
+}
+
+.strandedText {
+  margin-bottom: var(--space-2);
+  color: var(--text-body);
+  font-size: var(--text-sm);
+  line-height: var(--leading-snug);
+  word-break: keep-all;
 }
 
 /* ── 이어서 쓰기 ── */

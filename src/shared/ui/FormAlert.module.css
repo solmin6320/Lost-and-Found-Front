@@ -1,6 +1,6 @@
 /*
  * 폼 전체 문제 한 줄(어느 칸인지 모름 · 연결 실패 · 자격 증명 불일치). 로그인 · 가입 · 글 쓰기 · 비밀번호 변경이 같이 쓴다.
- * 빨강을 쓰지 않는다(빨강은 삭제 전용). 옅은 면 + 아이콘 + 굵은 글자로 알린다
+ * 옅은 면 + 아이콘 + 굵은 글자. 빨강은 아이콘과 글자에만(`--error-text`, 회의 ⑤) — 면은 칠하지 않는다
  */
 .alert {
   composes: appear from '../styles/motion.module.css';
@@ -11,7 +11,7 @@
   padding: var(--space-3) var(--space-4);
   border-radius: var(--radius-md);
   background-color: var(--surface-sunken);
-  color: var(--text-strong);
+  color: var(--error-text);
   font-size: var(--text-sm);
   font-weight: var(--weight-semibold);
   line-height: var(--leading-snug);

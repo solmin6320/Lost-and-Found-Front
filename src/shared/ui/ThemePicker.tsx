@@ -2,8 +2,9 @@ import { useId, useRef } from 'react'
 
 import { useTheme, type ThemeName } from '@/shared/lib/theme'
 
-import { Check, Moon, Sun, type Icon } from './icons'
+import { Moon, Sun, type Icon } from './icons'
 import styles from './ThemePicker.module.css'
+import { themeOptionState } from './ThemePicker.state'
 
 const OPTIONS: { value: ThemeName; label: string; icon: Icon }[] = [
   { value: 'light', label: '밝게', icon: Sun },
@@ -21,11 +22,13 @@ interface ThemePickerProps {
  * 화면 모드 — "밝게" · "어둡게" 두 칸. 칸마다 그 모드로 그린 화면 축소 도식이 들어간다.
  *
  * 진짜 라디오 두 개다 — 화살표 키로 옮기고, 스크린리더가 "2개 중 1번째, 선택됨" 으로 읽는다.
- * 고른 칸은 색이 아니라 **굵은 테두리 + 체크 아이콘**으로도 보인다.
+ * 고른 칸은 색이 아니라 **선 두 겹 + 모서리 표시**로 보인다(그림 칸의 선택 표시 — 종류 칸과 같은 접힌 귀퉁이, 회의 ⑤-a).
+ * 동그라미 체크는 쓰지 않는다 — 그건 "완료"의 표시다.
  * 바꾸는 즉시 화면 전체에 적용한다. 되돌릴 수 있는 일이라 확인 창을 띄우지 않는다.
  *
- * 한 번도 고르지 않았으면 기기 설정을 따른다. 그때는 지금 그려지는 모드의 칸이 선택돼 있고,
- * 아래 한 줄이 "기기 설정을 따르는 중" 임을 알린다. 그 칸을 누르면 그 모드로 고정된다.
+ * 한 번도 고르지 않았으면 기기 설정을 따른다. 그때는 지금 그려지는 모드의 칸에 **빈 테** 모서리 표시와
+ * `기기 설정` 이름표가 붙는다(회의 RV-11). 그 칸을 누르면 그 모드로 고정되고 표시가 **채워진다** — 겉모습이 바뀌어야
+ * 고정됐다는 것을 안다(밤에 기기가 어둡게 바뀌어도 앱이 흰 채로 남는 까닭).
  */
 export function ThemePicker({ labelledBy }: ThemePickerProps) {
   const { preference, resolved, setPreference } = useTheme()
@@ -53,8 +56,9 @@ export function ThemePicker({ labelledBy }: ThemePickerProps) {
       >
         {OPTIONS.map(({ value, label, icon: OptionIcon }) => {
           const checked = selected === value
+          const state = themeOptionState(value, preference, resolved)
           return (
-            <label key={value} className={styles.option}>
+            <label key={value} className={styles.option} data-state={state}>
               <input
                 className={styles.input}
                 type="radio"
@@ -73,10 +77,11 @@ export function ThemePicker({ labelledBy }: ThemePickerProps) {
               <span className={styles.caption}>
                 <OptionIcon className={styles.captionIcon} />
                 <span className={styles.captionText}>{label}</span>
-                <span className={styles.check}>
-                  <Check />
-                </span>
+                {state === 'following' ? <span className={styles.systemTag}>기기 설정</span> : null}
               </span>
+              <svg className={styles.corner} viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+                <path d="M14.5 3v9.5a2 2 0 0 1-2 2H3Z" />
+              </svg>
             </label>
           )
         })}

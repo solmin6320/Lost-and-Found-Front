@@ -121,30 +121,26 @@
   white-space: nowrap;
 }
 
-.check {
+/* 모서리 표시 — 고른 칸의 오른쪽 위 접힌 귀퉁이(화면 모드 칸과 같은 모양). 고르는 순간 옅게 나타난다 */
+.corner {
   position: absolute;
   top: var(--space-1);
   right: var(--space-1);
-  display: grid;
-  place-items: center;
-  width: 1.125rem;
-  height: 1.125rem;
-  border-radius: var(--radius-pill);
-  background-color: var(--action);
-  color: var(--on-action);
-  animation: check-in var(--duration-base) var(--ease-out);
-}
-
-.check svg {
-  width: 0.75rem;
-  height: 0.75rem;
+  width: 1rem;
+  height: 1rem;
+  color: var(--selected-line);
+  fill: currentColor;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+  animation: corner-in var(--duration-base) var(--ease-out);
 }
 
 .error {
   display: flex;
   align-items: flex-start;
   gap: var(--space-1);
-  color: var(--text-strong);
+  color: var(--error-text);
   font-size: var(--text-sm);
   font-weight: var(--weight-semibold);
   line-height: var(--leading-snug);
@@ -165,10 +161,9 @@
   word-break: keep-all;
 }
 
-@keyframes check-in {
+@keyframes corner-in {
   from {
     opacity: 0;
-    transform: scale(0.8);
   }
 }
 

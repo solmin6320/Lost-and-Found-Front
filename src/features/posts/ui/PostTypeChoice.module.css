@@ -137,14 +137,32 @@
   }
 }
 
-/* 고른 칸의 체크 — 색만으로 고른 것을 알리지 않는다. 고르는 순간 살짝 떠오르며 나타난다 */
-.check {
+/*
+ * 선택 표시 — 하나만 고르기는 채운 점(회의 ⑤-a). 고리는 늘 있고(누르면 고를 수 있다는 표시), 고른 칸만 가운데가 찬다.
+ * 색은 칸의 글자색을 따른다(면 위 대비 그대로). 오른쪽 위는 짧은 첫 줄("물건을") 옆이라 글자를 밀지 않는다
+ */
+.dot {
   position: absolute;
   top: var(--space-3);
   right: var(--space-3);
-  width: var(--icon-lg);
-  height: var(--icon-lg);
-  animation: check-in var(--duration-base) var(--ease-out);
+  width: var(--icon-md);
+  height: var(--icon-md);
+  border: 2px solid currentColor;
+  border-radius: var(--radius-pill);
+}
+
+.dot::after {
+  content: '';
+  position: absolute;
+  inset: 3px;
+  border-radius: inherit;
+  background-color: currentColor;
+  transform: scale(0);
+  transition: transform var(--duration-fast) var(--ease-out);
+}
+
+.choice[data-state='on'] .dot::after {
+  transform: scale(1);
 }
 
 .error {
@@ -152,7 +170,7 @@
   align-items: flex-start;
   gap: var(--space-1);
   margin-top: var(--space-1);
-  color: var(--text-strong);
+  color: var(--error-text);
   font-size: var(--text-sm);
   font-weight: var(--weight-semibold);
   line-height: var(--leading-snug);
@@ -171,13 +189,6 @@
   font-size: var(--text-sm);
   line-height: var(--leading-snug);
   word-break: keep-all;
-}
-
-@keyframes check-in {
-  from {
-    opacity: 0;
-    transform: scale(0.8);
-  }
 }
 
 @keyframes error-in {

@@ -274,7 +274,7 @@ export function OnboardingTour({ open, onClose, fallbackFocus }: OnboardingTourP
 
         <div className={styles.actions}>
           {last ? null : (
-            <Button variant="ghost" className={styles.skip} onClick={close}>
+            <Button variant="secondary" className={styles.skip} onClick={close}>
               건너뛰기
             </Button>
           )}

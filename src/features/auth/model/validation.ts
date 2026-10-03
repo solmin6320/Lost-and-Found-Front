@@ -3,17 +3,19 @@ import { NICKNAME_MAX_LENGTH, PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH } from '@
 import { EMAIL_MAX_LENGTH } from '../api/types'
 
 /**
- * 로그인 · 가입 입력 검사. 문구는 서버(`LoginRequest` · `SignupRequest`)의 검증 메시지와 **같은 문장**이다.
+ * 로그인 · 가입 입력 검사 — 보내기 전 검사 문장은 프론트가 짓는 문장이라 **해요체**다(2026-10-03 회의 RV-7 · ⑦).
+ * 서버(`LoginRequest` · `SignupRequest`)가 같은 이유로 막으면 서버 문장(합니다체)이 그대로 온다 — 바꾸려면 백엔드 `ErrorCode`.
+ * 첫 낱말은 칸 이름("이메일 · 비밀번호 · 닉네임")으로 시작한다 — 서버 문장을 칸에 붙이는 `fieldOfMessage` 와 같은 규칙.
  * 보내기 전에 화면이 먼저 막을 뿐, 판정은 서버가 한다 — 통과해도 `INVALID_INPUT` 이 올 수 있다.
  */
 export const AUTH_MESSAGES = {
-  emailRequired: '이메일은 필수입니다',
-  emailFormat: '이메일 형식이 올바르지 않습니다',
-  emailLength: '이메일은 100자를 초과할 수 없습니다',
-  passwordRequired: '비밀번호는 필수입니다',
-  passwordLength: '비밀번호는 8~20자여야 합니다',
-  nicknameRequired: '닉네임은 필수입니다',
-  nicknameLength: '닉네임은 20자를 초과할 수 없습니다',
+  emailRequired: '이메일을 적어 주세요',
+  emailFormat: '이메일 형식이 맞지 않아요. 예: name@example.com',
+  emailLength: '이메일은 100자까지 쓸 수 있어요',
+  passwordRequired: '비밀번호를 적어 주세요',
+  passwordLength: '비밀번호는 8~20자로 적어 주세요',
+  nicknameRequired: '닉네임을 적어 주세요',
+  nicknameLength: '닉네임은 20자까지 쓸 수 있어요',
 } as const
 
 /**

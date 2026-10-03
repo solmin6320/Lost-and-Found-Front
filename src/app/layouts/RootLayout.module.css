@@ -48,7 +48,7 @@
 
 /*
  * 22.5rem(360px) 미만에서는 글자를 화면에서만 숨기고 꼬리표 두 장만 남긴다(이름은 링크의 이름으로 남는다).
- * 오른쪽에 [+] · 서비스 안내 · 설정 · 로그인 넷이 서면 320 폭에서는 글자까지 한 줄에 들어가지 않는다.
+ * 비로그인 오른쪽에 [+] · 서비스 안내 · 설정 · 로그인 넷이 8px 간격으로 서면 320 폭에서는 글자까지 한 줄에 들어가지 않는다.
  * 기능 버튼을 메뉴 속에 감추는 것보다 로고 글자를 접는 쪽이 덜 잃는다 — 첫 화면 제목이 무엇을 하는 곳인지 말한다.
  * 360(가장 흔한 안드로이드 폭)은 글자를 한 단계 줄여 서비스 이름을 살린다
  */
@@ -83,10 +83,11 @@
   height: var(--icon-lg);
 }
 
+/* 누르는 면끼리 8px(회의 UI-6 a — 4px 은 옆 버튼을 잘못 누른다). 모든 폭에서 같다 */
 .actions {
   display: flex;
   align-items: center;
-  gap: var(--space-1);
+  gap: var(--space-2);
   margin-left: auto;
 }
 
@@ -101,8 +102,13 @@
  *   48rem 이상  [글 올리기]는 잉크를 채운 주 버튼, 서비스 안내 · 설정은 글자도 둔다
  * 공통 버튼의 같은 무게 선택자와 겨루지 않게 `.actions` 를 앞에 붙인다
  */
+/*
+ * 보이는 칸 36px 의 누르는 면은 양옆 4px 씩 넓힌 44px 이다. 오른쪽 이웃(서비스 안내)과 누르는 면끼리 8px 이 되게
+ * 그 4px 만큼 오른쪽을 더 띄운다(왼쪽은 로고 쪽 여유가 받는다). 2026-10-03 실측 : 320 로고 그림과 34px · 360 7px · 390 28px
+ */
 .actions .create {
   width: 2.25rem;
+  margin-right: calc((var(--tap-min) - 2.25rem) / 2);
   padding-inline: 0;
 }
 
@@ -160,6 +166,7 @@
 @media (min-width: 28rem) {
   .actions .create {
     width: auto;
+    margin-right: 0;
     padding-inline: var(--space-3) var(--space-4);
   }
 
@@ -186,14 +193,10 @@
   }
 }
 
-/* 워드마크를 키우고 간격을 넓히는 것은 한 줄에 다 들어가는 폭부터 */
+/* 워드마크를 키우는 것은 한 줄에 다 들어가는 폭부터 */
 @media (min-width: 30rem) {
   .wordmark {
     font-size: var(--text-lg);
-  }
-
-  .actions {
-    gap: var(--space-2);
   }
 }
 
@@ -222,14 +225,54 @@
 }
 
 @media (min-width: 48rem) and (hover: hover) {
-  .actions .create:hover {
+  .actions .create:not([data-here]):hover {
     border-color: transparent;
     background-color: var(--action-hover);
   }
 }
 
+/*
+ * 등록 · 수정 화면 — "지금 여기" 옅은 면(설정 톱니의 현재 표시와 같은 말투). 넓은 화면의 잉크 채움도 거둔다 —
+ * 지금 쓰는 중인 화면의 주 동작은 폼의 [올리기]다. 등록 화면에서는 눌러도 무시한다(aria-current)
+ */
+.actions .create[data-here] {
+  border-color: transparent;
+  background-color: var(--surface-sunken);
+  color: var(--text-strong);
+}
+
+.actions .create[aria-current='page'] {
+  cursor: default;
+}
+
+/*
+ * [로그인] — 테두리 없는 글자 버튼. 15px/700, 누르는 면 44px. 계정 버튼과 같은 최소 폭이라 복구가 끝나 바뀌어도 옆이 밀리지 않는다
+ */
 .login {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
   min-width: var(--header-auth-w);
+  min-height: var(--tap-min);
+  padding-inline: var(--space-2);
+  border-radius: var(--radius-sm);
+  color: var(--text-strong);
+  font-size: 0.9375rem;
+  font-weight: var(--weight-bold);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+@media (hover: hover) {
+  .login:hover {
+    background-color: var(--surface-sunken);
+  }
+}
+
+/* 로그인 · 가입 화면 — 숨기되 자리는 남긴다(헤더가 흔들리지 않게). 보이지 않으니 포커스 · 읽기에서도 빠진다 */
+.login[data-away] {
+  visibility: hidden;
 }
 
 .authPending {

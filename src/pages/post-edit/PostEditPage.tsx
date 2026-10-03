@@ -65,7 +65,7 @@ export function PostEditPage() {
   useDocumentTitle(missing ? '없는 글' : '글 수정')
 
   if (missing) return <MissingPost listHref={paths.postList} className={styles.stateBox} />
-  if (page.gate === 'pending') return <PostFormSkeleton label="로그인을 확인하는 중입니다" />
+  if (page.gate === 'pending') return <PostFormSkeleton label="로그인을 확인하는 중이에요" />
   if (page.gate === 'login' || page.memberId === null) return <Navigate to={page.loginHref} replace />
   if (post === null) {
     if (detail.isError) {
@@ -87,9 +87,9 @@ export function PostEditPage() {
         </div>
       )
     }
-    return <PostFormSkeleton label="고칠 글을 불러오는 중입니다" />
+    return <PostFormSkeleton label="고칠 글을 불러오는 중이에요" />
   }
-  if (notOwner) return <PostFormSkeleton label="이 글로 돌아가는 중입니다" />
+  if (notOwner) return <PostFormSkeleton label="이 글로 돌아가는 중이에요" />
 
   return (
     <EditForm
@@ -99,6 +99,7 @@ export function PostEditPage() {
       signedIn={page.signedIn}
       intro={<PostWriteHeader title="글 수정" lead="사진만 빼고 모두 채워져 있어야 저장돼요." {...page.guide} />}
       onSessionLost={page.onSessionLost}
+      loginHref={page.loginHref}
     />
   )
 }
@@ -109,9 +110,11 @@ interface EditFormProps {
   signedIn: boolean
   intro: ReactNode
   onSessionLost: (draftSaved: boolean, leave: LeaveFn) => void
+  /** 다른 창에서 로그아웃돼 이 화면에 머물 때 [로그인]이 갈 곳 */
+  loginHref: string
 }
 
-function EditForm({ post, memberId, signedIn, intro, onSessionLost }: EditFormProps) {
+function EditForm({ post, memberId, signedIn, intro, onSessionLost, loginHref }: EditFormProps) {
   const update = useUpdatePost(post.id)
   // 처음 값은 이 화면에 들어온 순간의 글 그대로. 뒤에서 다시 받아도 쓰던 칸을 덮지 않는다
   const [initialValues] = useState(() => postFormValuesOf(post))
@@ -150,6 +153,7 @@ function EditForm({ post, memberId, signedIn, intro, onSessionLost }: EditFormPr
         return false
       }}
       onSessionLost={onSessionLost}
+      loginHref={loginHref}
       cancelTo={paths.postDetail(post.id)}
     />
   )

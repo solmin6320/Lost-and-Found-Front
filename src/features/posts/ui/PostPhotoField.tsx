@@ -5,7 +5,7 @@ import { useMediaQuery } from '@/shared/lib/useMediaQuery'
 import { Button } from '@/shared/ui/Button'
 import { ArrowUUpLeft, Camera, CaretLeft, CaretRight, Plus, Trash, WarningCircle, X } from '@/shared/ui/icons'
 
-import type { PostImageResponse } from '../api/types'
+import type { PostCategory, PostImageResponse } from '../api/types'
 import {
   POST_IMAGE_ACCEPT,
   POST_IMAGE_MAX_COUNT,
@@ -44,7 +44,12 @@ interface PostPhotoFieldProps {
   error?: string
   /** 이어 쓰기로 되살렸지만 보관하지 못한 사진 수. 새로 고르면 부른 쪽이 0 으로 */
   lostCount?: number
+  /** 고른 종류. 카드 · 지갑이면 사진 속 개인정보 줄을 한 단계 진하게 한다(회의 SE-2) */
+  category?: PostCategory | null
 }
+
+/** 신분증 · 카드가 사진에 찍혀 올라오는 것이 정상 흐름인 종류 */
+const ID_HEAVY_CATEGORIES: ReadonlySet<PostCategory> = new Set(['CARD', 'WALLET'])
 
 /** 고른 파일 가운데 넣지 못한 것 */
 interface Notice {
@@ -62,8 +67,8 @@ let nextNoticeId = 1
  * 넓은 화면 마우스에서는 끌어서 순서를 바꾸고, 파일을 끌어다 놓아도 된다(버튼은 그대로 있다 — 끌기만 되는 조작은 두지 않는다).
  *
  * **수정** : 서버는 "그대로 · 전부 교체 · 전부 삭제" 셋만 안다(`PostImageChange`). 한 장만 빼거나 더할 수 없다.
- *   - 그대로(keep)  : 지금 사진을 보여 주고, 결과를 **누르기 전에** 한 줄로 알린다 —
- *                     "새 사진을 올리면 기존 사진 N장이 모두 교체됩니다. 그대로 두려면 선택하지 마세요."
+ *   - 그대로(keep)  : 지금 사진을 보여 주고, 결과를 **누르기 전에** 한 줄로 알린다 — 유지가 먼저, 긍정문으로(회의 RV-8)
+ *                     "지금 사진 N장이 그대로 남아요. ‘새 사진으로 바꾸기’를 고르면 N장이 모두 바뀌어요."
  *   - 교체(replace) : 새 사진을 고르면 된다. "저장하면 기존 사진 N장 대신 이 사진 M장이 올라가요." + [기존 사진 유지]
  *   - 삭제(remove)  : [사진 전부 삭제]. 저장 전까지는 [기존 사진 유지]로 돌아간다. 되돌릴 수 있으니 다이얼로그 없이 인라인
  *
@@ -81,6 +86,7 @@ export function PostPhotoField({
   readOnly = false,
   error,
   lostCount = 0,
+  category = null,
 }: PostPhotoFieldProps) {
   const id = useId()
   const labelId = `${id}-label`
@@ -437,7 +443,7 @@ export function PostPhotoField({
             </Button>
           </div>
           <p className={styles.hint}>
-            새 사진을 올리면 기존 사진 {existing.length}장이 모두 교체됩니다. 그대로 두려면 선택하지 마세요.
+            지금 사진 {existing.length}장이 그대로 남아요. ‘새 사진으로 바꾸기’를 고르면 {existing.length}장이 모두 바뀌어요.
           </p>
         </>
       ) : null}
@@ -484,8 +490,17 @@ export function PostPhotoField({
         <StateNote tone="warn">
           <p>전에 고른 사진 {lostCount}장은 보관하지 못했어요. 다시 골라 주세요.</p>
         </StateNote>
-      ) : mode === 'empty' ? (
-        <p className={styles.hint}>사진이 있으면 한눈에 알아볼 수 있어요.</p>
+      ) : null}
+
+      {/* 사진 속 개인정보 — 고르기 전 · 고른 뒤 둘 다, 격자 바로 아래 한 줄(회의 SE-2). 카드 · 지갑이면 한 단계 진하게.
+          [올리기] 곁이나 확인 창에 두지 않는다 — 누르기 직전 경고는 읽히지 않는다 */}
+      {mode === 'empty' || mode === 'new' ? (
+        <p
+          className={styles.privacy}
+          data-strong={category !== null && ID_HEAVY_CATEGORIES.has(category) ? '' : undefined}
+        >
+          신분증 · 카드 번호 · 이름이 보이면 가리고 올려 주세요.
+        </p>
       ) : null}
 
       {notices.length > 0 ? (

@@ -81,14 +81,14 @@ interface AuthReturnNoteProps {
   concept?: 'LOST' | 'FOUND'
 }
 
-/** "로그인하면 분실 글 올리기로 돌아갑니다" — 로그인이 끝난 뒤 어디로 가는지 누르기 전에 알린다 */
+/** "로그인하면 분실 글 올리기로 돌아가요" — 로그인이 끝난 뒤 어디로 가는지 누르기 전에 알린다 */
 export function AuthReturnNote({ lead, label, concept }: AuthReturnNoteProps) {
   return (
     <p className={styles.returnNote} data-concept={concept}>
       <ArrowUUpLeft />
       <span>
         {lead} <strong>{label}</strong>
-        {particle(label, '으로')} 돌아갑니다.
+        {particle(label, '으로')} 돌아가요.
       </span>
     </p>
   )

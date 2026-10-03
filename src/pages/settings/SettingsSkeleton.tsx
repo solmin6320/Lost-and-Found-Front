@@ -13,7 +13,7 @@ export function SettingsSkeleton() {
   return (
     <div className={styles.page} aria-busy="true">
       <p className="sr-only" role="status">
-        설정을 불러오는 중입니다
+        설정을 불러오는 중이에요
       </p>
       <h1 className={styles.title}>설정</h1>
 

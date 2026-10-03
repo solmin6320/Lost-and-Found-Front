@@ -1,6 +1,6 @@
 import { useId } from 'react'
 
-import { CheckCircle, WarningCircle } from '@/shared/ui/icons'
+import { WarningCircle } from '@/shared/ui/icons'
 
 import { POST_TYPES, type PostType } from '../api/types'
 import styles from './PostTypeChoice.module.css'
@@ -31,7 +31,9 @@ const CHOICES: Record<PostType, { label: [string, string]; posts: string; reader
  * 진짜 라디오 두 개라 화살표 키로 옮기고 스크린리더가 선택을 읽는다. 칸 전체가 누르는 면이다.
  *
  * 고르기 전에는 두 칸 다 제 색 면이고, 고르면 고른 칸만 면으로 남고 다른 칸은 옅어진다(목록의 의도 칸과 같다).
- * 고른 칸에는 체크가 붙는다 — 색만으로 고른 것을 알리지 않는다.
+ * 오른쪽 위에 둥근 고리 — 고른 칸은 가운데 점이 채워진다(하나만 고르기 = 채운 점, 회의 ⑤-a). 색만으로 고른 것을 알리지 않는다.
+ * 동그라미 체크는 쓰지 않는다 — 그건 "완료"의 표시다.
+ * 오류는 제출이 막혔을 때만 붙어 바로 읽어 주지 않는다(`aria-describedby` 로 읽힌다, 회의 UI2-9).
  * 아래 한 줄이 **누가 이 글을 보게 되는지** 말한다(온보딩 2층 "등록 화면 유형 선택").
  */
 export function PostTypeChoice({ value, onChange, readOnly = false, error }: PostTypeChoiceProps) {
@@ -73,13 +75,13 @@ export function PostTypeChoice({ value, onChange, readOnly = false, error }: Pos
                 <span>{choice.label[0]}</span> <span>{choice.label[1]}</span>
               </span>
               <span className={styles.posts}>{choice.posts}</span>
-              {checked ? <CheckCircle className={styles.check} /> : null}
+              <span className={styles.dot} aria-hidden="true" />
             </label>
           )
         })}
       </div>
       {error ? (
-        <p id={errorId} className={styles.error} role="alert">
+        <p id={errorId} className={styles.error}>
           <WarningCircle />
           {error}
         </p>

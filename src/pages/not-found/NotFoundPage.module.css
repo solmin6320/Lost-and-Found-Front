@@ -1,14 +1,17 @@
 /*
- * SCR-09 없는 화면 — 상세의 "없거나 삭제된 글"과 같은 옅은 면 한 장(읽는 폭 700px).
- * 주소는 이름표(4px) 모양으로 — 무엇이 틀렸는지 눈으로 짚을 자리다. 장식을 더하지 않는다.
+ * SCR-09 없는 화면 — 다른 읽는 화면(설정 · 글 올리기)과 같은 머리 : 왼쪽 정렬 페이지 제목(26 → 32px) · 읽는 폭 700px.
+ * 회색 판을 깔지 않는다. 제목 → 주소(이름표) → 할 일 → 나갈 문 순서로 위에서 아래로 읽힌다.
+ * 묶음 안은 좁게(제목–주소 12px · 주소–설명 8px), 버튼 줄은 한 칸 더 떼어(24px) 나갈 문으로 읽히게.
  */
 
 .page {
+  display: grid;
+  /* 한 줄 주소가 칸을 밀어 넓히지 않게 — 열은 화면 폭을 넘지 않는다(말줄임이 걸린다) */
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: start;
   width: 100%;
   max-width: var(--layout-max);
-  margin: var(--space-8) auto 0;
-  border-radius: var(--radius-md);
-  background-color: var(--surface-sunken);
+  margin-inline: auto;
   animation: appear var(--duration-slow) var(--ease-out);
 }
 
@@ -19,11 +22,26 @@
   }
 }
 
+.title {
+  margin-bottom: var(--space-3);
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-extrabold);
+  letter-spacing: var(--tracking-tight);
+}
+
+@media (min-width: 40rem) {
+  .title {
+    font-size: var(--text-3xl);
+  }
+}
+
+/* 주소 — 이름표(4px) 모양 한 줄. 무엇이 틀렸는지 눈으로 짚을 자리다. 넘치면 말줄임(글자 수는 코드가 40자로 먼저 자른다) */
 .address {
   display: inline-flex;
   align-items: baseline;
   gap: var(--space-2);
   max-width: 100%;
+  margin-bottom: var(--space-2);
   padding: var(--space-1) var(--space-3);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-xs);
@@ -38,23 +56,26 @@
   font-weight: var(--weight-semibold);
 }
 
-/* 긴 주소 · 띄어쓰기 없는 주소도 칸 안에서 줄을 바꾼다. 세 줄을 넘으면 자른다 */
 .addressValue {
-  display: -webkit-box;
   min-width: 0;
   overflow: hidden;
   color: var(--text-strong);
   font-weight: var(--weight-bold);
-  text-align: left;
-  overflow-wrap: anywhere;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 3;
-  line-clamp: 3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
+.description {
+  color: var(--text-body);
+  font-size: var(--text-base);
+  line-height: var(--leading-snug);
+  word-break: keep-all;
+}
+
+/* 주 동작([목록으로])이 먼저 — 왼쪽 정렬 화면에서 눈이 먼저 닿는 자리 */
 .actions {
   display: flex;
   flex-wrap: wrap;
-  justify-content: center;
   gap: var(--space-2);
+  margin-top: var(--space-6);
 }

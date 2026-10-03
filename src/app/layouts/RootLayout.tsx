@@ -1,13 +1,16 @@
-import { useEffect, useRef } from 'react'
-import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
+import { useEffect, useRef, type MouseEvent } from 'react'
+import { Link, NavLink, Outlet, matchPath, useLocation, useNavigate } from 'react-router-dom'
 
 import { openPageGuide, requestGuide } from '@/app/onboarding'
 import { paths } from '@/app/paths'
 import { RouteFocus } from '@/app/RouteFocus'
 import { ScrollMemory } from '@/app/ScrollMemory'
 import { useAuth } from '@/features/auth'
+import { intentShowing, postTypeFromQuery } from '@/features/posts'
 import { cx } from '@/shared/lib/cx'
+import { useDirtyLeaveGuard } from '@/shared/lib/dirtyRegistry'
 import { ButtonLink } from '@/shared/ui/Button'
+import { ConfirmDialog } from '@/shared/ui/ConfirmDialog'
 import { FlashViewport } from '@/shared/ui/Flash'
 import { Gear, Plus, Question } from '@/shared/ui/icons'
 import tip from '@/shared/ui/Tooltip.module.css'
@@ -16,13 +19,20 @@ import { AccountMenu } from './AccountMenu'
 import styles from './RootLayout.module.css'
 
 /**
- * 모든 화면이 공유하는 껍데기. 헤더 · 본문 · 푸터.
+ * 모든 화면이 공유하는 껍데기. 헤더 · 본문 · 푸터 · 이탈 확인 하나.
  *
- * 헤더는 다섯만 둔다 — 로고(목록으로), [글 올리기], 서비스 안내(물음표), 설정(톱니), 로그인/계정.
+ * 헤더 — 로고(목록으로), [글 올리기], 서비스 안내(물음표), 그리고
+ *   비로그인 : 설정(톱니) · [로그인](글자 버튼). 화면 모드는 누구나 바꾼다(SCR-08)
+ *   로그인   : 계정 메뉴 하나. 설정은 메뉴의 "설정"으로만 간다 — 같은 목적지가 두 곳이면 목표가 넷이 된다(회의 UI-6 c)
+ * 오른쪽 묶음 사이는 8px(회의 UI-6 a). 360 미만은 로고 글자를 접어 한 줄을 지킨다(아래 CSS).
  * [글 올리기]는 비로그인에게도 보인다. 수정·삭제와 달리 서비스로 들어오는 동선이다(SCR-01).
- * 서비스 안내 · 설정도 비로그인에게 보인다 — 안내는 누구나 다시 보고, 화면 모드는 누구나 바꾼다(SCR-08).
+ *
+ * 이탈 확인은 **여기 하나**다(쓰던 칸 등록부). 화면의 칸들은 "쓰던 글자 있음"만 알린다 — `useBlocker` 는 한 번에 하나라
+ * 칸마다 붙이면 서로 덮어쓴다(회의 AR2-3). 로그아웃 확인(SE-5)도 같은 등록부를 읽는다.
  */
 export function RootLayout() {
+  const leave = useDirtyLeaveGuard()
+
   return (
     <div className={styles.shell}>
       <a className="skip-link" href="#main">
@@ -39,7 +49,6 @@ export function RootLayout() {
           <div className={styles.actions}>
             <CreatePostLink />
             <GuideButton />
-            <SettingsLink />
             <HeaderAuth />
           </div>
         </div>
@@ -57,6 +66,20 @@ export function RootLayout() {
       <ScrollMemory />
       <RouteFocus />
       <FlashViewport />
+
+      {/* 쓰던 글자를 두고 다른 화면으로 — 로고 · 메뉴 · 뒤로가기 · 서비스 안내 모든 출구를 한 번에 막는다. 기본 포커스는 [계속 쓰기] */}
+      <ConfirmDialog
+        open={leave.blocker.state === 'blocked'}
+        title={leave.copy.title}
+        confirmLabel="나가기"
+        cancelLabel="계속 쓰기"
+        onConfirm={() => leave.blocker.proceed?.()}
+        onClose={() => {
+          if (leave.blocker.state === 'blocked') leave.blocker.reset()
+        }}
+      >
+        <p>{leave.copy.body}</p>
+      </ConfirmDialog>
     </div>
   )
 }
@@ -65,11 +88,29 @@ export function RootLayout() {
  * 비로그인이면 로그인을 거쳐 등록 화면으로 돌아온다.
  * 휴대폰 폭(28rem 미만)에서는 [+] 만 남긴다. 글자는 화면에서만 숨겨 이름으로 남고, 이름표(툴팁)가 대신 보인다.
  * 휴대폰 폭에서는 선만 두른 버튼이다 — 첫 화면의 두 색 면(의도 선택)과 무게를 다투지 않게.
+ *
+ * **보던 의도를 싣는다**(회의 ②). 목록에서 `잃어버렸어요`를 골라 두었으면(주워진 물건 = `?type=FOUND` 를 보는 중)
+ * 이름이 `분실 글 올리기`, 가는 곳이 `?type=LOST` 다 — 결과 끝의 등록 권유와 같은 이름 · 같은 유형(같은 의도는 같은 이름).
+ * 휴대폰에서는 스크린리더 이름 · 이름표로, 넓은 화면에서는 글자로 보인다.
+ *
+ * 등록 · 수정 화면에서는 "지금 여기" 옅은 면을 깐다. 등록 화면에서는 `aria-current="page"` 이고 눌러도 무시한다 —
+ * 같은 경로라 이탈 확인을 타지 않고 폼은 `?type` 을 처음 한 번만 읽어, 누르면 주소만 바뀌고 아무 일도 없었다(AR2-9)
  */
 function CreatePostLink() {
   const auth = useAuth()
-  const to =
-    auth.status === 'anonymous' ? paths.loginThenReturn(paths.postCreate) : paths.postCreate
+  const location = useLocation()
+  const onList = location.pathname === paths.postList
+  const intent = onList ? intentShowing(postTypeFromQuery(new URLSearchParams(location.search).get('type')) ?? undefined) : undefined
+  const target = intent ? paths.postCreateAs(intent.concept) : paths.postCreate
+  const to = auth.status === 'anonymous' ? paths.loginThenReturn(target) : target
+  const label = intent?.next.action ?? '글 올리기'
+
+  const onCreate = location.pathname === paths.postCreate
+  const onEdit = matchPath(paths.postEdit(':postId'), location.pathname) !== null
+
+  function handleClick(event: MouseEvent<HTMLAnchorElement>) {
+    if (onCreate) event.preventDefault()
+  }
 
   return (
     <ButtonLink
@@ -77,13 +118,16 @@ function CreatePostLink() {
       variant="secondary"
       size="sm"
       className={cx(styles.create, tip.host)}
+      data-here={onCreate || onEdit ? '' : undefined}
+      aria-current={onCreate ? 'page' : undefined}
+      onClick={handleClick}
       // 온보딩 3단계가 가리키는 자리
       data-guide="create"
     >
       <Plus />
-      <span className={styles.createLabel}>글 올리기</span>
+      <span className={styles.createLabel}>{label}</span>
       <span className={cx(tip.tip, styles.createTip)} aria-hidden="true">
-        글 올리기
+        {label}
       </span>
     </ButtonLink>
   )
@@ -136,6 +180,9 @@ function SettingsLink() {
  * 세션 복구 중(`unknown`)에는 자리만 잡는다. [로그인]을 먼저 그렸다가 닉네임으로 바꾸면
  * 로그인한 사용자에게 매번 "로그아웃됐나?" 하는 깜빡임이 보인다.
  *
+ * 비로그인 : 설정(톱니) + [로그인]. [로그인]은 테두리 없는 글자 버튼(누르는 면 44px) — 선 상자는 [+] 하나만 남는다(회의 UI-6 b).
+ *   로그인 · 가입 화면에서는 [로그인]을 숨기되 자리는 남긴다(지금 그 화면이다 — 같은 목적지를 또 두지 않는다, 헤더가 흔들리지 않게).
+ *
  * 계정 메뉴에서 로그아웃하면 메뉴(와 누르던 버튼)가 사라진다. 그 자리에 생긴 [로그인]으로 포커스를 옮긴다 —
  * 그냥 두면 문서 맨 앞으로 빠진다. 로그아웃하며 다른 화면으로 옮겨지면(내가 쓴 글 → 로그인) 새 화면의 제목이 가져간다(RouteFocus)
  */
@@ -167,9 +214,12 @@ function HeaderAuth() {
     const to = here === paths.postList || onAuthScreen ? paths.login : paths.loginThenReturn(here)
 
     return (
-      <ButtonLink ref={loginRef} to={to} variant="secondary" size="sm" className={styles.login}>
-        로그인
-      </ButtonLink>
+      <>
+        <SettingsLink />
+        <Link ref={loginRef} to={to} className={styles.login} data-away={onAuthScreen ? '' : undefined}>
+          로그인
+        </Link>
+      </>
     )
   }
 

@@ -32,7 +32,7 @@ export function PostCreatePage() {
 
   useDocumentTitle('글 올리기')
 
-  if (page.gate === 'pending') return <PostFormSkeleton label="로그인을 확인하는 중입니다" />
+  if (page.gate === 'pending') return <PostFormSkeleton label="로그인을 확인하는 중이에요" />
   if (page.gate === 'login' || page.memberId === null) return <Navigate to={page.loginHref} replace />
 
   return (
@@ -57,6 +57,7 @@ export function PostCreatePage() {
         leave(paths.postDetail(postId), { replace: true })
       }}
       onSessionLost={page.onSessionLost}
+      loginHref={page.loginHref}
       cancelTo={paths.postList}
     />
   )
