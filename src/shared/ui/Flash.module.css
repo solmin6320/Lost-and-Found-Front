@@ -1,12 +1,16 @@
 /*
  * 짧은 알림 — 화면 아래 가운데, 엄지 위. 잉크 면 한 줄이라 어느 화면 위에서도 읽힌다.
  * 아래에서 6px 떠오르며 나타난다. 누를 것이 없어 뒤의 화면을 막지 않는다(pointer-events 없음).
+ * 아래에 붙은 줄(상세 댓글 줄 · 폼 제출 줄)이 있으면 그 위로 비켜 뜬다 — 줄이 `--bottom-inset` 으로 높이를 알린다(useBottomInset)
  */
 
 .viewport {
   position: fixed;
   inset-inline: 0;
-  bottom: calc(var(--space-6) + env(safe-area-inset-bottom));
+  bottom: max(
+    calc(var(--space-6) + env(safe-area-inset-bottom)),
+    calc(var(--bottom-inset, 0px) + var(--space-3))
+  );
   z-index: var(--z-toast);
   display: flex;
   justify-content: center;

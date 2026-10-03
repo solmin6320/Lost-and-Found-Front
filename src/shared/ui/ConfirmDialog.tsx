@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, type MouseEvent, type PointerEvent, type ReactNode } from 'react'
 
 import { trapTab } from '@/shared/lib/focusTrap'
+import { usePressGuard } from '@/shared/lib/pressGuard'
 
 import { Button } from './Button'
 import styles from './ConfirmDialog.module.css'
@@ -42,6 +43,9 @@ interface ConfirmDialogProps {
  * - 닫히면 연 버튼으로 포커스가 돌아간다. 그 버튼이 사라졌으면 `fallbackFocus`
  * - 요청 중에는 닫지 못한다. 이미 서버에 닿은 요청은 닫아도 처리되므로, 닫히는 척하지 않는다
  * - Tab 은 다이얼로그 안에서 돈다(마지막 → 첫 버튼)
+ * - **열린 뒤 0.5초 안에 시작된 마우스 · 터치 누름은 확인 버튼 · 바깥 닫기 모두 흘려보낸다**(SE-1, `pressGuard`).
+ *   [삭제]를 두 번 누르면 둘째 누름이 막 뜬 [삭제하기]나 바깥에 떨어진다 — 읽지 않은 확인이 통과되거나 창이 열리자마자 닫힌다.
+ *   키보드와 [취소]는 바로 받는다. 버튼 모양은 그대로다
  */
 export function ConfirmDialog({
   open,
@@ -61,6 +65,7 @@ export function ConfirmDialog({
   const cancelRef = useRef<HTMLButtonElement>(null)
   const returnFocusRef = useRef<HTMLElement | null>(null)
   const pressedOnBackdrop = useRef(false)
+  const pressGuard = usePressGuard()
   const latest = useRef({ onClose, fallbackFocus, pending })
   const titleId = useId()
   const bodyId = useId()
@@ -75,11 +80,12 @@ export function ConfirmDialog({
     if (open && !dialog.open) {
       returnFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
       dialog.showModal()
+      pressGuard.arm()
       cancelRef.current?.focus()
     } else if (!open && dialog.open) {
       dialog.close()
     }
-  }, [open])
+  }, [open, pressGuard])
 
   useEffect(() => {
     const dialog = dialogRef.current
@@ -109,10 +115,11 @@ export function ConfirmDialog({
 
   function handlePointerDown(event: PointerEvent<HTMLDialogElement>) {
     pressedOnBackdrop.current = event.target === event.currentTarget
+    pressGuard.pointerDown()
   }
 
   function handleClick(event: MouseEvent<HTMLDialogElement>) {
-    if (pressedOnBackdrop.current && event.target === event.currentTarget && !pending) {
+    if (pressedOnBackdrop.current && event.target === event.currentTarget && !pending && pressGuard.allows(event)) {
       event.currentTarget.close()
     }
     pressedOnBackdrop.current = false
@@ -155,8 +162,8 @@ export function ConfirmDialog({
           <Button
             variant={tone}
             aria-disabled={pending || undefined}
-            onClick={() => {
-              if (!pending) onConfirm()
+            onClick={(event) => {
+              if (!pending && pressGuard.allows(event)) onConfirm()
             }}
           >
             {pending && pendingLabel ? pendingLabel : confirmLabel}
