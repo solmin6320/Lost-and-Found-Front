@@ -2,21 +2,26 @@ import { useId, useRef, useState, type FormEvent, type KeyboardEvent } from 'rea
 
 import { formatDateTime } from '@/shared/lib/date'
 import { getErrorMessage } from '@/shared/lib/http'
+import { usePersonalInfoCheck } from '@/shared/lib/usePersonalInfoCheck'
 import { Button } from '@/shared/ui/Button'
-import { WarningCircle } from '@/shared/ui/icons'
+import { User, WarningCircle } from '@/shared/ui/icons'
 
 import { COMMENT_MAX_LENGTH, type CommentResponse } from '../api/types'
 import { useDeleteComment, useUpdateComment } from '../model/commentMutations'
 import { checkCommentContent } from '../model/validation'
 import { CommentField } from './CommentField'
 import styles from './CommentItem.module.css'
+import { PersonalInfoNotice } from './PersonalInfoNotice'
 
 interface CommentItemProps {
   postId: number
   comment: CommentResponse
   /** 내 댓글이면 수정 · 삭제가 보인다. 남의 것 · 비로그인은 **숨긴다** */
   mine: boolean
-  /** 게시글 작성자가 단 댓글. 이름 옆에 `글쓴이` — 주인과 주운 사람의 대화를 한눈에 가린다 */
+  /**
+   * 게시글 작성자가 단 댓글. 이름 옆에 사람 아이콘 + `글쓴이` — 주인과 주운 사람의 대화를 한눈에 가린다.
+   * 아이콘이 있어 닉네임 `홍길동글쓴이` · 본문 첫머리 `(글쓴이)` 같은 글자로는 흉내 낼 수 없다(SE-6)
+   */
   byPostAuthor: boolean
   /** 방금 남긴 댓글. 제자리에서 옅게 떠오른다 */
   fresh?: boolean
@@ -32,6 +37,8 @@ interface CommentItemProps {
  *   (`[삭제]` → `이 댓글을 삭제할까요? [삭제하기] [취소]`, 포커스는 [취소]).
  *   다이얼로그를 남발하면 게시글 삭제 다이얼로그를 읽지 않게 된다(화면정의서 SCR-03 ③)
  * - 요청 중에는 입력을 읽기 전용으로, 버튼은 누름만 무시한다 — 누른 버튼이 잠기면 포커스가 빠진다
+ * - 내 댓글 [수정]–[삭제] · 확인 [취소]–[삭제하기] 사이는 16px(RV-3). 위험 동작은 자주 쓰는 동작과 떼고 순서 · 자리는 그대로 둔다
+ * - 고치는 칸도 쓰는 칸처럼 전화번호 · 주민등록번호 · 카드 번호 모양이 보이면 한 줄로 알린다(SE-3). 닉네임은 방향을 격리한다(`<bdi>`, SE-6)
  */
 export function CommentItem({ postId, comment, mine, byPostAuthor, fresh, onUpdated, onDeleted }: CommentItemProps) {
   const update = useUpdateComment(postId)
@@ -44,6 +51,8 @@ export function CommentItem({ postId, comment, mine, byPostAuthor, fresh, onUpda
   const cancelDeleteRef = useRef<HTMLButtonElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const nameId = useId()
+  const noticeId = useId()
+  const personal = usePersonalInfoCheck(mode === 'edit' ? draft : '')
 
   const busy = update.isPending || remove.isPending
 
@@ -129,9 +138,14 @@ export function CommentItem({ postId, comment, mine, byPostAuthor, fresh, onUpda
     <article className={styles.comment} aria-labelledby={nameId} data-fresh={fresh || undefined}>
       <header className={styles.meta}>
         <span id={nameId} className={styles.name}>
-          {comment.nickname}
+          <bdi>{comment.nickname}</bdi>
         </span>
-        {byPostAuthor ? <span className={styles.authorTag}>글쓴이</span> : null}
+        {byPostAuthor ? (
+          <span className={styles.authorTag}>
+            <User />
+            글쓴이
+          </span>
+        ) : null}
         <span className={styles.time}>
           <time dateTime={comment.createdAt}>{formatDateTime(comment.createdAt)}</time>
           {comment.updatedAt ? <span className={styles.edited}> (수정됨)</span> : null}
@@ -150,9 +164,12 @@ export function CommentItem({ postId, comment, mine, byPostAuthor, fresh, onUpda
               if (error) setError(null)
             }}
             readOnly={update.isPending}
+            onBlur={personal.check}
+            noticeId={noticeId}
             error={overLimit ? checkCommentContent(draft) : error}
           />
           <div className={styles.editActions}>
+            <PersonalInfoNotice id={noticeId} notice={personal.notice} className={styles.notice} />
             <Button size="sm" aria-disabled={update.isPending || undefined} onClick={cancelEdit}>
               취소
             </Button>

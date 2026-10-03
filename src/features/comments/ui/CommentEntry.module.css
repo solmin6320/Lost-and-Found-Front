@@ -1,0 +1,15 @@
+/*
+ * `댓글 쓰기 N` — 공통 선 버튼(작은 것)에 숫자만 더한다. 숫자는 한 단계 흐리게, 자리 폭이 바뀌지 않게 고정 폭 숫자로.
+ * 320 에서 배지 둘 · 이름표 안내와 한 줄에 들도록 옆 여백을 조금 줄인다(누르는 면은 44px 그대로)
+ */
+
+button.entry {
+  gap: var(--space-1-5);
+  padding-inline: var(--space-2) var(--space-3);
+}
+
+.count {
+  color: var(--text-muted);
+  font-weight: var(--weight-semibold);
+  font-variant-numeric: tabular-nums;
+}

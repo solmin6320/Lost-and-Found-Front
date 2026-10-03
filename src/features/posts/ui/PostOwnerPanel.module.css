@@ -1,15 +1,22 @@
 /*
- * 내 글 관리 — 글쓴이에게만 보이는 옅은 면 한 장. 글과 댓글 사이, 글을 다 읽은 자리에 둔다.
+ * 내 글 관리 — 글쓴이에게만 보이는 옅은 면 한 장. 상세의 제목 · 이름표 바로 아래(AR-4).
  *   상태 : [게시중 | 연락중] 두 칸 스위치 + [완료로 바꾸기](따로 — 되돌릴 수 없어 확인을 받는다)
  *   수정 · 삭제 : 아래 줄. 삭제만 빨간 글자(빨강은 삭제 전용)
+ * 두 묶음은 선 없이 간격(24px)으로 가른다 — 묶음 안 12px < 묶음 사이 24px(근접성). 면 · 스위치 테 · 버튼 테 위에 선을 더 긋지 않는다
  */
 
 .panel {
   display: grid;
-  gap: var(--space-3);
+  gap: var(--space-6);
   padding: var(--space-5);
   border-radius: var(--radius-md);
   background-color: var(--surface-sunken);
+}
+
+.group {
+  display: grid;
+  gap: var(--space-3);
+  min-width: 0;
 }
 
 .heading {
@@ -24,12 +31,6 @@
 .status {
   display: grid;
   gap: var(--space-2);
-}
-
-.label {
-  color: var(--text-muted);
-  font-size: var(--text-xs);
-  font-weight: var(--weight-bold);
 }
 
 .statusControls {
@@ -99,15 +100,28 @@
   }
 }
 
+/* 완료 — 상세 머리의 잉크 도장 바로 아래라 배지를 되풀이하지 않는다. 아이콘 + 한 문장(무엇이 끝났나 + 그래서 못 하는 것) */
 .doneNote {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-2);
-  color: var(--text-body);
+  align-items: flex-start;
+  gap: var(--space-1-5);
+  color: var(--text-strong);
   font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
   line-height: var(--leading-snug);
   word-break: keep-all;
+}
+
+.doneNote svg {
+  flex: none;
+  width: var(--icon-sm);
+  height: var(--icon-sm);
+  margin-top: calc((1lh - var(--icon-sm)) / 2);
+}
+
+.doneMore {
+  color: var(--text-body);
+  font-weight: var(--weight-regular);
 }
 
 .hint {
@@ -115,6 +129,27 @@
   font-size: var(--text-sm);
   line-height: var(--leading-snug);
   word-break: keep-all;
+}
+
+/* 연락중으로 바꾼 직후 한 번(SE-4) — 도움말 자리에 대신 선다. 경고색 없이 아이콘 + 진한 글자 */
+.tip {
+  composes: appear from '../../../shared/styles/motion.module.css';
+
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-1-5);
+  color: var(--text-strong);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  line-height: var(--leading-snug);
+  word-break: keep-all;
+}
+
+.tip svg {
+  flex: none;
+  width: var(--icon-sm);
+  height: var(--icon-sm);
+  margin-top: calc((1lh - var(--icon-sm)) / 2);
 }
 
 .error {
@@ -136,10 +171,9 @@
   margin-top: var(--space-0-5);
 }
 
+/* [수정]–[삭제] 16px(RV-3). 자리 · 순서는 그대로 — [삭제]를 줄 끝으로 옮기지 않는다(SE-1) */
 .actions {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-2);
-  padding-top: var(--space-3);
-  border-top: 1px solid var(--border-strong);
+  gap: var(--space-4);
 }

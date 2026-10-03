@@ -39,18 +39,28 @@
   overflow-wrap: anywhere;
 }
 
-/* 이름표(4px)와 같은 모양의 작은 표시. 색 없이 선만 — 분실 · 습득 색과 섞이지 않게 */
+/*
+ * 이름표(4px)와 같은 모양의 작은 표시. 색 없이 선만 — 분실 · 습득 색과 섞이지 않게.
+ * 사람 아이콘이 붙어 닉네임 글자로는 흉내 낼 수 없는 모양이다(SE-6)
+ */
 .authorTag {
   display: inline-flex;
   align-items: center;
+  gap: var(--space-0-5);
   height: 1.25rem;
-  padding-inline: var(--space-1-5);
+  padding-inline: var(--space-1) var(--space-1-5);
   border: 1px solid var(--border-hover);
   border-radius: var(--radius-xs);
   color: var(--text-body);
   font-size: var(--text-2xs);
   font-weight: var(--weight-bold);
   line-height: 1;
+}
+
+.authorTag svg {
+  flex: none;
+  width: var(--icon-xs);
+  height: var(--icon-xs);
 }
 
 .time {
@@ -73,10 +83,13 @@
   word-break: keep-all;
 }
 
-/* 글자 버튼 두 개 — 본문 아래에 늘 보인다(마우스를 올려야 나오는 버튼은 휴대폰에서 못 찾는다) */
+/*
+ * 글자 버튼 두 개 — 본문 아래에 늘 보인다(마우스를 올려야 나오는 버튼은 휴대폰에서 못 찾는다).
+ * [수정]–[삭제] 16px — 되돌릴 수 없는 쪽을 자주 쓰는 쪽과 뗀다(RV-3). 자리 · 순서는 그대로
+ */
 .actions {
   display: flex;
-  gap: var(--space-1);
+  gap: var(--space-4);
   margin-left: calc(var(--space-3) * -1);
 }
 
@@ -91,11 +104,23 @@
   margin-top: var(--space-1);
 }
 
-.editActions,
+/* 고치기 — [취소] [저장]. 왼쪽 남는 폭에 개인정보 감지 한 줄(작은 버튼 높이에 맞춰 위 여백). 줄이 늘어도 버튼은 제자리 */
+.editActions {
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+
+.editActions .notice {
+  --notice-offset: calc((2.25rem - 1lh) / 2);
+}
+
+/* 삭제 확인 — [취소]–[삭제하기] 16px(RV-3) */
 .confirmActions {
   display: flex;
   justify-content: flex-end;
-  gap: var(--space-2);
+  gap: var(--space-4);
 }
 
 .confirm {

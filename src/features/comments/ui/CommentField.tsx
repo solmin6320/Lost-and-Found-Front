@@ -12,8 +12,12 @@ interface CommentFieldProps
   /** 수정 칸처럼 이름이 이미 맥락으로 분명하면 화면에서만 숨긴다(스크린리더는 읽는다) */
   hideLabel?: boolean
   value: string
-  /** 입력 아래 한 줄 — 공개 게시판이라는 안내 */
+  /** 입력 아래 한 줄 도움말 */
   hint?: string
+  /**
+   * 칸 밖(제출 줄)에 있는 개인정보 감지 한 줄의 id(`PersonalInfoNotice`). 읽을 때 이 칸의 설명으로 이어 읽힌다
+   */
+  noticeId?: string
   /** 서버 `message` 또는 글자 수 초과 */
   error?: string | null
   ref?: Ref<HTMLTextAreaElement>
@@ -25,13 +29,13 @@ interface CommentFieldProps
  * 붙여 넣은 글이 소리 없이 잘리면 무엇이 빠졌는지 모른다.
  * 줄이 늘면 칸도 따라 늘어난다(`field-sizing`, 없는 브라우저는 세 줄 + 손잡이).
  */
-export function CommentField({ label, hideLabel = false, value, hint, error, ref, ...rest }: CommentFieldProps) {
+export function CommentField({ label, hideLabel = false, value, hint, noticeId, error, ref, ...rest }: CommentFieldProps) {
   const id = useId()
   const countId = `${id}-count`
   const hintId = `${id}-hint`
   const errorId = `${id}-error`
   const over = value.length > COMMENT_MAX_LENGTH
-  const describedBy = [error ? errorId : null, hint ? hintId : null, countId].filter(Boolean).join(' ')
+  const describedBy = [error ? errorId : null, hint ? hintId : null, noticeId ?? null, countId].filter(Boolean).join(' ')
 
   return (
     <div className={styles.field}>

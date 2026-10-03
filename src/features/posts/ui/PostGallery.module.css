@@ -232,9 +232,18 @@
   height: var(--icon-md);
 }
 
+/*
+ * 끝에 닿은 쪽 화살표는 그리지 않는다(UI-14) — 누를 수 없는 조작을 흐리게 남겨 두면 "눌러 볼 것"이 하나 더 보인다.
+ * 자리는 그대로 비워 숫자 · 반대쪽 화살표가 움직이지 않는다. 버튼은 남는다(누르던 버튼이 사라지면 포커스가 빠진다) —
+ * 키보드로 그 버튼에 머물러 있으면 흐린 화살표를 다시 보여 어디에 있는지 알게 한다
+ */
 .pagerButton[aria-disabled='true'] {
   color: var(--text-disabled);
   cursor: default;
+}
+
+.pagerButton[aria-disabled='true']:not(:focus-visible) svg {
+  visibility: hidden;
 }
 
 @media (hover: hover) {

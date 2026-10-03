@@ -1,7 +1,17 @@
-import { useEffect, useId, useRef, useState, type FormEvent, type Ref } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useImperativeHandle,
+  useRef,
+  useState,
+  type FormEvent,
+  type Ref,
+} from 'react'
 
 import type { PostDetailResponse } from '@/features/posts'
 import { getErrorMessage, subscribeSessionExpired } from '@/shared/lib/http'
+import { usePersonalInfoCheck } from '@/shared/lib/usePersonalInfoCheck'
 import { Button, ButtonLink } from '@/shared/ui/Button'
 import { ChatCircleDots, Check, ClockCounterClockwise, WarningCircle } from '@/shared/ui/icons'
 import { Skeleton } from '@/shared/ui/Skeleton'
@@ -10,10 +20,14 @@ import { COMMENT_MAX_LENGTH, type CommentResponse } from '../api/types'
 import { clearCommentDraft, loadCommentDraft, saveCommentDraft, type CommentDraft } from '../model/commentDraft'
 import { useCreateComment } from '../model/commentMutations'
 import { usePostComments } from '../model/commentQueries'
+import { COMMENTS_HEADING_ID, type CommentEntryHandle } from '../model/commentEntry'
 import { checkCommentContent } from '../model/validation'
+import { CommentBar } from './CommentBar'
+import { CommentEntryButton } from './CommentEntry'
 import { CommentField } from './CommentField'
 import { CommentItem } from './CommentItem'
 import styles from './CommentSection.module.css'
+import { PersonalInfoNotice } from './PersonalInfoNotice'
 
 interface CommentSectionProps {
   post: PostDetailResponse
@@ -21,8 +35,17 @@ interface CommentSectionProps {
   viewerId: number | null
   /** 앱 시작 직후 세션을 되살리는 중. 입력칸 자리만 잡는다(로그인 권유를 먼저 그렸다가 바꾸지 않게) */
   authPending: boolean
-  /** 로그인하고 이 글로 돌아오는 주소 */
+  /** 로그인하고 이 글의 댓글 자리로 돌아오는 주소(`…#comments`) */
   loginHref: string
+  /**
+   * 로그인 권유 칸의 [로그인]이 싣는 기록 상태. 로그인 화면이 돌려주면 돌아온 상세의 [목록으로]가 보던 목록으로 간다(API2-2).
+   * 링크는 기록을 바꿔치기한다(replace) — 돌아오면 기록이 `[목록, 상세]` 로 남는다
+   */
+  loginState?: unknown
+  /** 입구(배지 줄 · 하단 줄)가 부르는 손잡이 — `open()` 이 쓰는 칸으로 데려간다 */
+  entryRef?: Ref<CommentEntryHandle>
+  /** 첫 화면의 흐름 안 입구(배지 줄). 이것이 화면 위로 나간 뒤에야 휴대폰 하단 줄이 나타난다 */
+  flowEntry?: HTMLElement | null
   /**
    * 댓글을 쓰는 도중 로그인이 끊겼다(재발급 거절). 쓰던 글자는 이 탭에 보관했다(`draftSaved`).
    * 부른 쪽이 로그인 화면으로 보낸다 — 돌아오면 쓰기 칸이 이어서 쓸지 묻는다. 쓰던 글자가 없으면 부르지 않는다
@@ -30,20 +53,24 @@ interface CommentSectionProps {
   onSessionExpiredWhileWriting?: (draftSaved: boolean) => void
 }
 
-/** 누구나 읽는 곳이라는 안내 — 연락처를 적기 전에 알린다(결과 고지 : 누르기 전에, 한 번) */
-const PUBLIC_HINT = '누구나 보는 댓글이에요. 전화번호를 적으면 모두에게 보여요.'
-
 /**
  * 댓글 — 오래된 순. 상세 응답의 첫 20건으로 바로 그리고, 나머지는 [댓글 더 보기]로 20건씩(page=1부터).
  *
  * 방금 남긴 댓글은 **목록 끝에 바로** 보인다. 마지막 페이지까지 펼쳐 두지 않았으면 캐시에는 개수만 늘므로,
  * 등록 응답을 따로 들고 있다가 [더 보기] 아래에 붙인다. 나중에 그 페이지를 받으면 하나만 남긴다(id).
+ *
+ * 쓰는 칸은 목록 끝이다. 그래서 거기로 데려가는 입구가 셋이다(①) — 배지 줄 `댓글 쓰기 N`(상세가 그린다) ·
+ * 제목 `댓글 N` 옆 · 휴대폰의 하단 줄. 셋 다 `open()` 하나를 부른다. 공개 게시판이라는 상시 문장은 두지 않는다 —
+ * 전화번호 같은 것이 보일 때만 한 줄로 알린다(SE-3)
  */
 export function CommentSection({
   post,
   viewerId,
   authPending,
   loginHref,
+  loginState,
+  entryRef,
+  flowEntry = null,
   onSessionExpiredWhileWriting,
 }: CommentSectionProps) {
   const thread = usePostComments(post.id, post)
@@ -51,7 +78,8 @@ export function CommentSection({
   const [announcement, setAnnouncement] = useState('')
   const headingRef = useRef<HTMLHeadingElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
-  const headingId = useId()
+  const targetRef = useRef<HTMLDivElement>(null)
+  const [headingEntry, setHeadingEntry] = useState<HTMLButtonElement | null>(null)
 
   const comments = thread.data?.comments ?? post.comments
   const total = thread.data?.totalCount ?? post.totalCommentCount
@@ -60,6 +88,23 @@ export function CommentSection({
   const freshIds = new Set(recent.map((c) => c.id))
   const remaining = Math.max(0, total - comments.length - fresh.length)
   const empty = comments.length === 0 && fresh.length === 0
+
+  /**
+   * 쓰는 칸으로 데려간다(①-a). **누른 그 이벤트 안에서** 바로 `focus()` 한다 — 휴대폰 키보드는 사용자 동작 안에서만 열린다.
+   * 스크롤은 그 뒤에 따로(부드럽게, 모션 줄이기면 즉시). 비로그인이면 로그인 권유 칸의 [로그인]으로
+   */
+  const open = useCallback(() => {
+    const target = targetRef.current
+    if (!target) return
+    const field = target.querySelector<HTMLTextAreaElement>('textarea')
+    const stop = field ?? target.querySelector<HTMLElement>('a[href]')
+    stop?.focus({ preventScroll: true })
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    const scrollTarget = field ?? target
+    scrollTarget.scrollIntoView({ block: 'center', behavior: reduce ? 'instant' : 'smooth' })
+  }, [])
+
+  useImperativeHandle(entryRef, () => ({ open }), [open])
 
   async function loadMore() {
     if (thread.isFetchingNextPage) return
@@ -104,10 +149,14 @@ export function CommentSection({
   )
 
   return (
-    <section className={styles.section} aria-labelledby={headingId}>
-      <h2 id={headingId} ref={headingRef} tabIndex={-1} className={styles.heading}>
-        댓글 <span className={styles.total}>{total.toLocaleString('ko-KR')}</span>
-      </h2>
+    <section className={styles.section} aria-labelledby={COMMENTS_HEADING_ID}>
+      <div className={styles.headingRow}>
+        <h2 id={COMMENTS_HEADING_ID} ref={headingRef} tabIndex={-1} className={styles.heading}>
+          댓글 <span className={styles.total}>{total.toLocaleString('ko-KR')}</span>
+        </h2>
+        {/* 읽을 댓글이 있을 때만 — 0건이면 쓰는 칸이 바로 아래다 */}
+        {empty ? null : <CommentEntryButton ref={setHeadingEntry} onClick={open} />}
+      </div>
 
       <div ref={listRef} className={styles.thread}>
         {empty ? (
@@ -161,30 +210,42 @@ export function CommentSection({
         ) : null}
       </div>
 
-      {authPending ? (
-        <div className={styles.composerPending} aria-hidden="true">
-          <Skeleton shape="text" width="4rem" />
-          <Skeleton height="5.75rem" />
-        </div>
-      ) : viewerId === null ? (
-        <div className={styles.signIn}>
-          <p className={styles.signInText}>로그인하면 댓글을 남길 수 있어요.</p>
-          <ButtonLink to={loginHref} variant="primary" size="sm">
-            로그인
-          </ButtonLink>
-        </div>
-      ) : (
-        <CommentComposer
-          postId={post.id}
-          memberId={viewerId}
-          onCreated={handleCreated}
-          onSessionExpiredWhileWriting={onSessionExpiredWhileWriting}
-        />
-      )}
+      {/* 입구가 데려오는 자리. 이것이 화면에 보이면 하단 줄은 숨는다(둘이 동시에 보이지 않는다) */}
+      <div ref={targetRef} className={styles.target}>
+        {authPending ? (
+          <div className={styles.composerPending} aria-hidden="true">
+            <Skeleton shape="text" width="4rem" />
+            <Skeleton height="5.75rem" />
+          </div>
+        ) : viewerId === null ? (
+          <div className={styles.signIn}>
+            <p className={styles.signInText}>로그인하면 댓글을 남길 수 있어요.</p>
+            <ButtonLink to={loginHref} replace state={loginState} variant="primary" size="sm">
+              로그인
+            </ButtonLink>
+          </div>
+        ) : (
+          <CommentComposer
+            postId={post.id}
+            memberId={viewerId}
+            onCreated={handleCreated}
+            onSessionExpiredWhileWriting={onSessionExpiredWhileWriting}
+          />
+        )}
+      </div>
 
       <p className="sr-only" role="status">
         {announcement}
       </p>
+
+      <CommentBar
+        count={total}
+        done={post.status === 'DONE'}
+        onOpen={open}
+        flowEntry={flowEntry}
+        headingEntry={headingEntry}
+        targetRef={targetRef}
+      />
     </section>
   )
 }
@@ -233,6 +294,8 @@ function CommentComposer({ postId, memberId, onCreated, onSessionExpiredWhileWri
   const [restored, setRestored] = useState(false)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const offerRef = useRef<HTMLElement>(null)
+  const noticeId = useId()
+  const personal = usePersonalInfoCheck(value)
   const dirty = value.trim().length > 0
 
   // 세션 만료 알림은 그리기 전에 온다(칸이 비로그인 모습으로 바뀌기 직전). 그때의 글자를 읽을 수 있게 늘 최신 값을 둔다
@@ -344,11 +407,13 @@ function CommentComposer({ postId, memberId, onCreated, onSessionExpiredWhileWri
           if (error) setError(null)
         }}
         readOnly={create.isPending}
-        hint={PUBLIC_HINT}
+        onBlur={personal.check}
+        noticeId={noticeId}
         error={overLimit ? checkCommentContent(value) : error}
       />
       <div className={styles.composerActions}>
-        <Button type="submit" variant="primary" aria-disabled={create.isPending || undefined}>
+        <PersonalInfoNotice id={noticeId} notice={personal.notice} />
+        <Button type="submit" variant="primary" aria-disabled={create.isPending || undefined} className={styles.submit}>
           {create.isPending ? '남기는 중…' : '댓글 남기기'}
         </Button>
       </div>

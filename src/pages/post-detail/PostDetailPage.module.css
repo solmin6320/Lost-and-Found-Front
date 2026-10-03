@@ -2,18 +2,20 @@
  * SCR-03 배치
  *
  * 좁은 화면 — 한 줄로 읽는다(700px 읽는 폭).
- *   목록으로 · 제목 · 이름표 · 사진 · 핵심 정보 · 본문 · 메타 · (내 글 관리) · 댓글
+ *   목록으로 · 제목 · 이름표(+ 댓글 쓰기) · (글쓴이면 내 글 관리) · 사진 · 핵심 정보 · 본문 · 메타 · 댓글
  *
  * 64rem 이상 — 두 칸. 왼쪽 사진 열은 스크롤을 따라 내려온다(sticky) — 댓글을 읽으면서도 물건이 보인다.
  * 오른쪽 읽기 열은 30rem(80rem 이상 34rem = 본문 한 줄 34em). 1440 에서 가운데 700px 만 쓰고 양옆이 비지 않게.
  *
  *   ┌ 목록으로 ─────────────────────────────┐
  *   │ ┌──────────────┐  제목              │
- *   │ │   사진(1:1)   │  이름표             │
- *   │ │              │  핵심 정보 · 본문     │
- *   │ └──────────────┘  메타 · 내 글 관리    │
+ *   │ │   사진(1:1)   │  이름표 · 댓글 쓰기   │
+ *   │ │              │  (내 글 관리)        │
+ *   │ └──────────────┘  핵심 정보 · 본문 · 메타 │
  *   │  작은 사진 · 2/5    댓글              │
  *   └──────────────────────────────────────┘
+ *
+ * 내 글 관리 칸은 글쓴이에게만 있다(AR-4). 없는 칸에 줄 간격이 생기지 않게 글쓴이일 때만 칸을 하나 더 짠다(`data-owner`)
  */
 
 .page {
@@ -30,6 +32,16 @@
   margin-inline: auto;
 }
 
+.page[data-owner] {
+  grid-template-areas:
+    'back'
+    'head'
+    'owner'
+    'gallery'
+    'info'
+    'comments';
+}
+
 @media (min-width: 64rem) {
   .page {
     max-width: none;
@@ -43,6 +55,16 @@
     column-gap: var(--space-10);
     row-gap: var(--space-6);
     align-items: start;
+  }
+
+  .page[data-owner] {
+    grid-template-rows: auto auto auto auto 1fr;
+    grid-template-areas:
+      'back back'
+      'gallery head'
+      'gallery owner'
+      'gallery info'
+      'gallery comments';
   }
 }
 
@@ -120,11 +142,15 @@
   }
 }
 
-/* 이름표 줄 — 배지 둘, 줄 끝에 `이름표 안내`. 안내 판이 오른쪽 끝에 맞춰 펼쳐져 320 에서도 화면 안에 든다 */
+/*
+ * 이름표 줄 — 배지 둘, 오른쪽에 `댓글 쓰기 N`(연락 입구 ①), 줄 끝에 `이름표 안내`.
+ * 안내 판이 오른쪽 끝에 맞춰 펼쳐져 320 에서도 화면 안에 든다. 아주 좁으면 입구와 안내가 다음 줄 오른쪽으로 내려간다
+ */
 .badges {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: var(--space-2);
+  gap: var(--space-1) var(--space-2);
   min-height: var(--tap-min);
   margin-block: calc(var(--space-2) * -1);
 }
@@ -143,8 +169,51 @@
   font-size: var(--text-xs);
 }
 
-.guide {
+/* 오른쪽 묶음 — [댓글 쓰기 N] + 이름표 안내(i). 안내 버튼은 누르는 면(44px) 안에 여백이 있어 사이 간격 없이 붙인다 */
+.tools {
+  display: flex;
+  align-items: center;
   margin-left: auto;
+}
+
+/*
+ * 완료된 글 — 시스템이 붙이는 한 줄(UI-11). 옅은 면 + 체크 아이콘 + 고정 자리(이름표 줄 바로 아래)라
+ * 제목 · 본문에 같은 글자를 친 글과 모양으로 갈린다. 색은 쓰지 않는다(빨강 · 초록 없음)
+ */
+.doneNote {
+  composes: appear from '../../shared/styles/motion.module.css';
+
+  display: flex;
+  align-items: center;
+  gap: var(--space-1-5);
+  justify-self: start;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  background-color: var(--surface-sunken);
+  color: var(--text-strong);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  line-height: var(--leading-snug);
+  word-break: keep-all;
+}
+
+.doneNote svg {
+  flex: none;
+  width: var(--icon-sm);
+  height: var(--icon-sm);
+}
+
+/* ── 내 글 관리(글쓴이만) ── */
+
+.owner {
+  grid-area: owner;
+  min-width: 0;
+}
+
+.skeletonPanel {
+  width: 100%;
+  height: 12.5rem;
+  border-radius: var(--radius-md);
 }
 
 /* ── 사진 ── */
@@ -167,9 +236,39 @@
   border-radius: var(--radius-md);
 }
 
+/* 목록 카드로 먼저 그린 첫 사진 — 상세 사진 상자와 같은 모양(자르지 않고 흐린 같은 사진을 뒤에 깐다) */
+.previewPhoto {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border-radius: var(--radius-md);
+  background-color: var(--surface-sunken);
+}
+
+.previewBackdrop,
+.previewImage {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.previewBackdrop {
+  object-fit: cover;
+  filter: blur(28px) saturate(0.9) brightness(0.82);
+  transform: scale(1.4);
+  opacity: 0.9;
+}
+
+.previewImage {
+  object-fit: contain;
+}
+
 /* 사진 상자와 같은 비율(PostGallery 의 태블릿 4:3) */
 @media (min-width: 40rem) and (max-width: 63.99rem) {
-  .skeletonPhoto {
+  .skeletonPhoto,
+  .previewPhoto {
     aspect-ratio: 4 / 3;
   }
 }
@@ -187,7 +286,6 @@
 .facts {
   --concept-tint: var(--surface-sunken);
   --concept-line: var(--border-subtle);
-  --concept-text: var(--text-muted);
 
   display: grid;
   gap: var(--space-3);
@@ -201,13 +299,11 @@
 .facts[data-type='LOST'] {
   --concept-tint: var(--lost-tint);
   --concept-line: var(--lost-tint-line);
-  --concept-text: var(--lost-text);
 }
 
 .facts[data-type='FOUND'] {
   --concept-tint: var(--found-tint);
   --concept-line: var(--found-tint-line);
-  --concept-text: var(--found-text);
 }
 
 .fact {
@@ -217,22 +313,13 @@
   gap: var(--space-3);
 }
 
+/* 이름표는 글자만(UI-14) — 열 폭은 그대로라 값이 한 줄로 맞는다 */
 .fact dt {
-  display: flex;
-  align-items: center;
-  gap: var(--space-1-5);
   color: var(--text-body);
   font-size: var(--text-sm);
   font-weight: var(--weight-semibold);
   line-height: var(--leading-snug);
   white-space: nowrap;
-}
-
-.fact dt svg {
-  flex: none;
-  width: var(--icon-sm);
-  height: var(--icon-sm);
-  color: var(--concept-text);
 }
 
 .fact dd {

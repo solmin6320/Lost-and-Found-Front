@@ -90,3 +90,10 @@
   background-color: var(--action);
   color: var(--on-action);
 }
+
+/* 상세 제목 아래 — 완료만 목록 카드와 같은 잉크 도장. 링크로 들어온 사람에게 "이미 돌아간 물건" 이 가장 먼저 보이게(UI-11) */
+.status[data-surface='detail'][data-status='DONE'] {
+  border-color: transparent;
+  background-color: var(--action);
+  color: var(--on-action);
+}

@@ -1,5 +1,5 @@
 /*
- * 댓글 — 제목 · 목록(건 사이 가는 선 하나) · [댓글 더 보기] · 방금 남긴 댓글 · 쓰기.
+ * 댓글 — 제목(+ 댓글 쓰기 입구) · 목록(건 사이 가는 선 하나) · [댓글 더 보기] · 방금 남긴 댓글 · 쓰기.
  * 쓰기 칸은 목록 **아래**다. 오래된 순이라 새 댓글이 붙는 자리 바로 밑에서 쓴다.
  */
 
@@ -7,6 +7,16 @@
   display: grid;
   gap: var(--space-5);
   min-width: 0;
+}
+
+/* 제목 줄 — 왼쪽 `댓글 N`, 오른쪽 끝 `댓글 쓰기`(읽을 댓글이 있을 때). 긴 목록을 건너뛰는 지름길 */
+.headingRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  min-height: var(--tap-min);
+  margin-block: calc(var(--space-1) * -1);
 }
 
 .heading {
@@ -122,6 +132,12 @@
 
 /* ── 쓰기 ── */
 
+/* 입구가 데려오는 자리 — 쓰는 칸 · 로그인 권유 칸 · 복구 중 자리를 감싼다(모양 없음) */
+.target {
+  display: grid;
+  min-width: 0;
+}
+
 .composer {
   display: grid;
   gap: var(--space-3);
@@ -129,9 +145,19 @@
   border-top: 1px solid var(--border-strong);
 }
 
+/*
+ * 제출 줄 — 오른쪽 [댓글 남기기], 왼쪽 남는 폭에 개인정보 감지 한 줄(SE-3).
+ * 버튼은 위에 붙여 둔다 — 한 줄이 두세 줄로 늘어도 버튼은 제자리라 누르던 손이 빗나가지 않는다(API2-12)
+ */
 .composerActions {
   display: flex;
+  align-items: flex-start;
   justify-content: flex-end;
+  gap: var(--space-3);
+}
+
+.submit {
+  flex: none;
 }
 
 .composerPending {

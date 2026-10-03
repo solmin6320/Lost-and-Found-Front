@@ -6,8 +6,12 @@ import styles from './Badge.module.css'
 
 interface StatusBadgeProps {
   status: PostStatus
-  /** 사진 위에 겹칠 때. 불투명한 바탕을 깔고, 완료는 잉크 도장으로 바꾼다 */
-  surface?: 'plain' | 'photo'
+  /**
+   * `photo` 사진 위에 겹칠 때. 불투명한 바탕을 깔고, 완료는 잉크 도장으로 바꾼다.
+   * `detail` 상세 제목 아래. 종이 위 외곽선 그대로, **완료만 목록과 같은 잉크 도장** — 같은 상태는 같은 모양이다.
+   * 목록에서는 끝난 글을 조용하게, 상세에서는 "이미 돌아갔다" 를 분명하게(UI-11)
+   */
+  surface?: 'plain' | 'photo' | 'detail'
 }
 
 /**
@@ -20,7 +24,7 @@ const STATUS_ICON: Record<PostStatus, Icon> = {
   DONE: Check,
 }
 
-/** 게시중 · 연락중 · 완료. 완료가 가장 옅다 */
+/** 게시중 · 연락중 · 완료. 종이 위(`plain`)에서는 완료가 가장 옅다 */
 export function StatusBadge({ status, surface = 'plain' }: StatusBadgeProps) {
   const StatusIcon = STATUS_ICON[status]
   return (

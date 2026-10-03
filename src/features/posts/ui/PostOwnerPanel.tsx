@@ -4,15 +4,24 @@ import { useId, useRef, useState } from 'react'
 import { getErrorMessage, hasErrorCode } from '@/shared/lib/http'
 import { Button, ButtonLink } from '@/shared/ui/Button'
 import { ConfirmDialog } from '@/shared/ui/ConfirmDialog'
-import { ChatCircleDots, Check, MegaphoneSimple, PencilSimple, Trash, WarningCircle, type Icon } from '@/shared/ui/icons'
+import {
+  ChatCircleDots,
+  Check,
+  CheckCircle,
+  Info,
+  MegaphoneSimple,
+  PencilSimple,
+  Trash,
+  WarningCircle,
+  type Icon,
+} from '@/shared/ui/icons'
 
-import type { PostDetailResponse, PostStatus } from '../api/types'
+import type { PostDetailResponse, PostStatus, PostType } from '../api/types'
 import { POST_STATUS_LABEL } from '../model/labels'
 import { useChangePostStatus, useDeletePost } from '../model/postMutations'
 import { postKeys } from '../model/postQueries'
 import { isIrreversibleStatus } from '../model/postStatus'
 import styles from './PostOwnerPanel.module.css'
-import { StatusBadge } from './StatusBadge'
 
 interface PostOwnerPanelProps {
   post: PostDetailResponse
@@ -38,12 +47,28 @@ const CHANGED_TO: Record<PostStatus, string> = {
   DONE: '완료로',
 }
 
+/**
+ * 연락중으로 바꾼 **직후 한 번만** 상태 줄 아래에 띄우는 한 줄(SE-4). 연락을 시작하는 순간이 판단하는 순간이다.
+ *   습득 글 — 주인을 가장해 물건을 가로채는 일 · 분실 글 — 사례금 · 택배비를 먼저 요구하는 일
+ * 목록 · 첫 화면 경고로 넓히지 않는다(겁주는 예고는 읽히지 않는다)
+ */
+const CONTACT_TIP: Record<PostType, string> = {
+  FOUND: '물건을 넘기기 전에 사진에 없는 특징을 물어 주인인지 확인하세요.',
+  LOST: '돈을 먼저 보내 달라는 요청은 받지 마세요.',
+}
+
 /** 화면이 틀렸다는 뜻인 실패 — 이미 완료됨 · 남의 글 · 지워진 글. 상세를 다시 받아 맞춘다(훅이 409 · 404 를, 여기서 403 을) */
 const STALE_CODES = ['INVALID_STATUS_TRANSITION', 'FORBIDDEN_ACCESS', 'POST_NOT_FOUND'] as const
 
 /**
  * 내 글 관리 — **작성자 본인에게만** 그린다(부른 쪽이 판정한다. 비활성으로 남기지 않는다).
  * 상태 · 수정 · 삭제. 되돌릴 수 있는 것은 바로, 되돌릴 수 없는 것(완료 · 삭제)은 결과를 문장으로 보여 주고 한 번 묻는다.
+ * 상세는 이 칸을 제목 · 이름표 바로 아래에 둔다(AR-4) — 글쓴이가 들어온 까닭이 첫 화면에 있다.
+ *
+ * - 두 묶음(상태 / 수정 · 삭제)은 구분선 없이 24px 로 가른다. "상태" 이름은 스크린리더만 읽는다 — 두 칸 스위치가 스스로 말한다(UI-5)
+ * - [수정]–[삭제] 16px. [삭제]는 줄 끝으로 옮기지 않는다 — 확인 창의 [삭제하기] 자리로 가면 두 번 누름이 통과한다(RV-3 · SE-1)
+ * - 완료된 글은 "주인에게 돌아간 물건이에요." 를 여기서 한 번만 말한다(상세 머리의 같은 줄은 글쓴이에게 그리지 않는다)
+ * - 연락중으로 바꾼 직후 한 번, 사칭 · 선입금 요구를 막는 한 줄(SE-4)
  *
  * - 요청 중에는 버튼을 `disabled` 로 잠그지 않고 누름만 무시한다(`aria-disabled`) — 누른 버튼이 잠기면 포커스가 빠진다
  * - 서버가 거절하면(409 · 403) 상태 줄 아래에 `message` 를 그대로 보여 주고 상세를 다시 받는다
@@ -56,6 +81,7 @@ export function PostOwnerPanel({ post, editHref, onDeleted }: PostOwnerPanelProp
   const [statusError, setStatusError] = useState<string | null>(null)
   const [dialogError, setDialogError] = useState<string | null>(null)
   const [announcement, setAnnouncement] = useState('')
+  const [contactTip, setContactTip] = useState(false)
   const headingRef = useRef<HTMLHeadingElement>(null)
   const headingId = useId()
   const statusLabelId = useId()
@@ -84,7 +110,9 @@ export function PostOwnerPanel({ post, editHref, onDeleted }: PostOwnerPanelProp
     changeStatus.mutate(next, {
       onSuccess: (result) => {
         setConfirm(null)
-        setAnnouncement(`${CHANGED_TO[result.status]} 바꿨어요.`)
+        const tip = result.status === 'IN_PROGRESS'
+        setContactTip(tip)
+        setAnnouncement(`${CHANGED_TO[result.status]} 바꿨어요.${tip ? ` ${CONTACT_TIP[post.type]}` : ''}`)
       },
       onError: (error) => {
         const stale = STALE_CODES.some((code) => hasErrorCode(error, code))
@@ -122,68 +150,78 @@ export function PostOwnerPanel({ post, editHref, onDeleted }: PostOwnerPanelProp
 
   const photoCount = post.images.length
   const commentCount = post.totalCommentCount
+  const showContactTip = contactTip && post.status === 'IN_PROGRESS' && !(changeStatus.isPending && !confirm)
 
   return (
     <section className={styles.panel} aria-labelledby={headingId}>
-      <h2 ref={headingRef} id={headingId} tabIndex={-1} className={styles.heading}>
-        내 글 관리
-      </h2>
+      <div className={styles.group}>
+        <h2 ref={headingRef} id={headingId} tabIndex={-1} className={styles.heading}>
+          내 글 관리
+        </h2>
 
-      <div className={styles.status}>
-        <span id={statusLabelId} className={styles.label}>
-          상태
-        </span>
-        {done ? (
-          <p className={styles.doneNote}>
-            <StatusBadge status="DONE" />
-            <span>주인에게 돌아간 글이라 상태를 더 바꿀 수 없어요.</span>
+        <div className={styles.status}>
+          <span id={statusLabelId} className="sr-only">
+            상태
+          </span>
+          {done ? (
+            <p className={styles.doneNote}>
+              <CheckCircle />
+              <span>
+                주인에게 돌아간 물건이에요. <span className={styles.doneMore}>상태는 더 바꿀 수 없어요.</span>
+              </span>
+            </p>
+          ) : (
+            <div className={styles.statusControls}>
+              <div
+                role="group"
+                aria-labelledby={statusLabelId}
+                aria-describedby={hintId}
+                aria-busy={changeStatus.isPending || undefined}
+                className={styles.segmented}
+              >
+                {REVERSIBLE.map(({ status, icon: StatusIcon }) => (
+                  <button
+                    key={status}
+                    type="button"
+                    className={styles.segment}
+                    aria-pressed={post.status === status}
+                    aria-disabled={busy || undefined}
+                    onClick={() => requestStatus(status)}
+                  >
+                    <StatusIcon />
+                    {POST_STATUS_LABEL[status]}
+                  </button>
+                ))}
+              </div>
+              <Button size="sm" aria-disabled={busy || undefined} onClick={() => requestStatus('DONE')}>
+                <Check />
+                완료로 바꾸기
+              </Button>
+            </div>
+          )}
+        </div>
+
+        {done ? null : showContactTip ? (
+          <p id={hintId} className={styles.tip}>
+            <Info />
+            {CONTACT_TIP[post.type]}
           </p>
         ) : (
-          <div className={styles.statusControls}>
-            <div
-              role="group"
-              aria-labelledby={statusLabelId}
-              aria-describedby={hintId}
-              aria-busy={changeStatus.isPending || undefined}
-              className={styles.segmented}
-            >
-              {REVERSIBLE.map(({ status, icon: StatusIcon }) => (
-                <button
-                  key={status}
-                  type="button"
-                  className={styles.segment}
-                  aria-pressed={post.status === status}
-                  aria-disabled={busy || undefined}
-                  onClick={() => requestStatus(status)}
-                >
-                  <StatusIcon />
-                  {POST_STATUS_LABEL[status]}
-                </button>
-              ))}
-            </div>
-            <Button size="sm" aria-disabled={busy || undefined} onClick={() => requestStatus('DONE')}>
-              <Check />
-              완료로 바꾸기
-            </Button>
-          </div>
+          <p id={hintId} className={styles.hint}>
+            {changeStatus.isPending && !confirm ? '바꾸는 중…' : '게시중과 연락중은 언제든 서로 바꿀 수 있어요.'}
+          </p>
         )}
+
+        {statusError ? (
+          <p className={styles.error} role="alert">
+            <WarningCircle />
+            {statusError}
+          </p>
+        ) : null}
+        <p className="sr-only" role="status">
+          {announcement}
+        </p>
       </div>
-
-      {done ? null : (
-        <p id={hintId} className={styles.hint}>
-          {changeStatus.isPending && !confirm ? '바꾸는 중…' : '게시중과 연락중은 언제든 서로 바꿀 수 있어요.'}
-        </p>
-      )}
-
-      {statusError ? (
-        <p className={styles.error} role="alert">
-          <WarningCircle />
-          {statusError}
-        </p>
-      ) : null}
-      <p className="sr-only" role="status">
-        {announcement}
-      </p>
 
       <div className={styles.actions}>
         <ButtonLink to={editHref} size="sm">
