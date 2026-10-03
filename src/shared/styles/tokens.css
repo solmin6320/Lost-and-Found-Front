@@ -10,7 +10,9 @@
  * 두 색은 색상이 반대편(노랑 ↔ 파랑)이라 적록색각이상에서도 갈라지고(면 ΔE 105 이상),
  * 명도가 0.57 대 0.12 로 떨어져 흑백 스크린샷에서도 밝은 면 / 어두운 면으로 갈린다.
  * 그래도 색만으로 구분하지 않는다 — 배지와 버튼에는 항상 한글 라벨이 있다.
- * 빨강은 삭제(파괴적 동작) 전용이다. 대비는 전부 계산한 값이다(WCAG 2.x 상대 휘도).
+ * 빨강 = 멈춰서 볼 것 — 방금 틀린 것(오류 문장 · `!` 아이콘, --error-text)과 되돌릴 수 없는 동작(삭제).
+ * 빨간 **채움**은 되돌릴 수 없는 확인 버튼에만. 개인정보 · 경고 · 상태에는 빨강을 쓰지 않는다(2026-10-03 회의 ⑤).
+ * 대비는 전부 계산한 값이다(WCAG 2.x 상대 휘도 — tokens.test.ts 가 다시 잰다).
  *
  * 파일 구성
  *   1. 테마와 무관한 값 — 글자 · 간격 · 반경 · 아이콘 · 레이아웃 · 겹침 · 모션
@@ -198,6 +200,12 @@
   --danger-text: #a62018;  /* 종이 위 7.4:1 */
   --danger-surface: #fbedec;
 
+  /* 오류 — 방금 틀린 칸의 문장과 `!` 아이콘에만(2026-10-03 회의 ⑤). 테두리 · 면에는 쓰지 않는다. 종이 위 7.4:1 */
+  --error-ink: #a62018;
+
+  /* 주 버튼 채움. 밝게에서는 잉크 그대로 */
+  --action-fill: #191b1f;
+
   /* 겹침 — 사진 테두리 · 사진 위 배지 테 · 뒤를 가리는 막 · 떠 있는 것의 그림자 */
   --media-edge: rgb(25 27 31 / 0.07);
   --badge-ring: rgb(255 255 255 / 0.9);
@@ -263,6 +271,15 @@
   --danger-text: #ff8f85;
   --danger-surface: #3a1d1b;
 
+  /* 오류 문장 · 아이콘. 바탕 #16171A 위 8.0:1 */
+  --error-ink: #ff8f85;
+
+  /*
+   * 주 버튼 채움 — 글자색 #ECEDEF(휘도 0.85)를 그대로 채우면 어둡게 화면에서 가장 눈부신 면이 버튼이 된다(회의 UI-13).
+   * 한 단계 낮춘 #D5D8DD(휘도 0.67). 버튼 글자 #16171A 와 12.4:1. hover 는 ink-700 #C4C7CD(한 단계 더 어둡게)
+   */
+  --action-fill: #d5d8dd;
+
   --media-edge: rgb(255 255 255 / 0.08);
   --badge-ring: rgb(22 23 26 / 0.9);
   --scrim: rgb(6 7 8 / 0.62);
@@ -315,6 +332,9 @@
     --danger-text: #ff8f85;
     --danger-surface: #3a1d1b;
 
+    --error-ink: #ff8f85;
+    --action-fill: #d5d8dd;
+
     --media-edge: rgb(255 255 255 / 0.08);
     --badge-ring: rgb(22 23 26 / 0.9);
     --scrim: rgb(6 7 8 / 0.62);
@@ -348,13 +368,16 @@
   --hairline: 1px solid var(--border-subtle);
 
   /* 조작 — 주 동작은 잉크를 채운다(어둡게에서는 밝은 잉크) */
-  --action: var(--ink-900);
+  --action: var(--action-fill);
   --action-hover: var(--ink-700);
   --on-action: var(--paper);
   --action-disabled: var(--ink-200);
   --on-action-disabled: var(--ink-500);
   --selected-line: var(--ink-900);
   --focus-ring: var(--ink-900);
+
+  /* 오류 — 문장과 `!` 아이콘에만. 틀린 칸 테두리는 잉크 두 겹(--selected-line) 그대로 */
+  --error-text: var(--error-ink);
 
   /* 분실 — 역할별 */
   --lost-face: var(--lost-400);

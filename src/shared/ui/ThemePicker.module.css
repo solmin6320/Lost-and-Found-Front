@@ -22,6 +22,7 @@
   position: relative;
   display: grid;
   gap: var(--space-2);
+  container-type: inline-size;
   padding: var(--space-2);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-md);
@@ -64,10 +65,12 @@
 
 .caption {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--space-1-5);
   min-height: var(--space-8);
-  padding-inline: var(--space-1);
+  /* 오른쪽은 아래 모서리 표시(18px) 자리 */
+  padding-inline: var(--space-1) var(--space-5);
   color: var(--text-body);
   font-size: var(--text-base);
   font-weight: var(--weight-semibold);
@@ -79,9 +82,18 @@
   height: var(--icon-md);
 }
 
+/* 좁은 칸(390 폭의 두 칸)에서 `기기 설정` 이름표가 붙으면 이름이 두 줄로 꺾인다 — 해 · 달 그림을 거둔다(미리보기가 같은 말을 한다).
+   두 칸이 같은 폭이라 둘 다 같이 거둔다 */
+@container (max-width: 11.5rem) {
+  .captionIcon {
+    display: none;
+  }
+}
+
 .captionText {
-  min-width: 0;
-  flex: 1;
+  /* 이름은 줄이지 않는다 — 320 처럼 더 좁으면 이름표가 다음 줄로 내려간다 */
+  flex: 1 0 auto;
+  white-space: nowrap;
 }
 
 .option:has(.input:checked) .caption {
@@ -89,27 +101,48 @@
   font-weight: var(--weight-bold);
 }
 
-/* 체크 — 고르지 않은 칸은 빈 동그라미, 고른 칸은 잉크를 채우고 체크를 넣는다 */
-.check {
-  display: grid;
+/*
+ * 모서리 표시 — 고른 칸의 오른쪽 아래에 접힌 귀퉁이 하나. 그림 칸(종류 · 화면 모드)의 선택 표시다(회의 ⑤-a).
+ * 위쪽 귀퉁이는 미리보기 그림과 겹쳐 그림의 일부로 읽혀 아래(이름 줄 끝)에 둔다. 이름 줄은 그 자리를 비워 둔다
+ *   기기 설정을 따르는 중(following) : 빈 테 — 지금 이 모드로 그려지지만 고른 것은 아니다
+ *   고정(fixed)                     : 잉크로 채운다
+ * 고르지 않은 칸에는 없다. 나타날 때는 투명도만(모양이 튀지 않게)
+ */
+.corner {
+  position: absolute;
+  bottom: var(--space-1-5);
+  right: var(--space-1-5);
+  width: 1.125rem;
+  height: 1.125rem;
+  color: var(--selected-line);
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+  opacity: 0;
+  transition: opacity var(--duration-fast) var(--ease-out);
+  pointer-events: none;
+}
+
+.option:not([data-state='off']) .corner {
+  opacity: 1;
+}
+
+.option[data-state='fixed'] .corner {
+  fill: currentColor;
+}
+
+/* `기기 설정` 이름표(4px) — 지금 그려지는 칸이 고른 것이 아니라 기기를 따르는 것임을 그 칸 안에서 말한다 */
+.systemTag {
   flex: none;
-  place-items: center;
-  width: var(--icon-lg);
-  height: var(--icon-lg);
-  border-radius: var(--radius-pill);
-  box-shadow: inset 0 0 0 1.5px var(--border-strong);
-  color: transparent;
-}
-
-.check svg {
-  width: var(--icon-xs);
-  height: var(--icon-xs);
-}
-
-.option:has(.input:checked) .check {
-  background-color: var(--action);
-  box-shadow: none;
-  color: var(--on-action);
+  padding: var(--space-0-5) var(--space-1-5);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-xs);
+  color: var(--text-body);
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-semibold);
+  line-height: var(--leading-tight);
+  white-space: nowrap;
 }
 
 /* ── 한 줄 안내 + 기기 설정 따르기 ── */

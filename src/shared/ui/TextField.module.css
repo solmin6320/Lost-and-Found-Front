@@ -78,8 +78,8 @@
 }
 
 /*
- * 틀린 입력 — 빨강을 쓰지 않는다(빨강은 삭제 전용). 선을 두 배로 굵히고, 아래에 아이콘 + 문장으로 알린다.
- * 필터 시트의 기간 오류와 같은 모양이다
+ * 틀린 입력 — 테두리는 빨강이 아니라 잉크 두 겹(포커스 · 선택과 같은 선). 빨강은 아래 문장과 `!` 아이콘에만(회의 ⑤).
+ * 적색약에게 빨강은 1.74:1 뿐이라, 실제로 알리는 것은 두 겹 선 · 아이콘 · 도움말이 걷혀 한 줄만 남는 모양이다
  */
 .input[aria-invalid='true'] {
   border-color: var(--selected-line);
@@ -107,7 +107,7 @@
   display: flex;
   align-items: flex-start;
   gap: var(--space-1);
-  color: var(--text-strong);
+  color: var(--error-text);
   font-size: var(--text-sm);
   font-weight: var(--weight-semibold);
   line-height: var(--leading-snug);
@@ -124,6 +124,34 @@
   color: var(--text-muted);
   font-size: var(--text-sm);
   line-height: var(--leading-snug);
+  word-break: keep-all;
+}
+
+/* 결과 고지 · 개인정보 — 도움말보다 한 단계 진하게. 오류가 떠 있어도 남는다 */
+.note {
+  color: var(--text-body);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  line-height: var(--leading-snug);
+  word-break: keep-all;
+}
+
+/* 칸이 알아본 것(연락처 등) 한 줄. 빨강이 아니다(경고에는 빨강을 쓰지 않는다) — 잉크 글자로.
+   자리를 미리 비우면(data-reserved) 한 줄 높이를 늘 잡아 둔다 */
+.detected {
+  color: var(--text-strong);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  line-height: var(--leading-snug);
+  word-break: keep-all;
+}
+
+.detected[data-reserved] {
+  min-height: calc(var(--text-sm) * 1.45);
+}
+
+.detected:empty:not([data-reserved]) {
+  display: none;
 }
 
 @keyframes error-in {
