@@ -1,19 +1,31 @@
 /*
  * SCR-01 배치 — 모든 폭에서 같은 순서다. 넓어지면 칸이 늘 뿐, 필터가 옆 열로 빠지지 않는다.
- *   ① 제목 + 의도 선택(두 색 면)   ② 검색 + 필터 칩   ③ 결과 제목 · 수   ④ 사진 피드   ⑤ 페이지 · 다음 행동
- *   피드 열 수는 결과 칸의 폭으로 정한다(컨테이너 쿼리) : 2열 → 3열(34rem) → 4열(54rem). 한 쪽 24건이라 줄이 빈 채 끝나지 않는다
+ *   ① 제목 + 의도 선택(두 색 면)   ② 검색   ③ 필터 칩(스크롤해도 헤더 아래 붙는다)   ④ 결과 제목 · 수   ⑤ 사진 피드   ⑥ [더 보기] · 다음 행동
+ *   피드 열 수는 결과 칸의 폭으로 정한다(컨테이너 쿼리) : 2열 → 3열(34rem) → 4열(54rem). 한 묶음 24건이라 줄이 빈 채 끝나지 않는다
+ *
+ * 칩 줄이 화면 끝까지 붙어 가려면 페이지 전체가 그 부모여야 한다(붙는 요소는 부모 상자 안에서만 붙는다).
+ * 그래서 검색 · 칩 줄 · 결과가 모두 이 격자의 바로 아래 칸이다. 넓은 화면에서는 검색과 칩 줄이 한 줄에 선다.
  */
 
 /* 칸을 0 까지 줄일 수 있게 둔다. 걸린 칩이 길어져도 칩 줄 안에서 옆으로 넘길 뿐, 페이지 폭을 밀어내지 않는다 */
 .page {
+  /* 칩 줄이 붙었을 때 위에서 가리는 높이(헤더 + 칩 줄). 결과 제목 · 카드로 데려갈 때 이만큼 비켜 둔다 */
+  --list-sticky-top: var(--header-h);
+
   display: grid;
   grid-template-columns: minmax(0, 1fr);
+  grid-template-areas:
+    'hero'
+    'search'
+    'chips'
+    'results';
 }
 
 /* ── ① 첫 화면 ── */
 
 .hero {
   display: grid;
+  grid-area: hero;
   gap: var(--space-4);
   margin-bottom: var(--space-4);
 }
@@ -37,55 +49,129 @@
   }
 }
 
-/* ── ② 검색 · 필터 ── */
+/* ── ② 검색 · ③ 필터 칩 ── */
 
-.finder {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: var(--space-2);
+.search {
+  grid-area: search;
+  min-width: 0;
+  margin-bottom: var(--space-2);
+}
+
+.chips {
+  position: relative;
+  grid-area: chips;
+  min-width: 0;
   margin-bottom: var(--space-5);
 }
 
-/* 넓은 화면에서는 검색과 칩을 한 줄에. 칩 줄은 그 옆 칸 안에서 줄을 바꾼다(FilterChips.module.css 의 64rem) */
-@media (min-width: 64rem) {
-  .finder {
-    grid-template-columns: minmax(0, 30rem) minmax(0, 1fr);
-    align-items: start;
-    gap: var(--space-4);
-    margin-bottom: var(--space-8);
+/* 온보딩 2단계의 틀 — 검색과 칩 줄 두 칸을 겹쳐 덮는 빈 칸. 아래 여백은 칩 줄과 같게 둬 칩 줄 끝에서 멈춘다 */
+.guideFrame {
+  grid-row: search-start / chips-end;
+  grid-column: 1 / -1;
+  margin-bottom: var(--space-5);
+  pointer-events: none;
+}
+
+/*
+ * 칩 줄을 붙인다(2026-10-03 회의 ④) — 96장 아래에서 조건을 바꾸려고 첫 화면까지 되돌아가지 않게.
+ * 화면 높이 40rem 이상 · 폭 22.5rem 이상에서만 : 헤더(57) + 칩 줄(44) = 101px 가 높이의 1/6 을 넘지 않는 곳.
+ * 짧은 화면(가로 휴대폰 · 200% 확대)과 320 폭(칩이 두 줄)에서는 붙이지 않는다 — 가리는 면이 너무 크다.
+ * 검색칸은 붙이지 않는다(한 벌만 — 두 벌이면 치던 글자가 갈린다).
+ */
+@media (min-height: 40rem) and (min-width: 22.5rem) {
+  .page {
+    --list-sticky-top: calc(var(--header-h) + var(--tap-min));
+  }
+
+  .chips {
+    position: sticky;
+    top: var(--header-h);
+    z-index: calc(var(--z-header) - 1);
+  }
+
+  /*
+   * 붙어 있는 동안만 바탕과 아래 가는 선 — 화면 끝까지. 그림자 퍼짐(spread)으로 그려 가로 넘침이 생기지 않고,
+   * 잘라 내기(clip-path)로 아래 1px 만 남겨 선이 된다. 붙기 전에는 종이와 같은 색이라 아무것도 깔지 않는다
+   */
+  .chips[data-stuck] {
+    background-color: var(--surface);
+    box-shadow:
+      0 0 0 100vmax var(--surface),
+      0 1px 0 100vmax var(--border-subtle);
+    clip-path: inset(0 -100vmax -1px);
+  }
+
+  /* 카드 · 결과 제목으로 포커스가 갈 때 붙은 칩 줄 밑에 숨지 않게. 이 화면에 있는 동안만 */
+  :global(html):has(.page) {
+    scroll-padding-top: calc(var(--header-h) + var(--tap-min) + var(--space-4));
   }
 }
 
-/* ── ③ 결과 ── */
+/* 넓은 화면에서는 검색과 칩을 한 줄에. 둘 다 높이 44 — 줄 가운데에 맞춘다(UI-12). 칩 줄은 그 옆 칸 안에서 줄을 바꾼다 */
+@media (min-width: 64rem) {
+  .page {
+    grid-template-columns: minmax(0, 30rem) minmax(0, 1fr);
+    grid-template-areas:
+      'hero hero'
+      'search chips'
+      'results results';
+    column-gap: var(--space-4);
+  }
+
+  .search,
+  .chips,
+  .guideFrame {
+    align-self: center;
+    margin-bottom: var(--space-8);
+  }
+
+  .guideFrame {
+    align-self: stretch;
+  }
+
+  /* 넓은 화면의 검색칸은 44px — 옆 칩 줄(보이는 36 · 누르는 44)과 한 줄 높이를 맞춘다. 휴대폰은 52 그대로 */
+  .search input[type='search'] {
+    min-height: var(--tap-min);
+  }
+}
+
+/* ── ④ 결과 ── */
 
 .results {
+  grid-area: results;
   min-width: 0;
   container-type: inline-size;
 }
 
+/* 제목 · 건수 · 이름표 안내가 한 묶음. 안내는 설명하는 대상(건수) 바로 뒤 8px 에 붙는다(UI-8) */
 .summary {
+  position: relative;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: var(--space-1) var(--space-3);
+  gap: var(--space-1) var(--space-2);
   min-height: var(--tap-min);
   margin-bottom: var(--space-3);
-  scroll-margin-top: calc(var(--header-h) + var(--space-4));
+  scroll-margin-top: calc(var(--list-sticky-top) + var(--space-4));
 }
 
+/* 휴대폰 : 18/700 — 첫 화면 굵은 글자가 질문(24) > 의도 · 결과 제목(18) > 카드(16) 세 단계로 정리된다(UI-7) */
 .heading {
-  font-size: var(--text-xl);
-  font-weight: var(--weight-extrabold);
+  margin-right: var(--space-1);
+  font-size: var(--text-lg);
+  font-weight: var(--weight-bold);
   letter-spacing: var(--tracking-tight);
+}
+
+@media (min-width: 40rem) {
+  .heading {
+    font-size: var(--text-xl);
+    font-weight: var(--weight-extrabold);
+  }
 }
 
 .heading:focus-visible {
   outline-offset: 4px;
-}
-
-/* 이름표 안내 — 결과 제목 줄의 오른쪽 끝 */
-.badgeGuide {
-  margin-left: auto;
 }
 
 .count {
@@ -94,6 +180,11 @@
   font-size: var(--text-base);
   font-weight: var(--weight-semibold);
   transition: opacity var(--duration-base) var(--ease-out);
+}
+
+/* 숫자가 들어오면 자리를 비워 둘 필요가 없다 — 이름표 안내가 숫자 바로 뒤에 붙는다 */
+.count:has(strong) {
+  min-width: 0;
 }
 
 .count strong {
@@ -106,7 +197,90 @@
   opacity: 0.45;
 }
 
-/* ── ④ 사진 피드 ── */
+/*
+ * 이름표 안내 — 건수 바로 뒤. 모든 폭에서 아이콘 + 글자(터치에서는 이름표가 뜨지 않아, 글자 없는 (i)는 무엇인지 모른다).
+ * 펼친 설명은 이 줄 왼쪽 끝에 맞춰 연다 — 줄 가운데서 열면 좁은 화면에서 설명이 화면 밖으로 나간다.
+ * 공용 Toggletip 은 30rem 미만에서 글자를 숨기는 것이 기본이라, 이 자리에서만 글자를 꺼내 둔다.
+ */
+.summary .badgeGuide {
+  position: static;
+  margin-left: calc(-1 * var(--space-2));
+}
+
+.badgeGuide > button {
+  padding-inline: var(--space-2) var(--space-3);
+}
+
+.badgeGuide > button > svg {
+  width: var(--icon-sm);
+  height: var(--icon-sm);
+}
+
+.badgeGuide > button > span:first-of-type {
+  position: static;
+  width: auto;
+  height: auto;
+  overflow: visible;
+  clip-path: none;
+}
+
+/* 글자가 보이면 아이콘 아래 이름표는 필요 없다 */
+.badgeGuide > button > span:last-of-type {
+  display: none;
+}
+
+/* 의도를 고른 순간의 글쓰기 입구(②) — 결과 제목 줄 바로 아래 한 줄. 색 면 · 떠 있는 버튼이 아니라 흐름 안 링크 */
+.write {
+  margin-top: calc(-1 * var(--space-1));
+  margin-bottom: var(--space-4);
+  color: var(--text-body);
+  font-size: var(--text-sm);
+  line-height: var(--leading-snug);
+}
+
+/*
+ * 잉크 글자 + 밑줄 + 더하기 아이콘. 개념 색 글자는 쓰지 않는다 — 마리골드 글자는 흰 종이 위 1.7:1 이다.
+ * 뜻은 말("분실 글 올리기")이 싣는다. 누르는 높이는 44px 로 넓힌다
+ */
+.writeLink {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  color: var(--text-strong);
+  font-weight: var(--weight-bold);
+  text-decoration: underline;
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 0.25em;
+  white-space: nowrap;
+}
+
+.writeLink::after {
+  content: '';
+  position: absolute;
+  inset-inline: 0;
+  top: 50%;
+  height: var(--tap-min);
+  transform: translateY(-50%);
+}
+
+.writeLink svg {
+  flex: none;
+  width: var(--icon-sm);
+  height: var(--icon-sm);
+}
+
+.writeLink:active {
+  opacity: var(--press-opacity);
+}
+
+@media (hover: hover) {
+  .writeLink:hover {
+    text-decoration-thickness: 2px;
+  }
+}
+
+/* ── ⑤ 사진 피드 ── */
 
 .grid {
   display: grid;
@@ -129,27 +303,114 @@
   }
 }
 
-/* 조건을 바꿔 다시 불러오는 동안 직전 목록 */
+/* 조건을 바꿔 다시 불러오는 동안 직전 목록. [더 보기]로 펼치는 동안에는 흐리지 않는다(이미 본 카드다) */
 .grid[data-stale] {
   opacity: 0.45;
 }
 
-/* 비어 있음 · 오류 — 사진 자리에 옅은 면 한 장. 종이 위 빈 자리는 고장처럼 보인다 */
+/* 오류 — 사진 자리에 옅은 면 한 장. 종이 위 빈 자리는 고장처럼 보인다 */
 .stateBox {
   border-radius: var(--radius-md);
   background-color: var(--surface-sunken);
 }
 
-/* ── ⑤ 페이지 · 다음 행동 ── */
+/* 조건 검색 0건 — 왜 비었는지 + 되돌리는 버튼, 그 아래 등록 권유 면 하나. 회색 판은 깔지 않는다 */
+.empty {
+  display: grid;
+  gap: var(--space-2);
+}
 
-.pagination {
+.empty > :first-child {
+  padding-block: var(--space-8) var(--space-6);
+}
+
+/* ── ⑥ [더 보기] · 상한 · 다음 행동 ── */
+
+.more {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-2);
   margin-top: var(--space-10);
+}
+
+/* 좁은 화면은 폭 전체(엄지가 닿는 넓은 면), 넓은 화면은 가운데 20rem. 글자가 바뀌어도(불러오는 중…) 폭이 그대로다 */
+.moreButton {
+  width: 100%;
+}
+
+@media (min-width: 40rem) {
+  .moreButton {
+    width: 20rem;
+  }
+}
+
+.seen {
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 펼치다 실패 — 받아 둔 카드는 그대로 두고 이 자리에서 서버 문장 + [다시 시도] */
+.moreError {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-1);
+  color: var(--error-text, var(--text-strong));
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  line-height: var(--leading-snug);
+}
+
+.moreError svg {
+  flex: none;
+  width: var(--icon-sm);
+  height: var(--icon-sm);
+  margin-top: var(--space-0-5);
+}
+
+/* 96건 너머 — 다음 묶음 대신 조건을 좁히는 길. 버튼 하나가 칩 줄로 데려간다 */
+.cap {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1) var(--space-3);
+  margin-top: var(--space-10);
+  padding-block: var(--space-4);
+  border-top: var(--hairline);
+  text-align: center;
+}
+
+.capText {
+  color: var(--text-body);
+  font-size: var(--text-sm);
+  line-height: var(--leading-snug);
+  font-variant-numeric: tabular-nums;
+}
+
+.capAction {
+  position: relative;
+  min-height: var(--tap-min);
+  padding-inline: var(--space-2);
+  border-radius: var(--radius-sm);
+  color: var(--text-strong);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-bold);
+  text-decoration: underline;
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 0.25em;
+}
+
+.capAction:active {
+  opacity: var(--press-opacity);
+}
+
+@media (hover: hover) {
+  .capAction:hover {
+    background-color: var(--surface-sunken);
+  }
 }
 
 .next {
   margin-top: var(--space-8);
-}
-
-.filters {
-  min-width: 0;
 }

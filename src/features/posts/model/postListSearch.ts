@@ -15,8 +15,10 @@ import { POST_CATEGORY_LABEL, POST_STATUS_LABEL } from './labels'
  * 목록 화면의 검색 조건 = URL 쿼리스트링.
  * 뒤로가기 · 새로고침 · 링크 공유가 그대로 동작하도록 화면 상태를 주소에 싣는다(SCR-01).
  *
- * 이름은 백엔드 [4.2] 쿼리 파라미터와 같다. **`page` 만 1부터 센다** —
- * 주소창의 `?page=2` 가 화면의 "2쪽"과 같아야 공유받은 사람이 헷갈리지 않는다. 서버로 보낼 때 1을 뺀다.
+ * 이름은 백엔드 [4.2] 쿼리 파라미터와 같다. **`page` 만 뜻이 다르다** — 서버의 "몇째 쪽"이 아니라
+ * **"24건 묶음을 몇 개까지 펼쳤나"**(1부터, 최대 4)다. [더 보기]를 누를 때마다 하나씩 는다.
+ * 폭과 상관없이 뜻이 하나라 공유받은 주소가 휴대폰 · 넓은 화면에서 같은 글을 보여 준다.
+ * 예전 쪽 번호 링크(`?page=3` = 49~72번째)도 그대로 읽힌다 — 1~72번째를 펼치니 그 쪽의 글이 다 들어 있다.
  */
 export interface PostListSearch {
   keyword: string
@@ -26,7 +28,7 @@ export interface PostListSearch {
   location: string
   from?: string
   to?: string
-  /** 1부터 */
+  /** 펼친 묶음 수. 1부터 `POST_LIST_MAX_PAGES` 까지 */
   page: number
 }
 
@@ -92,7 +94,8 @@ export function parsePostListSearch(params: URLSearchParams): PostListSearch {
     location: (params.get('location') ?? '').trim().slice(0, LOCATION_MAX_LENGTH),
     from,
     to,
-    page: Number.isSafeInteger(page) && page >= 1 ? page : 1,
+    // 상한을 넘는 예전 쪽 번호(`?page=9`)는 펼칠 수 있는 끝(96건)으로 읽는다
+    page: Number.isSafeInteger(page) && page >= 1 ? Math.min(page, POST_LIST_MAX_PAGES) : 1,
   }
 }
 
@@ -119,12 +122,30 @@ export function postListSearchKey(search: PostListSearch): string {
 }
 
 /**
- * 목록 한 쪽에 싣는 글 수. 2 · 3 · 4 의 공배수라 피드가 몇 열이든 마지막 줄이 비지 않는다
- * (서버 기본 20 은 3열에서 두 칸이 빈다). 서버 최대는 100
+ * 펼친 수를 뺀 조건의 지문. 이것이 같으면 [더 보기]로 펼친 것이고, 다르면 조건이 바뀐 것이다 —
+ * 펼치는 동안에는 이미 본 카드를 흐리게 하지 않는다
+ */
+export function postListConditionKey(search: PostListSearch): string {
+  return postListSearchKey({ ...search, page: 1 })
+}
+
+/**
+ * 한 묶음에 싣는 글 수. 2 · 3 · 4 의 공배수라 피드가 몇 열이든 마지막 줄이 비지 않는다
+ * (서버 기본 20 은 3열에서 두 칸이 빈다)
  */
 export const POST_LIST_PAGE_SIZE = 24
 
-/** 조건 → 서버 요청. 여기서만 page 를 0부터로 바꾼다 */
+/**
+ * 펼칠 수 있는 묶음 수의 상한. 24 × 4 = 96건을 **한 번에** 받는다(서버 최대 100).
+ * 그 너머는 쪽을 이어 붙이지 않고 "조건을 좁혀 보세요"로 돌려보낸다 — 96장을 넘겨 내리는 사람에게 필요한 것은
+ * 다음 묶음이 아니라 더 좁은 조건이다. 뒤 묶음을 따로 받아 이으면 그사이 새 글이 끼어 겹치거나 빠진다
+ */
+export const POST_LIST_MAX_PAGES = 4
+
+/**
+ * 조건 → 서버 요청. 펼친 묶음 수만큼을 **첫 쪽 하나로** 받는다(`page=0`, `size=24n`).
+ * 요청 하나 · 캐시 하나라 펼친 목록 사이에 겹침 · 빠짐이 없고, 새로고침해도 같은 한 번으로 다시 그린다
+ */
 export function toPostListParams(search: PostListSearch): PostListParams {
   return {
     keyword: search.keyword,
@@ -134,9 +155,63 @@ export function toPostListParams(search: PostListSearch): PostListParams {
     location: search.location,
     from: search.from,
     to: search.to,
-    page: search.page - 1,
-    size: POST_LIST_PAGE_SIZE,
+    page: 0,
+    size: postListShownLimit(search),
   }
+}
+
+/** 지금 펼친 묶음이 담을 수 있는 글 수. 1~4 밖의 값은 그 안으로 맞춘다 */
+export function postListShownLimit(search: Pick<PostListSearch, 'page'>): number {
+  const pages = Math.min(Math.max(Math.trunc(search.page) || 1, 1), POST_LIST_MAX_PAGES)
+  return POST_LIST_PAGE_SIZE * pages
+}
+
+/**
+ * 받아 둔 목록의 끝에서 할 수 있는 일.
+ *   more   : 더 받을 글이 있고 펼칠 수 있다 → [더 보기]. `next` 는 다음에 붙을 글 수
+ *   capped : 더 받을 글이 있지만 상한(96건)에 닿았다 → "조건을 좁혀 보세요"
+ *   end    : 다 보여 줬다
+ */
+export type PostListProgress =
+  | { kind: 'more'; next: number }
+  | { kind: 'capped' }
+  | { kind: 'end' }
+
+export function postListProgress(search: Pick<PostListSearch, 'page'>, loaded: number, total: number): PostListProgress {
+  if (loaded >= total) return { kind: 'end' }
+  if (search.page >= POST_LIST_MAX_PAGES) return { kind: 'capped' }
+  return { kind: 'more', next: Math.min(POST_LIST_PAGE_SIZE, total - loaded) }
+}
+
+/**
+ * 주소를 바꾸는 방법. **조건을 바꾸면 기록을 쌓고**(뒤로가기 = 방금 고른 것 되돌리기),
+ * **[더 보기]는 바꿔 쓴다**(뒤로가기가 "덜 펼친 목록"이 아니라 이전 화면으로 간다)
+ */
+export interface PostListNavigation {
+  search: PostListSearch
+  replace: boolean
+}
+
+/** [더 보기] — 묶음 하나를 더 펼친다. 상한이면 그대로 */
+export function expandNavigation(search: PostListSearch): PostListNavigation {
+  return { search: { ...search, page: Math.min(search.page + 1, POST_LIST_MAX_PAGES) }, replace: true }
+}
+
+/** 조건을 바꾼다. 결과가 달라지므로 첫 묶음으로 돌아간다 */
+export function conditionNavigation(next: PostListSearch): PostListNavigation {
+  return { search: { ...next, page: 1 }, replace: false }
+}
+
+/**
+ * 하나만 고르는 묶음(카테고리 · 상태)에서 고른 값을 **바로** 건다. `undefined` 는 "전체"(조건 없음).
+ * 검색어 · 유형 · 다른 조건은 그대로 두고 첫 묶음으로 돌아간다
+ */
+export function withChoice<F extends 'category' | 'status'>(
+  search: PostListSearch,
+  field: F,
+  value: PostListSearch[F],
+): PostListSearch {
+  return { ...search, [field]: value, page: 1 }
 }
 
 /** 필터(검색어 · 유형 제외)가 하나라도 걸려 있나 */
@@ -180,37 +255,30 @@ export function withoutFilters(search: PostListSearch): PostListSearch {
   return { ...EMPTY_POST_LIST_SEARCH, keyword: search.keyword, type: search.type }
 }
 
-/* ── 필터 입력 중인 값 ───────────────────────────────── */
+/* ── 장소 · 기간 — 글자 · 날짜를 치는 칸이라 [적용하기]에서 한 번에 건다 ── */
 
-/** 필터 입력칸이 들고 있는 값. 적용 전까지는 주소에 싣지 않는다 */
-export interface PostFilterDraft {
-  category?: PostCategory
-  status?: PostStatus
+/** 장소 · 기간 시트(넓은 화면은 칩 아래 펼침 칸)가 들고 있는 값. 적용 전까지는 주소에 싣지 않는다 */
+export interface PostPlaceDraft {
   location: string
   /** `<input type="date">` 값. 비었으면 `''` */
   from: string
   to: string
 }
 
-export const EMPTY_POST_FILTER_DRAFT: PostFilterDraft = { location: '', from: '', to: '' }
-
-export function draftFromSearch(search: PostListSearch): PostFilterDraft {
-  return {
-    category: search.category,
-    status: search.status,
-    location: search.location,
-    from: search.from ?? '',
-    to: search.to ?? '',
-  }
+export function placeDraftFromSearch(search: PostListSearch): PostPlaceDraft {
+  return { location: search.location, from: search.from ?? '', to: search.to ?? '' }
 }
 
-/** 입력값을 조건에 반영한다. 검색어 · 유형은 그대로 두고 1쪽으로 돌아간다 */
-export function applyDraft(search: PostListSearch, draft: PostFilterDraft): PostListSearch {
+/**
+ * [지우기] — **이 시트에 보이는 칸만** 비운다(적용 전 입력값). 카테고리 · 상태 · 검색어는 건드리지 않는다.
+ * "지우기 버튼은 지금 보이는 것만 지운다"(2026-10-03 회의 ③)
+ */
+export const EMPTY_PLACE_DRAFT: PostPlaceDraft = { location: '', from: '', to: '' }
+
+/** 장소 · 기간을 조건에 건다. 나머지 조건은 그대로 두고 첫 묶음으로 돌아간다 */
+export function applyPlaceDraft(search: PostListSearch, draft: PostPlaceDraft): PostListSearch {
   return {
-    keyword: search.keyword,
-    type: search.type,
-    category: draft.category,
-    status: draft.status,
+    ...search,
     location: draft.location.trim().slice(0, LOCATION_MAX_LENGTH),
     from: isIsoDate(draft.from) ? draft.from : undefined,
     to: isIsoDate(draft.to) ? draft.to : undefined,
@@ -219,6 +287,6 @@ export function applyDraft(search: PostListSearch, draft: PostFilterDraft): Post
 }
 
 /** 기간이 거꾸로면 문구, 아니면 `null` */
-export function periodError(draft: Pick<PostFilterDraft, 'from' | 'to'>): string | null {
+export function periodError(draft: Pick<PostPlaceDraft, 'from' | 'to'>): string | null {
   return draft.from && draft.to && draft.from > draft.to ? PERIOD_ORDER_MESSAGE : null
 }
