@@ -23,7 +23,8 @@ interface TextFieldProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'id
   announceError?: boolean
   /**
    * 오류 아래 · 도움말 위의 한 줄 — 쓰는 칸이 기기 안에서 알아본 것(연락처가 들어 있음 등, 회의 SE-3).
-   * 막지 않는다. 오류와 함께 둘 다 보인다
+   * 막지 않는다. 오류와 함께 둘 다 보인다. 주기만 하면(속이 비는 조각이라도) 줄은 알림 영역으로 늘 있다 —
+   * 비어 있는 동안은 화면에서 빠지고, 글자가 들어오면 스크린리더가 한 번 읽는다
    */
   detected?: ReactNode
   /** `detected` 줄이 뜰 자리를 미리 비워 둔다 — 나타날 때 아래 버튼이 밀리지 않게 */
@@ -107,7 +108,7 @@ export function TextField({
         </p>
       ) : null}
       {detected || reserveDetected ? (
-        <p id={detectedId} className={styles.detected} data-reserved={reserveDetected || undefined}>
+        <p id={detectedId} className={styles.detected} data-reserved={reserveDetected || undefined} aria-live="polite">
           {detected}
         </p>
       ) : null}

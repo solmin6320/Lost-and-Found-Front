@@ -12,9 +12,10 @@ import {
 } from 'react'
 
 import { TypeBadge } from '@/features/posts'
+import { usePressGuard } from '@/shared/lib/pressGuard'
 import { Button } from '@/shared/ui/Button'
 
-import { GUIDE_STEPS, guideTargetElement } from './guideSteps'
+import { GUIDE_STEPS, guideFallbackControl, guideTargetElement, type GuideTarget } from './guideSteps'
 import { markOnboardingDone } from './onboardingState'
 import styles from './OnboardingTour.module.css'
 
@@ -43,6 +44,17 @@ interface Placement {
   card: { top: number; left: number } | null
 }
 
+/** 테 안을 눌러 닫았다 — 닫힌 뒤 그 자리의 동작을 대신 누른다 */
+interface PendingAction {
+  x: number
+  y: number
+  target: GuideTarget
+}
+
+/** 테 안에서 누를 수 있는 것 — 누른 점에서 가장 가까운 것을 고른다 */
+const CONTROL =
+  'a[href], button:not(:disabled), input:not([type="hidden"]):not(:disabled), select, textarea, label, [role="button"], [role="radio"], [role="tab"]'
+
 /** 대상과 테 사이 */
 const RING_GAP = 4
 /** 테와 카드 사이 · 화면 가장자리와 카드 사이 */
@@ -61,6 +73,9 @@ const prefersReducedMotion = () => window.matchMedia('(prefers-reduced-motion: r
  *
  * 네이티브 `<dialog>` 의 `showModal()` — 바깥이 inert 가 되어 포커스가 갇히고, Esc 로 닫힌다.
  * 막(backdrop)은 투명이다. 카드 바깥을 누르면 닫힌다(건너뛰기와 같다).
+ * **테 안을 누르면** 안내를 닫고 그 자리의 동작을 바로 한다(회의 RV-10) — 가리킨 것을 누르는 게 가장 자연스러운 다음 동작이다.
+ * 의도 칸이면 그 의도를, 칩이면 그 칩을, [글 올리기]면 글쓰기를. 칸 사이 틈이면 그 대상의 대표 동작(검색칸에 포커스 등).
+ * 테가 막 나타난 0.5초 안에 시작된 누름은 무시한다(`usePressGuard`, SE-1) — [다음]을 두 번 누른 둘째 누름이 테에 떨어져도 실행되지 않게.
  * 어떻게 닫든 "봤음" 으로 저장한다 — 다시 보는 길은 헤더에 늘 있다.
  *
  * 대상이 화면 밖이면 부드럽게 스크롤해 데려온다(모션 줄이기면 바로). 스크롤이 끝난 뒤 테와 카드가 나타난다.
@@ -72,6 +87,9 @@ export function OnboardingTour({ open, onClose, fallbackFocus }: OnboardingTourP
   const textRef = useRef<HTMLDivElement>(null)
   const returnFocusRef = useRef<HTMLElement | null>(null)
   const pressedOutside = useRef(false)
+  const pressedRing = useRef(false)
+  const pendingAction = useRef<PendingAction | null>(null)
+  const ringGuard = usePressGuard()
   const onCloseRef = useRef(onClose)
   const fallbackRef = useRef(fallbackFocus)
   const titleId = useId()
@@ -125,9 +143,14 @@ export function OnboardingTour({ open, onClose, fallbackFocus }: OnboardingTourP
       setPlacement(null)
       const back = returnFocusRef.current
       returnFocusRef.current = null
+      const action = pendingAction.current
+      pendingAction.current = null
       const target = back && back.isConnected && back !== document.body ? back : fallbackRef.current?.()
       target?.focus({ preventScroll: true })
       onCloseRef.current()
+      // 테 안을 눌러 닫았다 — 화면이 안내를 걷어 낸 다음(스크롤 잠금이 풀린 뒤) 그 자리를 누른다.
+      // 누른 것이 시트를 열면 시트가 포커스를 가져간다. 누를 것이 없었으면 위에서 돌려 둔 포커스 그대로
+      if (action) requestAnimationFrame(() => runGuideAction(action))
     }
     dialog.addEventListener('close', handleClose)
     return () => dialog.removeEventListener('close', handleClose)
@@ -162,7 +185,10 @@ export function OnboardingTour({ open, onClose, fallbackFocus }: OnboardingTourP
   // 자리가 잡히면 부드럽게 나타난다 — 테는 투명도만, 넓은 화면 카드는 6px 떠오르며. 좁은 화면은 글만 바뀐다
   const placedStep = placement ? step : -1
   useEffect(() => {
-    if (placedStep < 0 || prefersReducedMotion()) return
+    if (placedStep < 0) return
+    // 테가 (새 자리에) 막 나타났다 — 지금부터 0.5초 안에 시작된 누름은 테 안 동작으로 받지 않는다
+    ringGuard.arm()
+    if (prefersReducedMotion()) return
     const timing = { duration: 200, easing: 'cubic-bezier(0.2, 0.8, 0.25, 1)' }
     ringRef.current?.animate([{ opacity: 0 }, { opacity: 1 }], timing)
     if (window.matchMedia(WIDE).matches) {
@@ -182,7 +208,7 @@ export function OnboardingTour({ open, onClose, fallbackFocus }: OnboardingTourP
         timing,
       )
     }
-  }, [placedStep])
+  }, [placedStep, ringGuard])
 
   function go(next: number) {
     setStep(next)
@@ -194,9 +220,13 @@ export function OnboardingTour({ open, onClose, fallbackFocus }: OnboardingTourP
 
   const close = () => dialogRef.current?.close()
 
-  // 카드 바깥을 누르면 닫는다. 안에서 누르고 밖에서 뗀 드래그(글자 선택)로는 닫지 않는다
+  // 카드 바깥을 누르면 닫는다. 안에서 누르고 밖에서 뗀 드래그(글자 선택)로는 닫지 않는다.
+  // 테 안 누름은 따로 적는다 — 닫기가 아니라 그 자리의 동작이다
   function handlePointerDown(event: PointerEvent<HTMLDialogElement>) {
-    pressedOutside.current = !cardRef.current?.contains(event.target as Node)
+    const target = event.target as Node
+    pressedRing.current = Boolean(ringRef.current?.contains(target))
+    pressedOutside.current = !pressedRing.current && !cardRef.current?.contains(target)
+    if (pressedRing.current) ringGuard.pointerDown()
   }
 
   // 포커스를 카드 안에서 돌린다. 네이티브 모달은 마지막 버튼에서 Tab 을 누르면 주소창으로 빠진다
@@ -216,8 +246,19 @@ export function OnboardingTour({ open, onClose, fallbackFocus }: OnboardingTourP
   }
 
   function handleClick(event: MouseEvent<HTMLDialogElement>) {
-    if (pressedOutside.current && !cardRef.current?.contains(event.target as Node)) close()
+    const target = event.target as Node
+    const inRing = pressedRing.current && Boolean(ringRef.current?.contains(target))
+    const outside = pressedOutside.current && !cardRef.current?.contains(target)
+    pressedRing.current = false
     pressedOutside.current = false
+    if (inRing) {
+      // 테가 막 나타난 바로 그때 시작된 누름 — 원래 [다음] 같은 다른 것을 노린 누름이다. 아무 일도 하지 않는다
+      if (!ringGuard.allows(event)) return
+      pendingAction.current = { x: event.clientX, y: event.clientY, target: current.target }
+      close()
+      return
+    }
+    if (outside) close()
   }
 
   const ringStyle: CSSProperties | undefined = placement ? { ...placement.ring } : undefined
@@ -233,6 +274,7 @@ export function OnboardingTour({ open, onClose, fallbackFocus }: OnboardingTourP
       onClick={handleClick}
       onKeyDown={handleKeyDown}
     >
+      {/* 테 — 누르면 안내를 닫고 그 자리를 누른다. 키보드로는 카드의 버튼으로 닫고 대상에서 이어 간다(같은 길이 이미 있다) */}
       <div ref={ringRef} className={styles.ring} style={ringStyle} hidden={!placement} aria-hidden="true" />
 
       <div ref={cardRef} className={styles.card} style={cardStyle} data-placed={placement ? '' : undefined}>
@@ -286,6 +328,26 @@ export function OnboardingTour({ open, onClose, fallbackFocus }: OnboardingTourP
       </div>
     </dialog>
   )
+}
+
+/**
+ * 테 안을 눌러 닫은 뒤 — 누른 점 아래의 조작을 누른다. 글자 칸이면 포커스만(휴대폰 키보드가 뜬다).
+ * 누른 점이 조작 사이 틈이면 그 대상의 대표 동작(`guideFallbackControl`)을, 그것도 없으면 아무것도 하지 않는다.
+ * 포커스를 먼저 옮기고 누른다 — 누른 것이 시트를 열면 시트가 포커스를 가져가고, 닫히면 이 조작으로 돌아온다
+ */
+function runGuideAction({ x, y, target }: PendingAction) {
+  const hit = document.elementFromPoint(x, y)?.closest<HTMLElement>(CONTROL)
+  const control = hit && !hit.closest('dialog') ? hit : guideFallbackControl(target)
+  if (!control) return
+  control.focus({ preventScroll: true })
+  if (isTextEntry(control)) return
+  control.click()
+}
+
+function isTextEntry(element: HTMLElement): boolean {
+  if (element instanceof HTMLTextAreaElement) return true
+  if (!(element instanceof HTMLInputElement)) return false
+  return !['button', 'checkbox', 'radio', 'submit', 'reset', 'file', 'image', 'color', 'range'].includes(element.type)
 }
 
 /**

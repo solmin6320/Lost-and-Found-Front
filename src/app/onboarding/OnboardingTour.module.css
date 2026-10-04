@@ -3,7 +3,7 @@
  * 화면을 어둡게 덮지 않는다. 뒤의 화면이 그대로 보여야 "이게 그 자리구나" 가 이어진다.
  *   좁은 화면 : 아래에서 올라오는 바텀 시트(필터 시트와 같은 모양). 엄지가 닿는 곳에 [다음]
  *   48rem 이상 : 대상 근처의 작은 카드. 자리는 코드가 잰다(OnboardingTour.tsx 의 measure)
- * dialog 자체는 화면 전체를 덮는 투명한 판이다 — 카드 바깥을 누르면 닫힌다.
+ * dialog 자체는 화면 전체를 덮는 투명한 판이다 — 카드 바깥을 누르면 닫힌다. 테 안을 누르면 닫고 가리킨 것을 누른다.
  */
 
 .tour {
@@ -36,7 +36,8 @@
   box-shadow:
     0 0 0 2px var(--text-strong),
     0 0 0 6px color-mix(in srgb, var(--text-strong) 12%, transparent);
-  pointer-events: none;
+  /* 테 안은 누를 수 있다 — 안내를 닫고 가리킨 것을 바로 누른다(RV-10). 마우스에는 손 모양으로 알린다 */
+  cursor: pointer;
 }
 
 .card {

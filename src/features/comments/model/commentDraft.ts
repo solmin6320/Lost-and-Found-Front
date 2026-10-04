@@ -11,6 +11,7 @@
  * - **직접 로그아웃하면 지운다**(공용 기기 — `shared/lib/writeDrafts`). 세션 만료 때는 남긴다 — 이어 쓰려고 두는 것이다
  */
 
+import type { LeaveCopy } from '@/shared/lib/dirtyRegistry'
 import { COMMENT_DRAFT_PREFIX as PREFIX } from '@/shared/lib/writeDrafts'
 
 const MAX_AGE_MS = 6 * 60 * 60 * 1000
@@ -73,4 +74,10 @@ function parse(raw: string): CommentDraft | null {
   } catch {
     return null
   }
+}
+
+/** 쓰던 댓글이 있을 때 이탈 확인 문장 — 쓰던 칸 등록부에 칸이 건넨다(렌더마다 새로 만들지 않게 상수) */
+export const COMMENT_LEAVE_COPY: LeaveCopy = {
+  title: '쓰던 댓글을 두고 나갈까요?',
+  body: '나가면 쓰던 댓글은 저장되지 않아요.',
 }

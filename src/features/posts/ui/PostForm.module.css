@@ -396,3 +396,19 @@
   text-align: center;
   word-break: keep-all;
 }
+
+/* 연락처 감지 한 줄(SE-3) — 칸 아래 `detected` 줄 안. 댓글 칸의 같은 줄과 같은 모양(눈 아이콘 + 굵은 잉크 글자) */
+.detectedLine {
+  composes: appear from '../../../shared/styles/motion.module.css';
+
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-1-5);
+}
+
+.detectedLine svg {
+  flex: none;
+  width: var(--icon-sm);
+  height: var(--icon-sm);
+  margin-top: calc((1lh - var(--icon-sm)) / 2);
+}

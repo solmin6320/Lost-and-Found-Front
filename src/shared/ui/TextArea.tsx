@@ -19,7 +19,7 @@ interface TextAreaProps
   error?: string | null
   /** 오류가 나타나면 바로 읽어 줄까 — 제출이 막혀 여러 칸에 한꺼번에 붙을 때는 끈다(`TextField` 와 같다) */
   announceError?: boolean
-  /** 오류 아래 · 도움말 위의 한 줄 — 칸이 알아본 것(연락처 등) */
+  /** 오류 아래 · 도움말 위의 한 줄 — 칸이 알아본 것(연락처 등). 주면 알림 영역으로 늘 있다(`TextField` 와 같다) */
   detected?: ReactNode
   /** `detected` 줄 자리를 미리 비워 둔다 */
   reserveDetected?: boolean
@@ -85,7 +85,7 @@ export function TextArea({
         </p>
       ) : null}
       {detected || reserveDetected ? (
-        <p id={detectedId} className={styles.detected} data-reserved={reserveDetected || undefined}>
+        <p id={detectedId} className={styles.detected} data-reserved={reserveDetected || undefined} aria-live="polite">
           {detected}
         </p>
       ) : null}

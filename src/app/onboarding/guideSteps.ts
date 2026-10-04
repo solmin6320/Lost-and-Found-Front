@@ -45,3 +45,15 @@ export const GUIDE_STEPS: readonly GuideStep[] = [
 export function guideTargetElement(target: GuideTarget): HTMLElement | null {
   return document.querySelector<HTMLElement>(`[data-guide="${target}"]`)
 }
+
+/**
+ * 테 안을 눌렀는데 그 점이 조작 사이 틈이었다 — 대신 할 그 대상의 대표 동작(회의 RV-10).
+ *   intent : 없다. 두 의도 가운데 무엇을 골랐는지 알 수 없다 — 닫기만 한다
+ *   finder : 검색칸에 포커스(틀은 검색칸과 칩 줄을 덮는 빈 칸이라 그 안에 조작이 없다)
+ *   create : [글 올리기] 그 자체
+ */
+export function guideFallbackControl(target: GuideTarget): HTMLElement | null {
+  if (target === 'finder') return document.querySelector<HTMLElement>('input[type="search"]')
+  if (target === 'create') return guideTargetElement('create')
+  return null
+}

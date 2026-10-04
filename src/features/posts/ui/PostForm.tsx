@@ -14,10 +14,11 @@ import { todayIsoDate } from '@/shared/lib/date'
 import { ClientValidationError, getErrorMessage, hasErrorCode, subscribeSessionExpired } from '@/shared/lib/http'
 import { allowLeave, isSelfLogout, useDirtyField, type LeaveCopy } from '@/shared/lib/dirtyRegistry'
 import { useObjectUrls } from '@/shared/lib/image'
+import { usePersonalInfoCheck } from '@/shared/lib/usePersonalInfoCheck'
 import { Button, ButtonLink } from '@/shared/ui/Button'
 import { ConfirmDialog } from '@/shared/ui/ConfirmDialog'
 import { FormAlert } from '@/shared/ui/FormAlert'
-import { Check, ClockCounterClockwise, LockSimple } from '@/shared/ui/icons'
+import { Check, ClockCounterClockwise, Eye, LockSimple } from '@/shared/ui/icons'
 import { TextArea } from '@/shared/ui/TextArea'
 import { TextField } from '@/shared/ui/TextField'
 
@@ -186,10 +187,12 @@ export function PostForm({
   const [stranded, setStranded] = useState(false)
   const strandedRef = useRef<HTMLDivElement>(null)
   /**
-   * 연락처 감지 줄(SE-3) — 제목 · 장소 · 설명. 감지 함수는 상세 · 댓글 묶음이 `shared/lib` 에 만든다.
-   * 합친 뒤 그 함수를 "입력이 0.6초 멈췄을 때 + 칸을 벗어날 때" 불러 여기에 넣는다. 지금은 비어 있다(표시 자리만)
+   * 연락처 감지 줄(SE-3) — 제목 · 장소 · 설명. 댓글과 같은 판정 · 같은 때 : **입력이 0.6초 멈췄을 때 + 칸을 벗어날 때**.
+   * 막지 않는다(올릴지는 쓰는 사람이 정한다). 설명 칸은 제출 줄 바로 위라 줄 자리를 미리 비워 둔다
    */
-  const [contactNotice] = useState<Partial<Record<'title' | 'location' | 'content', string>>>({})
+  const titleInfo = usePersonalInfoCheck(values.title)
+  const locationInfo = usePersonalInfoCheck(values.location)
+  const contentInfo = usePersonalInfoCheck(values.content)
   const today = useMemo(() => todayIsoDate(), [])
 
   const dirty = !samePostFormValues(values, initialValues) || items.length > 0 || removeExisting
@@ -482,12 +485,15 @@ export function PostForm({
             placeholder={values.type === 'FOUND' ? '예: 에어팟 프로 왼쪽 한 쪽' : '예: 검은색 가죽 반지갑'}
             error={errors.title}
             announceError={liveField === 'title'}
-            detected={contactNotice.title}
+            detected={<DetectedLine notice={titleInfo.notice} />}
             autoComplete="off"
             enterKeyHint="next"
             readOnly={readOnly}
             onChange={(event) => setField('title', event.target.value)}
-            onBlur={() => checkOnBlur('title')}
+            onBlur={() => {
+              checkOnBlur('title')
+              titleInfo.check()
+            }}
             onKeyDown={nextOnEnter('category')}
           />
         </div>
@@ -518,12 +524,15 @@ export function PostForm({
             }
             error={errors.location}
             announceError={liveField === 'location'}
-            detected={contactNotice.location}
+            detected={<DetectedLine notice={locationInfo.notice} />}
             autoComplete="off"
             enterKeyHint="next"
             readOnly={readOnly}
             onChange={(event) => setField('location', event.target.value)}
-            onBlur={() => checkOnBlur('location')}
+            onBlur={() => {
+              checkOnBlur('location')
+              locationInfo.check()
+            }}
             onKeyDown={nextOnEnter('lostFoundDate')}
           />
         </div>
@@ -559,14 +568,17 @@ export function PostForm({
             max={POST_CONTENT_MAX_LENGTH}
             error={errors.content}
             announceError={liveField === 'content'}
-            detected={contactNotice.content}
+            detected={<DetectedLine notice={contentInfo.notice} />}
             // 제출 줄 바로 위 칸 — 감지 줄이 떠도 버튼이 밀리지 않게 글자가 있으면 자리를 잡아 둔다(SE-3)
             reserveDetected={values.content.trim().length > 0}
             autoComplete="off"
             readOnly={readOnly}
             rows={5}
             onChange={(event) => setField('content', event.target.value)}
-            onBlur={() => checkOnBlur('content')}
+            onBlur={() => {
+              checkOnBlur('content')
+              contentInfo.check()
+            }}
             hint={
               values.type === 'FOUND'
                 ? '어떤 상태로 어디에 두었는지 적어 주세요. 주인만 알 만한 특징 한두 가지는 적지 않고 남겨 두면 진짜 주인을 가려낼 수 있어요.'
@@ -635,6 +647,20 @@ export function PostForm({
 }
 
 /** 로그인 뒤 돌아왔다 — 이어서 쓸지 묻는다. 고르기 전에는 빈 폼을 건드려도 이 칸이 남아 있다 */
+/**
+ * 연락처 감지 한 줄의 글자(SE-3). 없으면 아무것도 그리지 않는다 — 줄(`detected`)은 비어 있어도 알림 영역으로 남아 처음 뜰 때 한 번 읽힌다.
+ * 눈 아이콘 = "누구나 봐요"(댓글 칸과 같은 모양). 빨강을 쓰지 않는다
+ */
+function DetectedLine({ notice }: { notice: string | null }) {
+  if (!notice) return null
+  return (
+    <span key={notice} className={styles.detectedLine}>
+      <Eye />
+      {notice}
+    </span>
+  )
+}
+
 function DraftOffer({
   draft,
   title,

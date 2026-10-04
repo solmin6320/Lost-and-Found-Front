@@ -10,14 +10,21 @@ import {
 } from 'react'
 
 import type { PostDetailResponse } from '@/features/posts'
+import { allowLeave, isSelfLogout, useDirtyField } from '@/shared/lib/dirtyRegistry'
 import { getErrorMessage, subscribeSessionExpired } from '@/shared/lib/http'
 import { usePersonalInfoCheck } from '@/shared/lib/usePersonalInfoCheck'
 import { Button, ButtonLink } from '@/shared/ui/Button'
-import { ChatCircleDots, Check, ClockCounterClockwise, WarningCircle } from '@/shared/ui/icons'
+import { ChatCircleDots, Check, ClockCounterClockwise, LockSimple, WarningCircle } from '@/shared/ui/icons'
 import { Skeleton } from '@/shared/ui/Skeleton'
 
 import { COMMENT_MAX_LENGTH, type CommentResponse } from '../api/types'
-import { clearCommentDraft, loadCommentDraft, saveCommentDraft, type CommentDraft } from '../model/commentDraft'
+import {
+  clearCommentDraft,
+  COMMENT_LEAVE_COPY,
+  loadCommentDraft,
+  saveCommentDraft,
+  type CommentDraft,
+} from '../model/commentDraft'
 import { useCreateComment } from '../model/commentMutations'
 import { usePostComments } from '../model/commentQueries'
 import { COMMENTS_HEADING_ID, type CommentEntryHandle } from '../model/commentEntry'
@@ -80,6 +87,57 @@ export function CommentSection({
   const listRef = useRef<HTMLDivElement>(null)
   const targetRef = useRef<HTMLDivElement>(null)
   const [headingEntry, setHeadingEntry] = useState<HTMLButtonElement | null>(null)
+
+  /*
+   * 쓰는 칸의 글자는 여기서 든다 — 로그인이 끊겨 칸이 로그인 권유로 바뀌는 **그 렌더에서** "쓰던 글자가 있었나"를 알아야
+   * 칸을 남길지 정할 수 있다(칸 안에 두면 판단하기 전에 칸이 사라진다).
+   *
+   * 로그인이 끊기는 세 길(글 폼과 같은 규칙, 회의 SE2-10)
+   * - 재발급 거절(만료) : 쓰던 글자를 이 탭에 보관하고 로그인 화면으로 — 돌아오면 이어서 쓸지 묻는다
+   * - 이 탭에서 로그아웃을 골랐다(`isSelfLogout`) : 확인을 거쳤다. 남기지 않는다(공용 기기)
+   * - 다른 창에서 로그아웃했다 : 쓰던 글자가 있으면 칸을 **읽기 전용으로 남긴다**. 저장소에는 넣지 않는다
+   */
+  const [composerValue, setComposerValue] = useState('')
+  const [expired, setExpired] = useState(false)
+  /** 다른 창 로그아웃으로 칸을 남겼다 — 그 글자를 쓴 회원. 같은 사람이 다시 로그인하면 칸이 그대로 이어진다 */
+  const [strandedWriter, setStrandedWriter] = useState<number | null>(null)
+  const [seenViewer, setSeenViewer] = useState(viewerId)
+  if (seenViewer !== viewerId) {
+    setSeenViewer(viewerId)
+    const keep = viewerId === null && seenViewer !== null && composerValue.trim() !== '' && !expired && !isSelfLogout()
+    if (keep) {
+      setStrandedWriter(seenViewer)
+    } else {
+      // 다른 사람이 로그인했거나 남길 까닭이 없다 — 이전 글자를 다음 사람에게 보이지 않는다
+      if (viewerId === null || viewerId !== (strandedWriter ?? seenViewer)) setComposerValue('')
+      setStrandedWriter(null)
+    }
+    if (viewerId !== null) setExpired(false)
+  }
+
+  // 세션 만료 알림은 그리기 전에 온다(칸이 비로그인 모습으로 바뀌기 직전). 그때의 글자를 읽을 수 있게 늘 최신 값을 둔다
+  const latest = useRef({ composerValue, viewerId, onSessionExpiredWhileWriting })
+  useEffect(() => {
+    latest.current = { composerValue, viewerId, onSessionExpiredWhileWriting }
+  })
+  useEffect(
+    () =>
+      subscribeSessionExpired(() => {
+        setExpired(true)
+        const now = latest.current
+        if (now.viewerId === null || !now.composerValue.trim()) return
+        const saved = saveCommentDraft({
+          memberId: now.viewerId,
+          postId: post.id,
+          savedAt: Date.now(),
+          content: now.composerValue,
+        })
+        // 글자는 보관했다 — 로그인 화면으로 옮겨질 때 이탈 확인을 띄우지 않는다
+        allowLeave()
+        now.onSessionExpiredWhileWriting?.(saved)
+      }),
+    [post.id],
+  )
 
   const comments = thread.data?.comments ?? post.comments
   const total = thread.data?.totalCount ?? post.totalCommentCount
@@ -217,7 +275,7 @@ export function CommentSection({
             <Skeleton shape="text" width="4rem" />
             <Skeleton height="5.75rem" />
           </div>
-        ) : viewerId === null ? (
+        ) : viewerId === null && strandedWriter === null ? (
           <div className={styles.signIn}>
             <p className={styles.signInText}>로그인하면 댓글을 남길 수 있어요.</p>
             <ButtonLink to={loginHref} replace state={loginState} variant="primary" size="sm">
@@ -227,9 +285,13 @@ export function CommentSection({
         ) : (
           <CommentComposer
             postId={post.id}
-            memberId={viewerId}
+            memberId={viewerId ?? strandedWriter ?? 0}
+            value={composerValue}
+            onValueChange={setComposerValue}
+            stranded={viewerId === null}
+            loginHref={loginHref}
+            loginState={loginState}
             onCreated={handleCreated}
-            onSessionExpiredWhileWriting={onSessionExpiredWhileWriting}
           />
         )}
       </div>
@@ -275,20 +337,36 @@ function EmptyComments({ postType, ownPost }: { postType: PostDetailResponse['ty
 interface CommentComposerProps {
   postId: number
   memberId: number
+  /** 쓰는 글자 — 부른 쪽이 든다(로그인이 끊기는 순간 칸을 남길지 그쪽이 정한다) */
+  value: string
+  onValueChange: (value: string) => void
+  /** 다른 창에서 로그아웃했는데 쓰던 글자가 있다 — 읽기 전용 + 한 줄 + [로그인](SE2-10) */
+  stranded: boolean
+  loginHref: string
+  loginState?: unknown
   onCreated: (comment: CommentResponse) => void
-  onSessionExpiredWhileWriting?: (draftSaved: boolean) => void
 }
 
 /**
  * 댓글 쓰기. 제출 중에는 입력을 읽기 전용으로 두고 버튼은 누름만 무시한다(두 번 눌러도 한 건).
  *
- * 쓰는 도중 로그인이 끊기면(재발급 거절) 쓰던 글자를 이 탭에 보관하고 부른 쪽에 알린다(`commentDraft`).
+ * 쓰는 도중 로그인이 끊기면(재발급 거절) 부른 쪽이 쓰던 글자를 이 탭에 보관한다(`commentDraft`).
  * 다시 로그인해 이 글로 오면 칸 위에서 이어서 쓸지 묻는다 — 그 자리까지 데려오고 포커스를 둔다.
- * 사용자가 직접 로그아웃한 것은 보관하지 않는다(고른 일이다).
+ * 사용자가 직접 로그아웃한 것은 보관하지 않는다(고른 일이다). 다른 창에서 로그아웃했으면 칸을 읽기 전용으로 남긴다.
+ *
+ * 쓰던 글자가 있으면 쓰던 칸 등록부에 알린다 — 앱 안 이동 · 새로고침 · 탭 닫기 · 로그아웃이 한 번 묻는다(막는 곳은 레이아웃에 하나)
  */
-function CommentComposer({ postId, memberId, onCreated, onSessionExpiredWhileWriting }: CommentComposerProps) {
+function CommentComposer({
+  postId,
+  memberId,
+  value,
+  onValueChange: setValue,
+  stranded,
+  loginHref,
+  loginState,
+  onCreated,
+}: CommentComposerProps) {
   const create = useCreateComment(postId)
-  const [value, setValue] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [draft, setDraft] = useState<CommentDraft | null>(() => loadCommentDraft(postId, memberId))
   const [restored, setRestored] = useState(false)
@@ -296,23 +374,7 @@ function CommentComposer({ postId, memberId, onCreated, onSessionExpiredWhileWri
   const offerRef = useRef<HTMLElement>(null)
   const noticeId = useId()
   const personal = usePersonalInfoCheck(value)
-  const dirty = value.trim().length > 0
-
-  // 세션 만료 알림은 그리기 전에 온다(칸이 비로그인 모습으로 바뀌기 직전). 그때의 글자를 읽을 수 있게 늘 최신 값을 둔다
-  const latest = useRef({ value, memberId, onSessionExpiredWhileWriting })
-  useEffect(() => {
-    latest.current = { value, memberId, onSessionExpiredWhileWriting }
-  })
-  useEffect(
-    () =>
-      subscribeSessionExpired(() => {
-        const now = latest.current
-        if (!now.value.trim()) return
-        const saved = saveCommentDraft({ memberId: now.memberId, postId, savedAt: Date.now(), content: now.value })
-        now.onSessionExpiredWhileWriting?.(saved)
-      }),
-    [postId],
-  )
+  useDirtyField(value.trim().length > 0, COMMENT_LEAVE_COPY)
 
   // 로그인하고 돌아왔다 — 글 맨 위에서 열리므로 묻는 칸까지 데려온다. 처음 한 번만
   const offerOnMount = useRef(draft !== null)
@@ -346,19 +408,9 @@ function CommentComposer({ postId, memberId, onCreated, onSessionExpiredWhileWri
     requestAnimationFrame(() => inputRef.current?.focus())
   }
 
-  // 쓰던 댓글이 있으면 창을 닫기 전에 한 번 묻는다
-  useEffect(() => {
-    if (!dirty) return
-    function handleBeforeUnload(event: BeforeUnloadEvent) {
-      event.preventDefault()
-    }
-    window.addEventListener('beforeunload', handleBeforeUnload)
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload)
-  }, [dirty])
-
   function submit(event: FormEvent) {
     event.preventDefault()
-    if (create.isPending) return
+    if (create.isPending || stranded) return
     const problem = checkCommentContent(value)
     if (problem) {
       setError(problem)
@@ -384,7 +436,20 @@ function CommentComposer({ postId, memberId, onCreated, onSessionExpiredWhileWri
 
   return (
     <form className={styles.composer} onSubmit={submit} noValidate>
-      {draft ? (
+      {stranded ? (
+        <div className={styles.stranded} role="alert">
+          <LockSimple className={styles.strandedIcon} />
+          <div className={styles.strandedBody}>
+            <p className={styles.strandedTitle}>다른 창에서 로그아웃했어요. 쓰던 댓글은 이 기기에 남기지 않아요.</p>
+            <p className={styles.strandedText}>아래 글자는 읽기만 할 수 있어요. 필요한 내용은 옮겨 두고 다시 로그인해 주세요.</p>
+            {/* 위 문장을 읽고 고른 이동이다 — 이탈 확인을 한 번 더 띄우지 않는다 */}
+            <ButtonLink to={loginHref} replace state={loginState} variant="primary" size="sm" onClick={() => allowLeave()}>
+              로그인
+            </ButtonLink>
+          </div>
+        </div>
+      ) : null}
+      {draft && !stranded ? (
         <CommentDraftOffer
           ref={offerRef}
           draft={draft}
@@ -406,17 +471,20 @@ function CommentComposer({ postId, memberId, onCreated, onSessionExpiredWhileWri
           setValue(event.target.value)
           if (error) setError(null)
         }}
-        readOnly={create.isPending}
+        readOnly={create.isPending || stranded}
         onBlur={personal.check}
         noticeId={noticeId}
         error={overLimit ? checkCommentContent(value) : error}
       />
-      <div className={styles.composerActions}>
-        <PersonalInfoNotice id={noticeId} notice={personal.notice} />
-        <Button type="submit" variant="primary" aria-disabled={create.isPending || undefined} className={styles.submit}>
-          {create.isPending ? '남기는 중…' : '댓글 남기기'}
-        </Button>
-      </div>
+      {/* 남긴 칸에는 제출이 없다 — 로그인 없이는 보낼 수 없다. [로그인]은 위 한 줄에 */}
+      {stranded ? null : (
+        <div className={styles.composerActions}>
+          <PersonalInfoNotice id={noticeId} notice={personal.notice} />
+          <Button type="submit" variant="primary" aria-disabled={create.isPending || undefined} className={styles.submit}>
+            {create.isPending ? '남기는 중…' : '댓글 남기기'}
+          </Button>
+        </div>
+      )}
     </form>
   )
 }

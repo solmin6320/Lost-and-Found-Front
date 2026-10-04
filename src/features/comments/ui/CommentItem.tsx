@@ -1,12 +1,14 @@
 import { useId, useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
 
 import { formatDateTime } from '@/shared/lib/date'
+import { isSelfLogout, useDirtyField } from '@/shared/lib/dirtyRegistry'
 import { getErrorMessage } from '@/shared/lib/http'
 import { usePersonalInfoCheck } from '@/shared/lib/usePersonalInfoCheck'
 import { Button } from '@/shared/ui/Button'
-import { User, WarningCircle } from '@/shared/ui/icons'
+import { LockSimple, User, WarningCircle } from '@/shared/ui/icons'
 
 import { COMMENT_MAX_LENGTH, type CommentResponse } from '../api/types'
+import { COMMENT_LEAVE_COPY } from '../model/commentDraft'
 import { useDeleteComment, useUpdateComment } from '../model/commentMutations'
 import { checkCommentContent } from '../model/validation'
 import { CommentField } from './CommentField'
@@ -53,6 +55,23 @@ export function CommentItem({ postId, comment, mine, byPostAuthor, fresh, onUpda
   const nameId = useId()
   const noticeId = useId()
   const personal = usePersonalInfoCheck(mode === 'edit' ? draft : '')
+  /** 고치던 중 로그인이 끊겼다(만료 · 다른 창 로그아웃) — 고치던 글자를 읽기 전용으로 남긴다(SE2-10) */
+  const [stranded, setStranded] = useState(false)
+  const editing = mode === 'edit'
+  const changed = editing && draft !== comment.content
+
+  // 고치던 글자는 쓰던 칸 등록부에 알린다 — 떠나거나 로그아웃하면 한 번 묻는다(막는 곳은 레이아웃에 하나)
+  useDirtyField(changed, COMMENT_LEAVE_COPY)
+
+  // 내 댓글이 아니게 됐다 = 로그인이 끊겼다. 이 탭에서 로그아웃을 골랐거나 고친 것이 없으면 그냥 닫는다.
+  // 그 밖(만료 · 다른 창 로그아웃)에 고치던 글자가 있으면 남긴다 — 저장소에는 넣지 않는다
+  const [wasMine, setWasMine] = useState(mine)
+  if (wasMine !== mine) {
+    setWasMine(mine)
+    if (mine) setStranded(false)
+    else if (changed && !isSelfLogout()) setStranded(true)
+    else if (mode !== 'view') setMode('view')
+  }
 
   const busy = update.isPending || remove.isPending
 
@@ -76,12 +95,13 @@ export function CommentItem({ postId, comment, mine, byPostAuthor, fresh, onUpda
     if (update.isPending) return
     setMode('view')
     setError(null)
+    setStranded(false)
     focusLater(editButtonRef)
   }
 
   function save(event: FormEvent) {
     event.preventDefault()
-    if (update.isPending) return
+    if (update.isPending || stranded) return
     const problem = checkCommentContent(draft)
     if (problem) {
       setError(problem)
@@ -163,19 +183,29 @@ export function CommentItem({ postId, comment, mine, byPostAuthor, fresh, onUpda
               setDraft(event.target.value)
               if (error) setError(null)
             }}
-            readOnly={update.isPending}
+            readOnly={update.isPending || stranded}
             onBlur={personal.check}
             noticeId={noticeId}
             error={overLimit ? checkCommentContent(draft) : error}
           />
+          {stranded ? (
+            <p className={styles.stranded} role="alert">
+              <LockSimple />
+              로그인이 끊겨 고친 내용을 저장할 수 없어요. 필요한 내용은 옮겨 두고 다시 로그인해 주세요.
+            </p>
+          ) : null}
           <div className={styles.editActions}>
-            <PersonalInfoNotice id={noticeId} notice={personal.notice} className={styles.notice} />
+            {stranded ? null : (
+              <PersonalInfoNotice id={noticeId} notice={personal.notice} className={styles.notice} />
+            )}
             <Button size="sm" aria-disabled={update.isPending || undefined} onClick={cancelEdit}>
-              취소
+              {stranded ? '닫기' : '취소'}
             </Button>
-            <Button type="submit" size="sm" variant="primary" aria-disabled={update.isPending || undefined}>
-              {update.isPending ? '저장하는 중…' : '저장'}
-            </Button>
+            {stranded ? null : (
+              <Button type="submit" size="sm" variant="primary" aria-disabled={update.isPending || undefined}>
+                {update.isPending ? '저장하는 중…' : '저장'}
+              </Button>
+            )}
           </div>
         </form>
       ) : (
