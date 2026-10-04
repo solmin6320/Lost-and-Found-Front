@@ -262,6 +262,11 @@
   transition: opacity var(--duration-base) var(--ease-out);
 }
 
+/* [더 보기] 뒤 새 첫 카드 · Tab 으로 옮긴 카드가 화면 아래 끝에 딱 붙지 않게 — 카드가 거기서 끝난다는 것이 보이는 여유 */
+.grid > li {
+  scroll-margin-bottom: var(--space-4);
+}
+
 @container (min-width: 34rem) {
   .grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));

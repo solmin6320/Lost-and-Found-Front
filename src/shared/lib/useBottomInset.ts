@@ -4,7 +4,8 @@ import { useEffect, type RefObject } from 'react'
 export const BOTTOM_INSET_VAR = '--bottom-inset'
 
 /**
- * 화면 아래에 붙는 줄(상세의 댓글 줄 · 폼의 제출 줄)이 **자기 높이를 문서에 알린다**(API2-3).
+ * 화면 아래에 붙는 줄이 **자기 높이를 문서에 알린다**(API2-3). 지금 쓰는 곳은 상세의 휴대폰 댓글 줄(`CommentBar`) 하나다 —
+ * 폼의 제출 줄은 `--form-bar-h` 로 스크롤 여백만 따로 잰다(폼에서는 짧은 알림이 뜨지 않는다).
  *
  * - `--bottom-inset` : 짧은 알림이 그 위로 비켜 뜬다(`Flash.module.css`). 4초 동안 줄의 버튼 글자를 가리지 않게
  * - `scroll-padding-bottom` : Tab 으로 옮긴 포커스 · 찾아가는 스크롤이 줄 밑에 숨지 않게

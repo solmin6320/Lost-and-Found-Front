@@ -1,8 +1,9 @@
-import { useId, useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
+import { useId, useRef, useState, type FormEvent, type KeyboardEvent, type MouseEvent } from 'react'
 
 import { formatDateTime } from '@/shared/lib/date'
 import { isSelfLogout, useDirtyField } from '@/shared/lib/dirtyRegistry'
 import { getErrorMessage } from '@/shared/lib/http'
+import { usePressGuard } from '@/shared/lib/pressGuard'
 import { usePersonalInfoCheck } from '@/shared/lib/usePersonalInfoCheck'
 import { Button } from '@/shared/ui/Button'
 import { LockSimple, User, WarningCircle } from '@/shared/ui/icons'
@@ -36,8 +37,11 @@ interface CommentItemProps {
  *
  * - 수정은 **그 자리에서**. 저장하면 `(수정됨)` 이 붙는다. Esc 로 그만둔다
  * - 삭제는 되돌릴 수 없지만 잃는 것이 300자 한 줄뿐이라 다이얼로그 대신 **그 자리에서 한 번 더** 묻는다
- *   (`[삭제]` → `이 댓글을 삭제할까요? [삭제하기] [취소]`, 포커스는 [취소]).
+ *   (`[삭제]` → `이 댓글을 삭제할까요? 되돌릴 수 없어요. [취소] [삭제하기]`, 포커스는 [취소]).
  *   다이얼로그를 남발하면 게시글 삭제 다이얼로그를 읽지 않게 된다(화면정의서 SCR-03 ③)
+ * - 확인 칸이 열린 뒤 0.5초 안에 **시작된** 마우스 · 터치 누름은 [삭제하기]가 흘려보낸다(`pressGuard`, SE-1).
+ *   좁은 화면에서 확인 칸은 [삭제] 자리에 뜨고 [삭제하기]가 그 바로 아래 줄이라(390 · 320 실측 : 보이는 틈 8px,
+ *   누르는 면 44px 끼리는 2px 겹침) 두 번 누름의 둘째 누름이 미끄러지면 닿는다. 키보드 · [취소]는 즉시
  * - 요청 중에는 입력을 읽기 전용으로, 버튼은 누름만 무시한다 — 누른 버튼이 잠기면 포커스가 빠진다
  * - 내 댓글 [수정]–[삭제] · 확인 [취소]–[삭제하기] 사이는 16px(RV-3). 위험 동작은 자주 쓰는 동작과 떼고 순서 · 자리는 그대로 둔다
  * - 고치는 칸도 쓰는 칸처럼 전화번호 · 주민등록번호 · 카드 번호 모양이 보이면 한 줄로 알린다(SE-3). 닉네임은 방향을 격리한다(`<bdi>`, SE-6)
@@ -52,6 +56,7 @@ export function CommentItem({ postId, comment, mine, byPostAuthor, fresh, onUpda
   const deleteButtonRef = useRef<HTMLButtonElement>(null)
   const cancelDeleteRef = useRef<HTMLButtonElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const deleteGuard = usePressGuard()
   const nameId = useId()
   const noticeId = useId()
   const personal = usePersonalInfoCheck(mode === 'edit' ? draft : '')
@@ -135,6 +140,7 @@ export function CommentItem({ postId, comment, mine, byPostAuthor, fresh, onUpda
   function askDelete() {
     setError(null)
     setMode('confirm-delete')
+    deleteGuard.arm()
     focusLater(cancelDeleteRef)
   }
 
@@ -144,8 +150,8 @@ export function CommentItem({ postId, comment, mine, byPostAuthor, fresh, onUpda
     focusLater(deleteButtonRef)
   }
 
-  function confirmDelete() {
-    if (remove.isPending) return
+  function confirmDelete(event: MouseEvent<HTMLButtonElement>) {
+    if (remove.isPending || !deleteGuard.allows(event)) return
     remove.mutate(comment.id, {
       onSuccess: () => onDeleted(comment.id),
       onError: (failure) => setError(getErrorMessage(failure)),
@@ -224,7 +230,13 @@ export function CommentItem({ postId, comment, mine, byPostAuthor, fresh, onUpda
       ) : null}
 
       {mine && mode === 'confirm-delete' ? (
-        <div className={styles.confirm} role="group" aria-label="댓글 삭제 확인" aria-busy={remove.isPending || undefined}>
+        <div
+          className={styles.confirm}
+          role="group"
+          aria-label="댓글 삭제 확인"
+          aria-busy={remove.isPending || undefined}
+          onPointerDown={deleteGuard.pointerDown}
+        >
           <p className={styles.confirmText}>이 댓글을 삭제할까요? 되돌릴 수 없어요.</p>
           <div className={styles.confirmActions}>
             <Button ref={cancelDeleteRef} size="sm" aria-disabled={busy || undefined} onClick={cancelDelete}>

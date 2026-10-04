@@ -108,7 +108,7 @@ export function SettingsPage() {
   )
 }
 
-/** 화면 끝의 조용한 [로그아웃] — 테 없는 버튼 하나와 그 아래 흐린 한 줄. 제목을 달지 않는다(섹션이 아니라 나가는 문) */
+/** 화면 끝의 조용한 [로그아웃] — 선 버튼 하나와 그 아래 흐린 한 줄(SE-9). 제목을 달지 않는다(섹션이 아니라 나가는 문) */
 function SignOutRow({ logout }: { logout: () => Promise<void> }) {
   const guarded = useGuardedLogout(logout)
   const noteId = useId()

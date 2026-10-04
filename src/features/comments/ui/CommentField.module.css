@@ -64,6 +64,16 @@
   border-color: var(--selected-line);
 }
 
+/*
+ * 입구(`댓글 쓰기`)를 눌러 옮겨 왔다 — 누름으로 옮긴 포커스는 브라우저에 따라 `:focus-visible` 링이 켜지지 않는다(Chromium 은 입력칸이면 켠다).
+ * 키보드 포커스와 같은 링(잉크 2px · 2px 띄움, 밝게 17:1 · 어둡게 15:1)을 그 동안만 두른다. 글자를 치거나 벗어나면 걷힌다.
+ * 전역 `:focus:not(:focus-visible) { outline: none }` 보다 무겁다(클래스 + 속성 + :focus)
+ */
+.input[data-arrived]:focus {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
 .input:read-only {
   background-color: var(--surface-sunken);
   color: var(--text-body);

@@ -87,6 +87,11 @@ export function CommentSection({
   const listRef = useRef<HTMLDivElement>(null)
   const targetRef = useRef<HTMLDivElement>(null)
   const [headingEntry, setHeadingEntry] = useState<HTMLButtonElement | null>(null)
+  /**
+   * 입구를 눌러 입력칸으로 왔다. 누름으로 옮긴 포커스는 브라우저에 따라 `:focus-visible` 이 켜지지 않아 칸이 골라졌는지 안 보인다 —
+   * 이 동안만 키보드 포커스와 같은 링을 두른다. 글자를 치거나 칸을 벗어나면 걷는다
+   */
+  const [arrived, setArrived] = useState(false)
 
   /*
    * 쓰는 칸의 글자는 여기서 든다 — 로그인이 끊겨 칸이 로그인 권유로 바뀌는 **그 렌더에서** "쓰던 글자가 있었나"를 알아야
@@ -149,7 +154,7 @@ export function CommentSection({
 
   /**
    * 쓰는 칸으로 데려간다(①-a). **누른 그 이벤트 안에서** 바로 `focus()` 한다 — 휴대폰 키보드는 사용자 동작 안에서만 열린다.
-   * 스크롤은 그 뒤에 따로(부드럽게, 모션 줄이기면 즉시). 비로그인이면 로그인 권유 칸의 [로그인]으로
+   * 스크롤은 그 뒤에 따로(부드럽게, 모션 줄이기면 즉시). 비로그인이면 로그인 권유 칸의 [로그인]으로(채운 버튼이라 링 없이도 보인다)
    */
   const open = useCallback(() => {
     const target = targetRef.current
@@ -157,6 +162,7 @@ export function CommentSection({
     const field = target.querySelector<HTMLTextAreaElement>('textarea')
     const stop = field ?? target.querySelector<HTMLElement>('a[href]')
     stop?.focus({ preventScroll: true })
+    if (field) setArrived(true)
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
     const scrollTarget = field ?? target
     scrollTarget.scrollIntoView({ block: 'center', behavior: reduce ? 'instant' : 'smooth' })
@@ -292,6 +298,8 @@ export function CommentSection({
             loginHref={loginHref}
             loginState={loginState}
             onCreated={handleCreated}
+            arrived={arrived}
+            onArrivedEnd={() => setArrived(false)}
           />
         )}
       </div>
@@ -345,6 +353,10 @@ interface CommentComposerProps {
   loginHref: string
   loginState?: unknown
   onCreated: (comment: CommentResponse) => void
+  /** 입구로 옮겨 왔다 — 칸에 골라졌다는 링을 두른다 */
+  arrived: boolean
+  /** 글자를 치거나 칸을 벗어났다 — 링을 걷는다 */
+  onArrivedEnd: () => void
 }
 
 /**
@@ -365,6 +377,8 @@ function CommentComposer({
   loginHref,
   loginState,
   onCreated,
+  arrived,
+  onArrivedEnd,
 }: CommentComposerProps) {
   const create = useCreateComment(postId)
   const [error, setError] = useState<string | null>(null)
@@ -470,9 +484,14 @@ function CommentComposer({
         onChange={(event) => {
           setValue(event.target.value)
           if (error) setError(null)
+          if (arrived) onArrivedEnd()
         }}
         readOnly={create.isPending || stranded}
-        onBlur={personal.check}
+        onBlur={() => {
+          personal.check()
+          if (arrived) onArrivedEnd()
+        }}
+        data-arrived={arrived || undefined}
         noticeId={noticeId}
         error={overLimit ? checkCommentContent(value) : error}
       />

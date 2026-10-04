@@ -174,8 +174,13 @@ export function PostListPage() {
     }
     const index = content.findIndex((post) => post.id === at.id)
     const first = content[index >= 0 ? index + 1 : at.count]
-    if (first) {
-      grid?.querySelector<HTMLElement>(`[data-post-id="${first.id}"] a`)?.focus({ preventScroll: true })
+    const firstCard = first ? grid?.querySelector<HTMLElement>(`[data-post-id="${first.id}"]`) : null
+    if (firstCard) {
+      firstCard.querySelector<HTMLElement>('a')?.focus({ preventScroll: true })
+      // 엄지 자리에서 눌렀으면 새 첫 카드는 화면 맨 아래에 걸쳐 있다. 그 카드가 다 들어올 만큼만 내린다 —
+      // 이미 보이면 움직이지 않고, 보던 줄은 위로 조금 밀릴 뿐 화면에 남는다. 모션 줄이기면 즉시
+      const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+      firstCard.scrollIntoView({ block: 'nearest', behavior: reduce ? 'instant' : 'smooth' })
     }
     const added = Math.max(content.length - at.count, 0)
     setAnnouncement(
