@@ -39,7 +39,7 @@ export function usePostWritePage() {
 
   function onSessionLost(draftSaved: boolean, leave: LeaveFn) {
     const first = expired.current
-      ? '로그인이 만료됐어요. 다시 로그인하세요.'
+      ? '로그인이 만료됐어요. 다시 로그인해 주세요.'
       : elsewhere.current
         ? '다른 창에서 로그아웃했어요.'
         : '로그아웃했어요.'

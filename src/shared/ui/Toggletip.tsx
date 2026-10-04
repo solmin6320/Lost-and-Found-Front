@@ -7,8 +7,13 @@ import styles from './Toggletip.module.css'
 import tip from './Tooltip.module.css'
 
 interface ToggletipProps {
-  /** 버튼의 이름. 좁은 화면에서는 아이콘만 보이고 이 글자는 이름(aria-label) · 이름표로 남는다 */
+  /** 버튼의 이름. 좁은 화면에서는 아이콘만 보이고 이 글자는 이름(aria-label) · 이름표로 남는다(`showLabel` 이면 늘 보인다) */
   label: string
+  /**
+   * 모든 폭에서 아이콘 + 글자. 기본은 30rem 미만에서 아이콘만이다.
+   * 터치에서는 이름표가 뜨지 않아 글자 없는 (i)가 무엇인지 모르는 자리에 켠다(목록 결과 줄의 이름표 안내 — 회의 UI-8)
+   */
+  showLabel?: boolean
   /** 펼친 설명 */
   children: ReactNode
   /** 설명이 버튼의 어느 쪽 끝에 맞춰 펼쳐지나. 버튼이 줄 오른쪽 끝이면 `end` */
@@ -33,6 +38,7 @@ export function Toggletip({
   label,
   children,
   align = 'start',
+  showLabel = false,
   className,
   open: openProp,
   onOpenChange,
@@ -81,7 +87,12 @@ export function Toggletip({
   }
 
   return (
-    <div ref={rootRef} className={cx(styles.root, className)} onBlur={handleBlur}>
+    <div
+      ref={rootRef}
+      className={cx(styles.root, className)}
+      data-label={showLabel ? 'always' : undefined}
+      onBlur={handleBlur}
+    >
       <button
         ref={buttonRef}
         type="button"

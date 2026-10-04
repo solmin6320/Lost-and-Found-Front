@@ -38,7 +38,7 @@ export function MyPageSkeleton() {
         <PostStatusTabs selected={search.status} counts={UNKNOWN_COUNTS} hrefFor={hrefForStatus} />
       </div>
       <p className="sr-only" role="status">
-        내가 쓴 글을 불러오는 중입니다
+        내가 쓴 글을 불러오는 중이에요
       </p>
       <div className={styles.body}>
         <MyPostsGridSkeleton />

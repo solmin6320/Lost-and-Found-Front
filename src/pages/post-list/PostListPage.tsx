@@ -259,7 +259,7 @@ export function PostListPage() {
             {total === undefined ? (
               query.isPending ? (
                 <>
-                  <span className="sr-only">게시글을 불러오는 중입니다</span>
+                  <span className="sr-only">게시글을 불러오는 중이에요</span>
                   <Skeleton shape="text" width="2.75rem" />
                 </>
               ) : null

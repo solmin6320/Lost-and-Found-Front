@@ -6,7 +6,7 @@ import type { ErrorCode, ErrorResponse } from '@/shared/types/api'
  * (보내기 전에 브라우저가 멈춘 실패는 `ClientValidationError` 가 제 문장을 가진다)
  */
 export const CONNECTION_FAILED_MESSAGE =
-  '연결에 실패했습니다. 네트워크를 확인하고 다시 시도하세요.'
+  '연결하지 못했어요. 네트워크를 확인하고 다시 시도해 주세요.'
 
 /**
  * 응답은 왔지만 우리 백엔드의 `ErrorResponse` 형식이 아닐 때의 code.

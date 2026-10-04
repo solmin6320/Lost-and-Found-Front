@@ -63,7 +63,7 @@ export function createAppRouter() {
         <Route
           path="/posts/new"
           lazy={() => import('@/pages/post-create/PostCreatePage').then((m) => ({ Component: m.PostCreatePage }))}
-          hydrateFallbackElement={<PostFormSkeleton label="글 올리기 화면을 불러오는 중입니다" />}
+          hydrateFallbackElement={<PostFormSkeleton label="글 올리기 화면을 불러오는 중이에요" />}
           errorElement={<RouteLoadError />}
         />
         <Route
@@ -75,7 +75,7 @@ export function createAppRouter() {
         <Route
           path="/posts/:postId/edit"
           lazy={() => import('@/pages/post-edit/PostEditPage').then((m) => ({ Component: m.PostEditPage }))}
-          hydrateFallbackElement={<PostFormSkeleton label="글 수정 화면을 불러오는 중입니다" />}
+          hydrateFallbackElement={<PostFormSkeleton label="글 수정 화면을 불러오는 중이에요" />}
           errorElement={<RouteLoadError />}
         />
 

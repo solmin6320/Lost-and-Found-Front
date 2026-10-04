@@ -61,15 +61,15 @@ const MIME_OF: Record<PostImageExtension, string> = {
 
 /**
  * 화면 문장. 확장자 · 개수는 서버 `ErrorCode` 의 문장과 **같은 문장**이다(어느 쪽이 막아도 같은 말).
- * 나머지는 서버가 `ErrorResponse` 로 알려 주지 못하는 경우라 프론트가 짓는다.
+ * 나머지는 서버가 `ErrorResponse` 로 알려 주지 못하는 경우라 프론트가 짓는다 — 프론트가 짓는 문장은 해요체(회의 ⑦).
  */
 export const POST_IMAGE_MESSAGES = {
   extension: '허용되지 않는 이미지 확장자입니다',
   count: `이미지는 최대 ${POST_IMAGE_MAX_COUNT}장까지 첨부할 수 있습니다`,
-  fileSize: '사진은 한 장에 10MB까지 올릴 수 있습니다',
-  totalSize: '사진은 모두 합쳐 60MB까지 올릴 수 있습니다',
-  unreadable: '사진을 읽을 수 없습니다. 다른 사진을 골라 주세요',
-  format: 'JPG · PNG · GIF 사진이 아닙니다. 이름만 바꾼 파일일 수 있어요',
+  fileSize: '사진은 한 장에 10MB까지 올릴 수 있어요',
+  totalSize: '사진은 모두 합쳐 60MB까지 올릴 수 있어요',
+  unreadable: '사진을 읽을 수 없어요. 다른 사진을 골라 주세요',
+  format: 'JPG · PNG · GIF 사진이 아니에요. 이름만 바꾼 파일일 수 있어요',
 } as const
 
 /**

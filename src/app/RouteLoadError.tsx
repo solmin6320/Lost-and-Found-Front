@@ -14,7 +14,7 @@ export function RouteLoadError() {
     <div className={styles.box}>
       <ErrorState
         titleAs="h1"
-        message="화면을 불러오지 못했습니다. 연결을 확인하고 다시 시도해 주세요."
+        message="화면을 불러오지 못했어요. 연결을 확인하고 다시 시도해 주세요."
         onRetry={() => window.location.reload()}
       />
     </div>

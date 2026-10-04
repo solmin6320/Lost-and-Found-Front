@@ -32,7 +32,7 @@ export function PostDetailSkeleton({ preview, ownerLikely = false }: PostDetailS
   return (
     <div className={styles.page} data-owner={ownerLikely || undefined} aria-busy="true">
       <p className="sr-only" role="status">
-        글을 불러오는 중입니다
+        글을 불러오는 중이에요
       </p>
       <div className={styles.back}>
         <span className={styles.backLink} aria-hidden="true">

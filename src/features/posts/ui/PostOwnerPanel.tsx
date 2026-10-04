@@ -53,7 +53,7 @@ const CHANGED_TO: Record<PostStatus, string> = {
  * 목록 · 첫 화면 경고로 넓히지 않는다(겁주는 예고는 읽히지 않는다)
  */
 const CONTACT_TIP: Record<PostType, string> = {
-  FOUND: '물건을 넘기기 전에 사진에 없는 특징을 물어 주인인지 확인하세요.',
+  FOUND: '물건을 넘기기 전에 사진에 없는 특징을 물어 주인인지 확인해 주세요.',
   LOST: '돈을 먼저 보내 달라는 요청은 받지 마세요.',
 }
 
@@ -245,7 +245,7 @@ export function PostOwnerPanel({ post, editHref, onDeleted }: PostOwnerPanelProp
         onClose={() => setConfirm(null)}
         fallbackFocus={() => headingRef.current}
       >
-        <p>완료로 바꾸면 다시 게시중이나 연락중으로 되돌릴 수 없습니다.</p>
+        <p>완료로 바꾸면 다시 게시중이나 연락중으로 되돌릴 수 없어요.</p>
       </ConfirmDialog>
 
       <ConfirmDialog
@@ -274,7 +274,7 @@ function deleteConsequence(photos: number, comments: number): string {
   const lost = [photos > 0 ? `사진 ${photos}장` : null, comments > 0 ? `댓글 ${comments.toLocaleString('ko-KR')}개` : null]
     .filter(Boolean)
     .join('과 ')
-  if (!lost) return '이 게시글을 삭제하면 되돌릴 수 없습니다.'
+  if (!lost) return '이 게시글을 삭제하면 되돌릴 수 없어요.'
   const particle = comments > 0 ? '가' : '이'
-  return `이 게시글을 삭제하면 ${lost}${particle} 함께 사라집니다. 되돌릴 수 없습니다.`
+  return `이 게시글을 삭제하면 ${lost}${particle} 함께 사라져요. 되돌릴 수 없어요.`
 }

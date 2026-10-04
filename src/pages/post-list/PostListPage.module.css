@@ -128,11 +128,6 @@
   .guideFrame {
     align-self: stretch;
   }
-
-  /* 넓은 화면의 검색칸은 44px — 옆 칩 줄(보이는 36 · 누르는 44)과 한 줄 높이를 맞춘다. 휴대폰은 52 그대로 */
-  .search input[type='search'] {
-    min-height: var(--tap-min);
-  }
 }
 
 /* ── ④ 결과 ── */
@@ -198,35 +193,13 @@
 }
 
 /*
- * 이름표 안내 — 건수 바로 뒤. 모든 폭에서 아이콘 + 글자(터치에서는 이름표가 뜨지 않아, 글자 없는 (i)는 무엇인지 모른다).
+ * 이름표 안내 — 건수 바로 뒤. 모든 폭에서 아이콘 + 글자(공용 Toggletip 의 `showLabel`, 회의 UI-8).
  * 펼친 설명은 이 줄 왼쪽 끝에 맞춰 연다 — 줄 가운데서 열면 좁은 화면에서 설명이 화면 밖으로 나간다.
- * 공용 Toggletip 은 30rem 미만에서 글자를 숨기는 것이 기본이라, 이 자리에서만 글자를 꺼내 둔다.
+ * 글자 앞 여백만큼 왼쪽으로 당겨 아이콘이 건수 글자와 한 줄 간격으로 붙는다
  */
 .summary .badgeGuide {
   position: static;
   margin-left: calc(-1 * var(--space-2));
-}
-
-.badgeGuide > button {
-  padding-inline: var(--space-2) var(--space-3);
-}
-
-.badgeGuide > button > svg {
-  width: var(--icon-sm);
-  height: var(--icon-sm);
-}
-
-.badgeGuide > button > span:first-of-type {
-  position: static;
-  width: auto;
-  height: auto;
-  overflow: visible;
-  clip-path: none;
-}
-
-/* 글자가 보이면 아이콘 아래 이름표는 필요 없다 */
-.badgeGuide > button > span:last-of-type {
-  display: none;
 }
 
 /* 의도를 고른 순간의 글쓰기 입구(②) — 결과 제목 줄 바로 아래 한 줄. 색 면 · 떠 있는 버튼이 아니라 흐름 안 링크 */
@@ -355,7 +328,7 @@
   display: flex;
   align-items: flex-start;
   gap: var(--space-1);
-  color: var(--error-text, var(--text-strong));
+  color: var(--error-text);
   font-size: var(--text-sm);
   font-weight: var(--weight-semibold);
   line-height: var(--leading-snug);

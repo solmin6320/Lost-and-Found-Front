@@ -162,15 +162,14 @@
 }
 
 /*
- * 화면이 먼저 막는 오류. 아이콘 모양 + 문장으로 알린다. 빨강은 오류 문장과 아이콘에만(회의 ⑤) —
- * 토큰(`--error-text`)이 들어오기 전에는 잉크로 둔다
+ * 화면이 먼저 막는 오류. 아이콘 모양 + 문장으로 알린다. 빨강은 오류 문장과 아이콘에만(회의 ⑤, `--error-text`)
  */
 .error {
   display: flex;
   align-items: flex-start;
   gap: var(--space-1);
   margin-top: var(--space-2);
-  color: var(--error-text, var(--text-strong));
+  color: var(--error-text);
   font-size: var(--text-sm);
   font-weight: var(--weight-semibold);
   line-height: var(--leading-snug);

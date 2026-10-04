@@ -73,6 +73,28 @@
   }
 }
 
+/* 글자 늘 보이기(`showLabel`) — 30rem 이상의 모양을 모든 폭에서. 글자가 보이니 이름표는 띄우지 않는다 */
+.root[data-label='always'] .trigger {
+  padding-inline: var(--space-2) var(--space-3);
+}
+
+.root[data-label='always'] .trigger svg {
+  width: var(--icon-sm);
+  height: var(--icon-sm);
+}
+
+.root[data-label='always'] .label {
+  position: static;
+  width: auto;
+  height: auto;
+  overflow: visible;
+  clip-path: none;
+}
+
+.root[data-label='always'] .tip {
+  display: none;
+}
+
 /* ── 펼친 설명 ── */
 
 .panel {

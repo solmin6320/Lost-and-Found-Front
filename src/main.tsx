@@ -23,7 +23,7 @@ startThemeSync()
 if (import.meta.env.PROD) {
   console.log('%c잠깐!', 'color:#b3251b;font-size:32px;font-weight:bold')
   console.log(
-    '%c누군가 여기에 코드를 붙여 넣으라고 했다면 사기입니다.\n계정을 통째로 빼앗길 수 있습니다.',
+    '%c누군가 여기에 코드를 붙여 넣으라고 했다면 사기예요.\n계정을 통째로 빼앗길 수 있어요.',
     'font-size:14px',
   )
 }

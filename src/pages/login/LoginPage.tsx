@@ -36,7 +36,7 @@ export function LoginPage() {
   return (
     <AuthLayout
       title="로그인"
-      lead="글을 올리거나 댓글을 남기려면 로그인하세요."
+      lead="글을 올리거나 댓글을 남기려면 로그인해 주세요."
       returnNote={target ? <AuthReturnNote lead="로그인하면" {...target} /> : null}
       aside={<PostTypeGuide />}
       notice={state?.notice}

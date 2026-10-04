@@ -188,8 +188,8 @@ function PostDetail({ post, claimTitleFocus = false }: PostDetailProps) {
   function handleSessionExpiredWhileWriting(draftSaved: boolean) {
     const notice: LoginNoticeState = {
       notice: draftSaved
-        ? '로그인이 만료됐어요. 다시 로그인하세요. 로그인하면 쓰던 댓글을 이어서 쓸 수 있어요.'
-        : '로그인이 만료됐어요. 다시 로그인하세요.',
+        ? '로그인이 만료됐어요. 다시 로그인해 주세요. 로그인하면 쓰던 댓글을 이어서 쓸 수 있어요.'
+        : '로그인이 만료됐어요. 다시 로그인해 주세요.',
       ...returnState,
     }
     navigate(loginPath(here), { replace: true, state: notice })

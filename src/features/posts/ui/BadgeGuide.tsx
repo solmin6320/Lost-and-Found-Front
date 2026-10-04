@@ -13,7 +13,8 @@ import { TypeBadge } from './TypeBadge'
  */
 export function BadgeGuide({ className }: { className?: string }) {
   return (
-    <Toggletip label="이름표 안내" align="end" className={className}>
+    // 결과 제목 줄의 안내 — 모든 폭에서 아이콘 + 글자(터치에서는 이름표가 뜨지 않는다, 회의 UI-8)
+    <Toggletip label="이름표 안내" align="end" showLabel className={className}>
       <p className={styles.title}>카드의 이름표</p>
       <dl className={styles.list}>
         <div className={styles.row}>

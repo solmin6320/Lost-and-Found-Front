@@ -42,11 +42,11 @@ const TAB_EMPTY: Record<PostStatus, { title: string; description: string }> = {
   },
   IN_PROGRESS: {
     title: '연락중인 글이 없어요.',
-    description: '주인으로 보이는 사람과 이야기를 시작하면 글을 열어 연락중으로 바꿔 두세요.',
+    description: '주인으로 보이는 사람과 이야기를 시작하면 글을 열어 연락중으로 바꿔 주세요.',
   },
   DONE: {
     title: '완료된 글이 없어요.',
-    description: '물건이 주인에게 돌아가면 글을 열어 완료로 바꿔 두세요.',
+    description: '물건이 주인에게 돌아가면 글을 열어 완료로 바꿔 주세요.',
   },
 }
 
@@ -77,7 +77,7 @@ export function MyPage() {
     const state: LoginNoticeState | undefined = seen
       ? {
           notice: expired
-            ? '로그인이 만료됐어요. 다시 로그인하세요.'
+            ? '로그인이 만료됐어요. 다시 로그인해 주세요.'
             : elsewhere
               ? '다른 창에서 로그아웃했어요.'
               : '로그아웃했어요.',

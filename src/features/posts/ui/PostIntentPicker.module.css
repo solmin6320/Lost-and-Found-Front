@@ -208,14 +208,18 @@
     white-space: nowrap;
   }
 
-  /* [×](32px) + 사이 12px 만큼 오른쪽 문구를 안으로 들인다 */
+  /*
+   * [×](32px) + 사이 12px 만큼 오른쪽 문구를 안으로 들인다. [×]는 면 끝에서 16px — 좁은 칸(위 17rem 규칙)과 같은 자리다.
+   * 고른 면은 [×] 자리만큼 문구 칸이 좁다. 24px 에 두면 1440 에서 한 줄을 다 놓고 남는 폭이 43px, 16px 이면 51px 이다
+   * (2026-10-04 실측 — "12,345건 보는 중"까지 한 줄). 칸이 30rem 언저리(1024~1080)면 지금처럼 조각 사이에서 접힌다
+   */
   .item[data-state='on'] .choice {
-    padding-right: calc(var(--space-6) + 2rem + var(--space-3));
+    padding-right: calc(var(--space-4) + 2rem + var(--space-3));
   }
 
   .reset {
     top: 50%;
-    right: var(--space-6);
+    right: var(--space-4);
     transform: translateY(-50%);
   }
 }

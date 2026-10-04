@@ -36,6 +36,16 @@
     border-color var(--duration-fast) var(--ease-out);
 }
 
+/*
+ * 넓은 화면(64rem 이상)의 검색칸은 44px — 목록에서 옆 칩 줄(보이는 36 · 누르는 44)과 한 줄에 서므로 높이를 맞춘다(회의 UI-12).
+ * 휴대폰은 52 그대로 — 엄지가 닿는 큰 칸이 검색의 두 번째 진입점이다
+ */
+@media (min-width: 64rem) {
+  .input {
+    min-height: var(--tap-min);
+  }
+}
+
 .input::placeholder {
   color: var(--text-muted);
   font-weight: var(--weight-regular);
