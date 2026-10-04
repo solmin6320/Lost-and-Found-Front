@@ -1,9 +1,12 @@
 import { COMMENT_MAX_LENGTH } from '../api/types'
 
-/** 문구는 서버 `CommentRequest` 의 검증 메시지와 **같은 문장**이다. 판정은 서버가 한다 */
+/**
+ * 보내기 전 검사 문장 — 프론트가 짓는 문장이라 해요체다(2026-10-03 회의 ⑦). 판정은 서버가 한다.
+ * 서버 `CommentRequest` 가 같은 이유로 막으면 서버 문장("댓글 내용은 필수입니다" — 합니다체)이 그대로 온다.
+ */
 export const COMMENT_MESSAGES = {
-  contentRequired: '댓글 내용은 필수입니다',
-  contentLength: '댓글은 300자를 초과할 수 없습니다',
+  contentRequired: '댓글을 적어 주세요',
+  contentLength: '댓글은 300자까지 쓸 수 있어요',
 } as const
 
 /** 서버처럼 공백만 있으면 빈 것으로 본다. 길이는 보낼 값 그대로 센다(서버가 자르지 않는다) */

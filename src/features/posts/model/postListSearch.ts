@@ -61,8 +61,8 @@ export const KEYWORD_MAX_LENGTH = 100
 /** DB `location VARCHAR(100)` */
 export const LOCATION_MAX_LENGTH = 100
 
-/** 서버 문구와 같다(`PostSearchCondition.isValidPeriod`). 보내기 전에 화면이 먼저 막는다 */
-export const PERIOD_ORDER_MESSAGE = '시작일이 종료일보다 늦을 수 없습니다.'
+/** 보내기 전 검사 문장(해요체 — 회의 ⑦, 칸 이름 "시작 · 끝"으로). 서버(`PostSearchCondition.isValidPeriod`)가 막으면 서버 문장이 그대로 온다 */
+export const PERIOD_ORDER_MESSAGE = '시작 날짜는 끝 날짜보다 늦을 수 없어요'
 
 export const EMPTY_POST_LIST_SEARCH: PostListSearch = { keyword: '', location: '', page: 1 }
 
