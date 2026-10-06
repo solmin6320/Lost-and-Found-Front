@@ -19,7 +19,7 @@ import { AccountMenu } from './AccountMenu'
 import styles from './RootLayout.module.css'
 
 /**
- * 모든 화면이 공유하는 껍데기. 헤더 · 본문 · 푸터 · 이탈 확인 하나.
+ * 모든 화면이 공유하는 껍데기. 헤더 · 본문 · 이탈 확인 하나. 푸터는 두지 않는다(2026-10-07).
  *
  * 헤더 — 로고(목록으로), [글 올리기], 서비스 안내(물음표), 그리고
  *   비로그인 : 설정(톱니) · [로그인](글자 버튼). 화면 모드는 누구나 바꾼다(SCR-08)
@@ -57,10 +57,6 @@ export function RootLayout() {
       <main className={styles.main} id="main">
         <Outlet />
       </main>
-
-      <footer className={styles.footer}>
-        <div className={styles.footerInner}>분실물 찾기 · 개인 프로젝트</div>
-      </footer>
 
       {/* 화면이 바뀌어도 남는 것 — 스크롤 위치 기억 · 새 화면 제목으로 포커스 · 짧은 알림(글 삭제 뒤 목록에서) */}
       <ScrollMemory />
