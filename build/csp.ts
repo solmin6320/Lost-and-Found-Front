@@ -12,10 +12,11 @@
  */
 
 /**
- * 백엔드 로컬 설정의 S3 주소(서울 버킷, `application-local.yml` `aws.s3.base-url`). `CSP_IMAGE_ORIGINS` 가 없을 때 쓴다.
- * 로컬 버킷은 퍼블릭 읽기를 닫아 두어 사진 주소가 403 이다(CSP 문제가 아니다). 배포 빌드는 CloudFront 도메인을 `CSP_IMAGE_ORIGINS` 로 넣는다
+ * 운영 사진 CloudFront(사진 버킷 `lostfound-images-solmin-seoul` 을 OAC 로 내보내는 배포). `CSP_IMAGE_ORIGINS` 가 없을 때 쓴다.
+ * 배포 빌드도 같은 값을 `CSP_IMAGE_ORIGINS` 로 넣는다(배포.md 4장). S3 주소를 직접 넣지 않는다 — 버킷은 퍼블릭 읽기를 닫아 두어
+ * S3 주소의 사진은 403 이다. `deploy/s3-upload.sh` 가 빌드의 `img-src` 에 이 출처가 있는지 · S3 주소가 없는지 본다
  */
-export const DEFAULT_IMAGE_ORIGINS = ['https://lostfound-images-solmin-seoul.s3.ap-northeast-2.amazonaws.com'] as const
+export const DEFAULT_IMAGE_ORIGINS = ['https://d1xmzetvs0f1oh.cloudfront.net'] as const
 
 export interface CspOptions {
   /** 게시글 사진을 내려주는 출처(S3 · CloudFront). `img-src` 에 붙는다 */
