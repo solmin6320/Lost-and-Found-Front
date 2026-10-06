@@ -65,7 +65,7 @@ function toOrigin(value: string, name: string): string {
  * - `style-src 'self'` — `'unsafe-inline'` 없음. React 의 `style` prop 은 CSSOM(`el.style.x = …`)으로 들어가
  *   CSP 가 막지 않는다. 막히는 것은 HTML 의 `style="…"` 속성 · `<style>` 요소 · `setAttribute('style')` 인데 앱에 없다
  * - `img-src 'self' blob: <사진 출처>` — `blob:` 은 등록 · 수정의 미리보기(`URL.createObjectURL`). `data:` 는 넣지 않는다
- * - `connect-src 'self'` — API 는 같은 출처(`/api/*`, CloudFront 가 ALB 로 넘김)
+ * - `connect-src 'self'` — API 는 같은 출처(`/api/*`, CloudFront 가 EC2 로 넘김)
  * - `base-uri 'none'` — `<base>` 를 끼워 상대 주소 스크립트를 남의 서버로 돌리는 것을 막는다. 앱은 `<base>` 를 쓰지 않는다
  * - `require-trusted-types-for 'script'` · `trusted-types 'none'` — `innerHTML` · `eval` 같은 문자열 → 코드 통로를
  *   브라우저가 막는다. 번들에서 이 통로를 쓰는 곳은 React 의 `dangerouslySetInnerHTML`(앱이 쓰지 않는다)뿐이라
