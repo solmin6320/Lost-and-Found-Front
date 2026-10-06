@@ -26,6 +26,8 @@ export MSYS_NO_PATHCONV=1
 
 DIST=dist
 IMAGE_BUCKET=lostfound-images-solmin-seoul
+# 사진 CloudFront(사진 버킷을 OAC 로 내보내는 배포). build/csp.ts 의 DEFAULT_IMAGE_ORIGINS 와 같은 값 — csp.test.ts 가 맞춰 본다
+PHOTO_ORIGIN=https://d1xmzetvs0f1oh.cloudfront.net
 IMMUTABLE='public, max-age=31536000, immutable'
 NO_CACHE='no-cache'
 
@@ -97,7 +99,7 @@ else
   CUTOFF="$(date -u -d "$DAYS days ago" +%Y-%m-%dT%H:%M:%S)" || die 'date -d 를 쓸 수 없는 환경입니다(Git Bash · 리눅스에서 돌리세요).'
 fi
 
-[ -f "$DIST/index.html" ] || die "$DIST/index.html 이 없습니다. 리포 맨 위에서 빌드부터 하세요: CSP_IMAGE_ORIGINS=https://<사진 도메인> npm run build"
+[ -f "$DIST/index.html" ] || die "$DIST/index.html 이 없습니다. 리포 맨 위에서 빌드부터 하세요: CSP_IMAGE_ORIGINS=$PHOTO_ORIGIN npm run build"
 [ -d "$DIST/assets" ] || die "$DIST/assets 가 없습니다. 빌드가 끝까지 됐는지 확인하세요."
 
 # 지금 dist/assets 에 있는 파일 이름(정리할 때 지우지 않을 목록)
@@ -202,8 +204,18 @@ fi
 step '빌드 점검'
 grep -q '<meta http-equiv="Content-Security-Policy"' "$DIST/index.html" \
   || die 'dist/index.html 에 CSP meta 가 없습니다. `npm run build` 로 만든 결과인지 확인하세요(보안명세서 4장).'
-if grep -q 's3\.ap-northeast-2\.amazonaws\.com' "$DIST/index.html"; then
-  die 'CSP 사진 출처가 기본값(S3 주소)입니다. CSP_IMAGE_ORIGINS=https://<사진 CloudFront 도메인> 으로 다시 빌드하세요(보안명세서 9.2).'
+# CSP 사진 출처(img-src)가 사진 CloudFront 인지 본다. 출처가 다르면 화면은 뜨는데 사진만 CSP 에 막힌다(배포.md 8장)
+IMG_SRC="$(grep -o 'img-src [^;"]*' "$DIST/index.html" | strip_cr || true)"
+[ -n "$IMG_SRC" ] || die 'dist/index.html 의 CSP 에 img-src 가 없습니다. `npm run build` 로 만든 결과인지 확인하세요(보안명세서 4장).'
+case " ${IMG_SRC#img-src } " in
+  *" $PHOTO_ORIGIN "*) ;;
+  *) die "CSP 사진 출처에 $PHOTO_ORIGIN 이 없습니다($IMG_SRC). CSP_IMAGE_ORIGINS=$PHOTO_ORIGIN npm run build 로 다시 빌드하세요(보안명세서 9.2)." ;;
+esac
+if grep -q 'amazonaws\.com' <<<"$IMG_SRC"; then
+  die "CSP 사진 출처에 S3 주소가 있습니다($IMG_SRC). 사진은 CloudFront 로만 받습니다 — CSP_IMAGE_ORIGINS=$PHOTO_ORIGIN 으로 다시 빌드하세요(보안명세서 9.2)."
+fi
+if grep -q 'http://' <<<"$IMG_SRC"; then
+  die "CSP 사진 출처에 http 주소(로컬 목 서버)가 있습니다($IMG_SRC). CSP_IMAGE_ORIGINS=$PHOTO_ORIGIN 으로 다시 빌드하세요."
 fi
 if find "$DIST" -name '*.map' | grep -q .; then
   die '소스맵(.map)이 있습니다. 운영 빌드(npm run build)로 다시 만드세요(보안명세서 8장).'

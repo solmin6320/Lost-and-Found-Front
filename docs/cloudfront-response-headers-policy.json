@@ -4,7 +4,7 @@
   "SecurityHeadersConfig": {
     "ContentSecurityPolicy": {
       "Override": true,
-      "ContentSecurityPolicy": "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' blob: https://lostfound-images-solmin-seoul.s3.ap-northeast-2.amazonaws.com; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; require-trusted-types-for 'script'; trusted-types 'none'; upgrade-insecure-requests; frame-ancestors 'none'"
+      "ContentSecurityPolicy": "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' blob: https://d1xmzetvs0f1oh.cloudfront.net; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; require-trusted-types-for 'script'; trusted-types 'none'; upgrade-insecure-requests; frame-ancestors 'none'"
     },
     "StrictTransportSecurity": {
       "Override": true,

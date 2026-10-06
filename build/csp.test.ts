@@ -37,6 +37,20 @@ describe('parseOriginList — 환경변수가 정책 문자열에 그대로 들�
   })
 })
 
+describe('기본 사진 출처', () => {
+  it('운영 사진 CloudFront 하나이고 S3 주소가 아니다(버킷은 퍼블릭 읽기를 닫아 S3 주소의 사진은 403)', () => {
+    expect(DEFAULT_IMAGE_ORIGINS).toEqual(['https://d1xmzetvs0f1oh.cloudfront.net'])
+    expect(parseOriginList(DEFAULT_IMAGE_ORIGINS.join(' '), 'X')).toEqual([...DEFAULT_IMAGE_ORIGINS])
+    for (const origin of DEFAULT_IMAGE_ORIGINS) expect(origin).not.toContain('amazonaws.com')
+  })
+
+  it('업로드 스크립트의 PHOTO_ORIGIN 과 같다 — 한쪽만 바꾸면 배포가 멈추거나 옛 출처를 통과시킨다', () => {
+    const script = readFileSync(new URL('../deploy/s3-upload.sh', import.meta.url), 'utf8')
+    const escaped = DEFAULT_IMAGE_ORIGINS[0].replace(/[.]/g, '\\.')
+    expect(script).toMatch(new RegExp(`^PHOTO_ORIGIN=${escaped}\\r?$`, 'm'))
+  })
+})
+
 describe('정책 문자열', () => {
   const meta = buildMetaCsp({ imageOrigins: DEFAULT_IMAGE_ORIGINS })
 

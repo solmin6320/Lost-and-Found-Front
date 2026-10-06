@@ -41,7 +41,7 @@ function securityMeta({ imageOrigins, connectOrigins }: { imageOrigins: string[]
 
 /**
  * 빌드의 CSP 출처. 둘 다 빌드만 읽는다.
- * - `CSP_IMAGE_ORIGINS` — 사진 출처(`img-src`). 백엔드 `AWS_S3_BASE_URL`(운영 CloudFront)과 같은 출처. 비우면 지금의 S3 주소.
+ * - `CSP_IMAGE_ORIGINS` — 사진 출처(`img-src`). 백엔드 `AWS_S3_BASE_URL`(운영 CloudFront)과 같은 출처. 비우면 `DEFAULT_IMAGE_ORIGINS`(운영 사진 CloudFront).
  *   브라우저 코드에는 필요 없어 `VITE_` 를 붙이지 않는다
  * - `VITE_API_BASE_URL` — API 를 다른 출처로 직접 부르도록 빌드했으면(CORS 확인용) 그 출처도 `connect-src` 에 연다
  */
@@ -50,7 +50,7 @@ function securityMetaOptions(env: Record<string, string>) {
   if (imageOrigins.length === 0) {
     console.warn(
       `[security-meta] CSP_IMAGE_ORIGINS 가 비어 있어 img-src 에 ${DEFAULT_IMAGE_ORIGINS.join(' ')} 를 넣습니다. ` +
-        '운영 사진 주소(CloudFront)가 다르면 사진이 보이지 않습니다.',
+        '백엔드 AWS_S3_BASE_URL 이 다른 출처(로컬 S3 주소 · 목 서버)면 사진이 보이지 않습니다.',
     )
   }
   return {

@@ -1,7 +1,7 @@
 /*
  * CloudFront Function — SPA 주소를 index.html 로 돌린다(viewer-request, 런타임 cloudfront-js-2.0).
  *
- * 붙이는 곳 : **기본 동작(`/*` → 프론트 S3) 하나만.** `/api/*` 동작(→ ALB)에는 붙이지 않는다.
+ * 붙이는 곳 : **기본 동작(`/*` → 프론트 S3) 하나만.** `/api/*` 동작(→ EC2)에는 붙이지 않는다.
  * 커스텀 오류 응답(403/404 → /index.html)은 쓰지 않는다 — 배포 전체에 걸려 API 의 403 · 404 까지 200 HTML 이 된다.
  * 콘솔에 그대로 붙여 넣는 파일이라 export · import 가 없다. 고치면 `spa-rewrite.test.ts` 를 같이 돌린다.
  *
