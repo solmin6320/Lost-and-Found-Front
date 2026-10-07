@@ -24,6 +24,10 @@ export interface PostListSearch {
   keyword: string
   type?: PostType
   category?: PostCategory
+  /**
+   * 하나만 고른다. **비어 있으면 기본값 "진행 중"**(게시중 + 연락중 — 완료 글은 기본 목록에서 빠진다, 회의 ⑧).
+   * 기본값은 주소에 싣지 않는다. 요청에는 두 값을 채워 보낸다(`listStatuses`)
+   */
   status?: PostStatus
   location: string
   from?: string
@@ -33,11 +37,12 @@ export interface PostListSearch {
 }
 
 /**
- * 필터 칩 하나가 맡는 조건. 기간은 `from`·`to` 둘을 한 칩으로 묶는다.
+ * 필터 칩 하나가 맡는 조건. **칩 하나 = 묶음 하나 = 펼침 칸 하나**(본인 피드백 2026-10-07 — 장소와 기간이 한 판을 같이 쓰던 것을 나눴다).
+ * 기간은 `from`·`to` 둘을 한 칩으로 묶는다.
  *
- * **유형(`type`)은 필터가 아니다.** 첫 화면의 의도 선택(`잃어버렸어요` / `주웠어요`)이 맡는다.
+ * **유형(`type`)은 필터가 아니다.** 첫 화면의 분실 · 습득 칸이 맡는다.
  * 칩 · 시트에도 두면 같은 주소 값을 고치는 곳이 둘이 되어, 한쪽을 바꾼 뒤 다른 쪽이 무엇을
- * 말하는지 헷갈린다. 그래서 `전체 해제` 도 유형은 남긴다 — 검색어처럼 화면 위에 늘 보이는 값이다.
+ * 말하는지 헷갈린다. 그래서 빈 결과의 `필터 모두 지우기` 도 유형은 남긴다 — 검색어처럼 화면 위에 늘 보이는 값이다.
  */
 export type PostFilterField = 'category' | 'status' | 'location' | 'period'
 
@@ -65,6 +70,20 @@ export const LOCATION_MAX_LENGTH = 100
 export const PERIOD_ORDER_MESSAGE = '시작 날짜는 끝 날짜보다 늦을 수 없어요'
 
 export const EMPTY_POST_LIST_SEARCH: PostListSearch = { keyword: '', location: '', page: 1 }
+
+/**
+ * 상태를 고르지 않았을 때 목록이 보여 주는 상태 — "진행 중"(게시중 + 연락중). 완료 글은 기본 목록에서 빠진다(회의 ⑧).
+ * 분실 · 습득 칸의 건수 · 검색어 추천도 같은 기준이다. 내가 쓴 글(SCR-07)은 빼지 않는다
+ */
+export const DEFAULT_LIST_STATUSES: readonly PostStatus[] = ['OPEN', 'IN_PROGRESS']
+
+/** 기본 상태의 이름. 상태 메뉴의 첫 칸 · 칩에 그대로 쓴다 */
+export const DEFAULT_STATUS_LABEL = '진행 중'
+
+/** 요청에 실을 상태. 고른 것이 없으면 기본값 둘 */
+export function listStatuses(search: Pick<PostListSearch, 'status'>): readonly PostStatus[] {
+  return search.status ? [search.status] : DEFAULT_LIST_STATUSES
+}
 
 /**
  * 주소 → 조건. 주소는 사용자가 고칠 수 있는 입력이다. 형식에 맞지 않는 값은 버린다.
@@ -151,7 +170,7 @@ export function toPostListParams(search: PostListSearch): PostListParams {
     keyword: search.keyword,
     type: search.type,
     category: search.category,
-    status: search.status,
+    status: listStatuses(search),
     location: search.location,
     from: search.from,
     to: search.to,
@@ -203,8 +222,8 @@ export function conditionNavigation(next: PostListSearch): PostListNavigation {
 }
 
 /**
- * 하나만 고르는 묶음(카테고리 · 상태)에서 고른 값을 **바로** 건다. `undefined` 는 "전체"(조건 없음).
- * 검색어 · 유형 · 다른 조건은 그대로 두고 첫 묶음으로 돌아간다
+ * 하나만 고르는 묶음(카테고리 · 상태)에서 고른 값을 **바로** 건다. `undefined` 는 그 묶음의 기본값 —
+ * 카테고리는 "전체", 상태는 "진행 중"(`DEFAULT_LIST_STATUSES`). 검색어 · 유형 · 다른 조건은 그대로 두고 첫 묶음으로 돌아간다
  */
 export function withChoice<F extends 'category' | 'status'>(
   search: PostListSearch,
@@ -214,12 +233,12 @@ export function withChoice<F extends 'category' | 'status'>(
   return { ...search, [field]: value, page: 1 }
 }
 
-/** 필터(검색어 · 유형 제외)가 하나라도 걸려 있나 */
+/** 필터(검색어 · 유형 제외)가 하나라도 걸려 있나. 기본값(상태 "진행 중")은 건 것이 아니다 */
 export function hasActiveFilters(search: PostListSearch): boolean {
   return POST_FILTER_FIELDS.some((field) => filterValueLabel(search, field) !== null)
 }
 
-/** 칩에 쓸 값 라벨. 걸려 있지 않으면 `null` */
+/** 칩에 쓸 값 라벨. 걸려 있지 않으면(기본값이면) `null` */
 export function filterValueLabel(search: PostListSearch, field: PostFilterField): string | null {
   switch (field) {
     case 'category':
@@ -236,7 +255,15 @@ export function filterValueLabel(search: PostListSearch, field: PostFilterField)
   }
 }
 
-/** 조건 하나를 지운다. 결과가 달라지므로 1쪽으로 돌아간다 */
+/**
+ * 아무것도 걸지 않았을 때 그 묶음이 실제로 거르는 값. 상태만 있다 — "진행 중"(완료 글은 기본으로 빠진다).
+ * 칩이 채우지 않은 모양 그대로 `상태: 진행 중` 으로 보여 준다(기본값을 드러낸다 — 힉스). 지우기 [×]는 없다(지울 것이 없다)
+ */
+export function filterDefaultLabel(field: PostFilterField): string | null {
+  return field === 'status' ? DEFAULT_STATUS_LABEL : null
+}
+
+/** 조건 하나를 지운다(칩의 [×]). 그 묶음의 기본값으로 돌아간다. 결과가 달라지므로 1쪽으로 돌아간다 */
 export function withoutFilter(search: PostListSearch, field: PostFilterField): PostListSearch {
   const next: PostListSearch = { ...search, page: 1 }
   if (field === 'period') {
@@ -250,36 +277,42 @@ export function withoutFilter(search: PostListSearch, field: PostFilterField): P
   return next
 }
 
-/** 필터만 전부 지운다. 검색어와 유형은 남긴다 — 검색창 · 의도 선택에 그대로 보이는 값이다 */
+/**
+ * 필터만 전부 지운다(조건 검색 0건의 `필터 모두 지우기`). 검색어와 유형은 남긴다 — 검색창 · 분실 · 습득 칸에 그대로 보이는 값이다.
+ * 상태는 기본값 "진행 중"으로 돌아간다
+ */
 export function withoutFilters(search: PostListSearch): PostListSearch {
   return { ...EMPTY_POST_LIST_SEARCH, keyword: search.keyword, type: search.type }
 }
 
-/* ── 장소 · 기간 — 글자 · 날짜를 치는 칸이라 [적용하기]에서 한 번에 건다 ── */
+/* ── 장소 · 기간 — 글자 · 날짜를 치는 칸이라 [적용하기]에서 건다. 칩마다 따로 연다(본인 피드백 2026-10-07) ── */
 
-/** 장소 · 기간 시트(넓은 화면은 칩 아래 펼침 칸)가 들고 있는 값. 적용 전까지는 주소에 싣지 않는다 */
-export interface PostPlaceDraft {
-  location: string
+/** 장소를 건다(장소 칸의 [적용하기]). 앞뒤 공백을 지우고 100자로 자른다. 비었으면 장소 조건이 빠진다 */
+export function applyLocation(search: PostListSearch, location: string): PostListSearch {
+  return { ...search, location: location.trim().slice(0, LOCATION_MAX_LENGTH), page: 1 }
+}
+
+/** 기간 칸이 들고 있는 값. 적용 전까지는 주소에 싣지 않는다 */
+export interface PostPeriodDraft {
   /** `<input type="date">` 값. 비었으면 `''` */
   from: string
   to: string
 }
 
-export function placeDraftFromSearch(search: PostListSearch): PostPlaceDraft {
-  return { location: search.location, from: search.from ?? '', to: search.to ?? '' }
+export function periodDraftFromSearch(search: PostListSearch): PostPeriodDraft {
+  return { from: search.from ?? '', to: search.to ?? '' }
 }
 
 /**
- * [지우기] — **이 시트에 보이는 칸만** 비운다(적용 전 입력값). 카테고리 · 상태 · 검색어는 건드리지 않는다.
+ * [지우기] — **이 칸에 보이는 것만** 비운다(적용 전 입력값). 장소 · 카테고리 · 상태 · 검색어는 건드리지 않는다.
  * "지우기 버튼은 지금 보이는 것만 지운다"(2026-10-03 회의 ③)
  */
-export const EMPTY_PLACE_DRAFT: PostPlaceDraft = { location: '', from: '', to: '' }
+export const EMPTY_PERIOD_DRAFT: PostPeriodDraft = { from: '', to: '' }
 
-/** 장소 · 기간을 조건에 건다. 나머지 조건은 그대로 두고 첫 묶음으로 돌아간다 */
-export function applyPlaceDraft(search: PostListSearch, draft: PostPlaceDraft): PostListSearch {
+/** 기간을 건다. 잘못된 날짜는 버린다. 나머지 조건은 그대로 두고 첫 묶음으로 돌아간다 */
+export function applyPeriodDraft(search: PostListSearch, draft: PostPeriodDraft): PostListSearch {
   return {
     ...search,
-    location: draft.location.trim().slice(0, LOCATION_MAX_LENGTH),
     from: isIsoDate(draft.from) ? draft.from : undefined,
     to: isIsoDate(draft.to) ? draft.to : undefined,
     page: 1,
@@ -287,6 +320,23 @@ export function applyPlaceDraft(search: PostListSearch, draft: PostPlaceDraft): 
 }
 
 /** 기간이 거꾸로면 문구, 아니면 `null` */
-export function periodError(draft: Pick<PostPlaceDraft, 'from' | 'to'>): string | null {
+export function periodError(draft: PostPeriodDraft): string | null {
   return draft.from && draft.to && draft.from > draft.to ? PERIOD_ORDER_MESSAGE : null
+}
+
+/* ── 검색어 ── */
+
+/**
+ * 검색어를 건다(검색칸 Enter · 돋보기 버튼). **새 검색어는 분실 · 습득 글을 함께 찾는다**(본인 피드백 2026-10-07) —
+ * 분실 · 습득 칸 하나를 골라 둔 채 새 말을 찾으면 그 칸을 풀어 두 종류를 함께 보여 준다. 결과 카드의 이름표(분실 · 습득)로 가르고,
+ * 한쪽만 보려면 위의 칸을 누른다(검색어는 그대로 남는다).
+ *
+ * - 같은 검색어를 다시 보내면 지금 조건 그대로(칸으로 좁혀 둔 것을 풀지 않는다)
+ * - 검색어를 지우면(`''`) 칸은 그대로 — 지운 것은 검색어뿐이다
+ * - 카테고리 · 상태 · 장소 · 기간은 그대로 둔다(칩 줄에 보이는 값이다)
+ */
+export function withKeyword(search: PostListSearch, keyword: string): PostListSearch {
+  const next = keyword.trim().slice(0, KEYWORD_MAX_LENGTH)
+  const fresh = next !== '' && next !== search.keyword
+  return { ...search, keyword: next, type: fresh ? undefined : search.type, page: 1 }
 }

@@ -8,7 +8,7 @@ import { ConceptButtonLink } from './ConceptButtonLink'
 import styles from './PostIntentNext.module.css'
 
 interface PostIntentNextProps {
-  /** 고른 의도. 없으면 올릴 글의 유형을 모른다 — 옅은 면 + 잉크 [글 올리기] */
+  /** 고른 칸(분실 글 · 습득 글). 없으면 올릴 글의 유형을 모른다 — 옅은 면 + 잉크 [글 올리기] */
   intent?: PostIntent
   /** 등록 화면 주소. 비로그인이면 로그인을 거친다 — 경로는 app 이 정한다 */
   to: string
@@ -19,7 +19,8 @@ interface PostIntentNextProps {
 
 /**
  * 찾는 글이 없을 때의 다음 행동 — 결과 끝, 그리고 빈 결과 자리(회색 판 대신).
- * 잃어버린 사람에게는 분실 글을, 주운 사람에게는 습득 글을 올려 두게 한다. 색은 올릴 글(내가 한 일)을 따른다.
+ * 보던 칸과 같은 종류의 글을 올려 두게 한다 — 분실 글 목록 끝에는 분실 글 올리기, 습득 글 목록 끝에는 습득 글 올리기.
+ * 색은 칸 · 이름표 · 올릴 글이 모두 같다(본인 결정 2026-10-07).
  * 한 자리에 면은 이것 하나다. 버튼 이름은 헤더 · 결과 제목 아래 입구와 같은 말(`분실 글 올리기`)이다.
  */
 export function PostIntentNext({ intent, to, title, description }: PostIntentNextProps) {

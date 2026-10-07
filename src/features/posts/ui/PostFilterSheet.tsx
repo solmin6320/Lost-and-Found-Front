@@ -5,25 +5,23 @@ import { Button } from '@/shared/ui/Button'
 import { Sheet } from '@/shared/ui/Sheet'
 
 import {
-  EMPTY_PLACE_DRAFT,
+  EMPTY_PERIOD_DRAFT,
   POST_FILTER_FIELD_NAME,
-  applyPlaceDraft,
+  applyLocation,
+  applyPeriodDraft,
+  periodDraftFromSearch,
   periodError,
-  placeDraftFromSearch,
   withChoice,
   type PostFilterField,
   type PostListSearch,
-  type PostPlaceDraft,
+  type PostPeriodDraft,
 } from '../model/postListSearch'
-import { FilterChoiceMenu, PostPlaceFields } from './PostFilterFields'
+import { FilterChoiceMenu, LocationField, PeriodFields } from './PostFilterFields'
 import styles from './PostFilterFields.module.css'
 import { PostFilterPopover } from './PostFilterPopover'
 
 /** 좁은 화면은 바텀 시트, 이 폭부터는 칩 바로 아래 펼침 칸 */
 const WIDE = '(min-width: 48rem)'
-
-/** 장소 · 기간은 한 칸을 같이 쓴다. 칩 이름 둘을 이어 부른다 */
-const PLACE_TITLE = `${POST_FILTER_FIELD_NAME.location} · ${POST_FILTER_FIELD_NAME.period}`
 
 interface PostFilterSheetProps {
   /** 연 칩이 맡은 묶음 */
@@ -38,10 +36,12 @@ interface PostFilterSheetProps {
 }
 
 /**
- * 칩 하나 = 묶음 하나(2026-10-03 회의 ③). 칩이 무엇을 여는지가 칩 이름 그대로다.
+ * **칩 하나 = 묶음 하나 = 칸 하나**(2026-10-03 회의 ③, 본인 피드백 2026-10-07로 장소 · 기간도 나눔). 칩이 무엇을 여는지가 칩 이름 그대로다.
  *
- *   카테고리 · 상태 : 그 묶음의 칸만. 누르면 **바로 걸리고 닫힌다**. 맨 앞 "전체"가 지우기다
- *   장소 · 기간     : 글자 · 날짜를 치는 칸이라 바로 걸지 않는다. 두 칸이 한 판을 같이 쓰고 [지우기] · [적용하기]
+ *   카테고리 · 상태 : 그 묶음의 칸만. 누르면 **바로 걸리고 닫힌다**. 맨 앞 기본값(전체 · 진행 중)이 지우기다
+ *   장소            : 글자 칸 하나. 바로 걸지 않는다 — [지우기] · [적용하기](Enter 도 적용)
+ *   기간            : 시작 · 끝 날짜. [지우기] · [적용하기]
+ * 예전에는 장소 칩과 기간 칩이 같은 "장소 · 기간" 판을 열어, 두 칩이 같은 일을 하는 것처럼 보였다.
  *
  * 좁은 화면은 작은 바텀 시트(엄지 자리), 넓은 화면은 누른 칩 바로 아래 펼침 칸이다.
  * 닫기 · Esc · 바깥 누름은 아직 걸지 않은 입력을 버린다. 연 쪽이 열 때마다 `key` 를 바꿔 새로 시작한다.
@@ -60,6 +60,8 @@ export function PostFilterSheet({ field, anchor, search, onApply, onClose }: Pos
       setSheetOpen(false)
     }
   }
+
+  const frame = { wide, anchor, sheetOpen, onClose }
 
   if (field === 'category' || field === 'status') {
     const menu = (
@@ -91,17 +93,10 @@ export function PostFilterSheet({ field, anchor, search, onApply, onClose }: Pos
     )
   }
 
-  return (
-    <PlaceFilter
-      field={field}
-      wide={wide}
-      anchor={anchor}
-      search={search}
-      sheetOpen={sheetOpen}
-      onApply={(next) => finish(next)}
-      onClose={onClose}
-    />
-  )
+  if (field === 'location') {
+    return <LocationFilter {...frame} search={search} onApply={(next) => finish(next)} />
+  }
+  return <PeriodFilter {...frame} search={search} onApply={(next) => finish(next)} />
 }
 
 function ChoiceSheet({
@@ -125,58 +120,43 @@ function ChoiceSheet({
   )
 }
 
-interface PlaceFilterProps {
-  field: 'location' | 'period'
+interface InputFilterFrame {
   wide: boolean
   anchor: HTMLElement | null
-  search: PostListSearch
   sheetOpen: boolean
-  onApply: (next: PostListSearch) => void
   onClose: () => void
 }
 
+interface InputFilterProps extends InputFilterFrame {
+  title: string
+  /** 열리자마자 포커스를 줄 칸 */
+  firstInput: string
+  onSubmit: (event: FormEvent<HTMLFormElement>, form: HTMLFormElement | null) => void
+  onClear: (form: HTMLFormElement | null) => void
+  children: ReactNode
+}
+
 /**
- * 장소 · 기간 — 한 판을 같이 쓴다. 누른 칩의 칸으로 포커스가 간다.
- * [지우기]는 **이 판에 보이는 칸만** 비운다(적용 전 입력값). 카테고리 · 상태는 그대로다 — 지우기는 보이는 것만 지운다.
- * [적용하기]에서 한 번에 건다. 칠 때마다 목록이 뒤에서 다시 그려지면 무엇이 바뀌었는지 볼 수 없다.
+ * 글자 · 날짜를 치는 묶음(장소 · 기간)의 틀 — 한 판에 칸 + [지우기] · [적용하기].
+ * [지우기]는 **이 판에 보이는 칸만** 비운다(적용 전 입력값). 다른 조건은 그대로다 — 지우기는 보이는 것만 지운다.
+ * [적용하기]에서 건다. 칠 때마다 목록이 뒤에서 다시 그려지면 무엇이 바뀌었는지 볼 수 없다.
+ * 넓은 화면의 펼침 칸은 머리에 묶음 이름을 쓴다(좁은 화면은 시트 머리가 맡는다)
  */
-function PlaceFilter({ field, wide, anchor, search, sheetOpen, onApply, onClose }: PlaceFilterProps) {
+function InputFilter({ wide, anchor, sheetOpen, onClose, title, firstInput, onSubmit, onClear, children }: InputFilterProps) {
   const formId = useId()
   const formRef = useRef<HTMLFormElement>(null)
-  const [draft, setDraft] = useState<PostPlaceDraft>(() => placeDraftFromSearch(search))
-  const error = periodError(draft)
-
-  const fieldInput = (root: ParentNode | null | undefined) =>
-    root?.querySelector<HTMLElement>(field === 'location' ? 'input[name="location"]' : 'input[name="period-from"]') ??
-    null
-
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    if (error) {
-      formRef.current?.querySelector<HTMLInputElement>('input[name="period-to"]')?.focus()
-      return
-    }
-    onApply(applyPlaceDraft(search, draft))
-  }
-
-  function handleClear() {
-    setDraft(EMPTY_PLACE_DRAFT)
-    formRef.current?.querySelector<HTMLInputElement>('input[name="location"]')?.focus()
-  }
+  const focusFirst = (root: ParentNode | null | undefined) =>
+    root?.querySelector<HTMLElement>(`input[name="${firstInput}"]`) ?? null
 
   const form = (
-    <form id={formId} ref={formRef} onSubmit={handleSubmit} noValidate>
-      <PostPlaceFields
-        value={draft}
-        onChange={(patch) => setDraft((current) => ({ ...current, ...patch }))}
-        periodError={error}
-      />
+    <form id={formId} ref={formRef} onSubmit={(event) => onSubmit(event, formRef.current)} noValidate>
+      {children}
     </form>
   )
 
   const actions = (
     <>
-      <Button onClick={handleClear}>지우기</Button>
+      <Button onClick={() => onClear(formRef.current)}>지우기</Button>
       <Button type="submit" form={formId} variant="primary" block>
         적용하기
       </Button>
@@ -185,16 +165,9 @@ function PlaceFilter({ field, wide, anchor, search, sheetOpen, onApply, onClose 
 
   if (wide) {
     return (
-      <PostFilterPopover
-        anchor={anchor}
-        label={PLACE_TITLE}
-        role="dialog"
-        size="form"
-        initialFocus={fieldInput}
-        onClose={onClose}
-      >
+      <PostFilterPopover anchor={anchor} label={title} role="dialog" size="form" initialFocus={focusFirst} onClose={onClose}>
         <p className={styles.panelTitle} aria-hidden="true">
-          {PLACE_TITLE}
+          {title}
         </p>
         {form}
         <div className={styles.panelActions}>{actions}</div>
@@ -203,14 +176,68 @@ function PlaceFilter({ field, wide, anchor, search, sheetOpen, onApply, onClose 
   }
 
   return (
-    <Sheet
-      open={sheetOpen}
-      onClose={onClose}
-      title={PLACE_TITLE}
-      initialFocus={() => fieldInput(formRef.current)}
-      footer={actions}
-    >
+    <Sheet open={sheetOpen} onClose={onClose} title={title} initialFocus={() => focusFirst(formRef.current)} footer={actions}>
       {form}
     </Sheet>
+  )
+}
+
+interface FieldFilterProps extends InputFilterFrame {
+  search: PostListSearch
+  onApply: (next: PostListSearch) => void
+}
+
+/** 장소 — 칸 하나. 칸에서 Enter 도 [적용하기]다(폼 제출) */
+function LocationFilter({ search, onApply, ...frame }: FieldFilterProps) {
+  const [draft, setDraft] = useState(search.location)
+
+  return (
+    <InputFilter
+      {...frame}
+      title={POST_FILTER_FIELD_NAME.location}
+      firstInput="location"
+      onSubmit={(event) => {
+        event.preventDefault()
+        onApply(applyLocation(search, draft))
+      }}
+      onClear={(form) => {
+        setDraft('')
+        form?.querySelector<HTMLInputElement>('input[name="location"]')?.focus()
+      }}
+    >
+      <LocationField value={draft} onChange={setDraft} />
+    </InputFilter>
+  )
+}
+
+/** 기간 — 시작 · 끝. 거꾸로면 걸지 않고 끝 날짜 칸으로 데려간다 */
+function PeriodFilter({ search, onApply, ...frame }: FieldFilterProps) {
+  const [draft, setDraft] = useState<PostPeriodDraft>(() => periodDraftFromSearch(search))
+  const error = periodError(draft)
+
+  return (
+    <InputFilter
+      {...frame}
+      title={POST_FILTER_FIELD_NAME.period}
+      firstInput="period-from"
+      onSubmit={(event, form) => {
+        event.preventDefault()
+        if (error) {
+          form?.querySelector<HTMLInputElement>('input[name="period-to"]')?.focus()
+          return
+        }
+        onApply(applyPeriodDraft(search, draft))
+      }}
+      onClear={(form) => {
+        setDraft(EMPTY_PERIOD_DRAFT)
+        form?.querySelector<HTMLInputElement>('input[name="period-from"]')?.focus()
+      }}
+    >
+      <PeriodFields
+        value={draft}
+        onChange={(patch) => setDraft((current) => ({ ...current, ...patch }))}
+        error={error}
+      />
+    </InputFilter>
   )
 }

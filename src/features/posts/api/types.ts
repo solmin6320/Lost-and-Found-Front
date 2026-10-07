@@ -63,7 +63,11 @@ export interface PostSearchCondition {
   keyword?: string
   type?: PostType
   category?: PostCategory
-  status?: PostStatus
+  /**
+   * 상태 — **여러 값**(서버 `List<PostStatus>` + `in`). 쿼리스트링에는 같은 이름을 되풀이해 싣는다(`status=OPEN&status=IN_PROGRESS`).
+   * 비우면 서버는 상태를 거르지 않는다(완료 포함). 목록 화면의 기본값 "진행 중"은 이 값을 `['OPEN', 'IN_PROGRESS']` 로 채워 보낸다
+   */
+  status?: readonly PostStatus[]
   /** 장소 부분 일치 */
   location?: string
   /** 분실·습득일 시작(포함). `"yyyy-MM-dd"` */

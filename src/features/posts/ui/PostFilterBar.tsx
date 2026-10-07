@@ -6,6 +6,7 @@ import { CaretDown, X } from '@/shared/ui/icons'
 import {
   POST_FILTER_FIELDS,
   POST_FILTER_FIELD_NAME,
+  filterDefaultLabel,
   filterValueLabel,
   postListSearchKey,
   type PostFilterField,
@@ -19,14 +20,9 @@ interface PostFilterBarProps {
   /** 조건을 건다(칩에서 고름 · 장소 · 기간 적용 · 칩의 ×). 첫 묶음으로 돌아가고 기록을 쌓는다 */
   onApply: (next: PostListSearch) => void
   onRemove: (field: PostFilterField) => void
-  /**
-   * 있으면 줄 맨 앞에 [전체 해제] 를 둔다. 필터가 걸렸을 때만 넘긴다.
-   * 같은 일을 하는 버튼이 화면에 이미 있으면(조건 검색 0건의 [필터 초기화]) 넘기지 않는다
-   */
-  onClearAll?: () => void
 }
 
-/** 칩이 여는 것. 고르기 묶음은 메뉴, 장소 · 기간은 입력 판 */
+/** 칩이 여는 것. 고르기 묶음은 메뉴, 장소 · 기간은 각자의 입력 판 */
 const POPUP: Record<PostFilterField, 'menu' | 'dialog'> = {
   category: 'menu',
   status: 'menu',
@@ -41,9 +37,13 @@ const POPUP: Record<PostFilterField, 'menu' | 'dialog'> = {
  * 걸린 칩을 앞으로 모은다. 좁은 화면에서는 칩 몇 개만 보여, 뒤쪽에 걸린 조건이 화면 밖에 숨으면
  * "왜 결과가 적지" 를 풀 수 없다. 걸리지 않은 칩끼리의 순서는 그대로다.
  *
- * [전체 해제] 는 줄 맨 앞이다. 결과 제목 줄에 두면 생길 때마다 그 줄이 접혀 피드가 밀렸다.
+ * 기본값이 실제로 거르는 묶음(상태 "진행 중" — 완료 글은 기본으로 빠진다)은 채우지 않은 칩에 값을 함께 쓴다(`상태: 진행 중`).
+ * 걸어 둔 조건이 아니라 [×]는 없다. 왜 완료 글이 안 보이는지를 칩 줄이 먼저 말한다.
+ *
+ * **[전체 해제]는 두지 않는다**(본인 피드백 2026-10-07). 걸린 칩마다 붙은 [×]가 그 조건을 지운다 — 무엇을 지우는지가 눈앞에 있다.
+ * 조건 검색이 0건이면 빈 상태의 [필터 모두 지우기]가 한 번에 되돌리는 길이다(막다른 길이 없게).
  */
-export function PostFilterBar({ search, onApply, onRemove, onClearAll }: PostFilterBarProps) {
+export function PostFilterBar({ search, onApply, onRemove }: PostFilterBarProps) {
   const barRef = useRef<HTMLDivElement>(null)
   const refocusField = useRef<PostFilterField | null>(null)
   const [panel, setPanel] = useState<{ field: PostFilterField; anchor: HTMLElement; key: number } | null>(null)
@@ -87,18 +87,13 @@ export function PostFilterBar({ search, onApply, onRemove, onClearAll }: PostFil
   return (
     <div className={styles.root}>
       <div ref={barRef} className={styles.bar} role="group" aria-label="필터">
-        {onClearAll ? (
-          <button type="button" className={styles.clearAll} onClick={onClearAll}>
-            전체 해제
-          </button>
-        ) : null}
-
         {fields.map((field) => {
           const name = POST_FILTER_FIELD_NAME[field]
           const value = filterValueLabel(search, field)
           const open = panel?.field === field
 
           if (!value) {
+            const fallback = filterDefaultLabel(field)
             return (
               <button
                 key={field}
@@ -109,7 +104,14 @@ export function PostFilterBar({ search, onApply, onRemove, onClearAll }: PostFil
                 aria-expanded={open}
                 onClick={(event) => toggle(field, event.currentTarget)}
               >
-                {name}
+                {fallback ? (
+                  // 한 덩어리로 감싼다 — 칩은 flex 라 "상태:" 뒤 띄어쓰기가 조각 끝에서 사라진다
+                  <span>
+                    {name}: <span className={styles.defaultValue}>{fallback}</span>
+                  </span>
+                ) : (
+                  name
+                )}
                 <CaretDown />
               </button>
             )

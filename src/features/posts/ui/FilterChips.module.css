@@ -1,8 +1,8 @@
 /*
  * 필터 칩. 라벨에 필드 이름을 넣는다 — `카테고리: 지갑`.
- * 칩 하나가 묶음 하나를 연다(카테고리 · 상태는 고르면 바로 걸린다, 장소 · 기간은 한 판에서 [적용하기]).
+ * 칩 하나가 묶음 하나를 연다(카테고리 · 상태는 고르면 바로 걸린다, 장소 · 기간은 각자의 판에서 [적용하기]).
  * 검색어에도 "지갑"을 넣을 수 있어서, 이름이 없으면 무엇이 걸렸는지 구분이 안 된다.
- * 모든 폭에서 이 한 줄이 필터의 입구다. 걸린 조건은 잉크로 채우고 옆에 [×] 가 붙는다.
+ * 모든 폭에서 이 한 줄이 필터의 입구다. 걸린 조건은 잉크로 채우고 옆에 [×] 가 붙는다. [전체 해제]는 없다(본인 피드백 2026-10-07).
  * 칩은 알약 모양이다(켜고 끄는 것). 정보 배지(4px 이름표)와 모양으로 갈린다.
  */
 
@@ -85,14 +85,19 @@ button.trigger {
 /* 보이는 높이는 36px, 누를 수 있는 높이는 44px */
 button.trigger::after,
 .triggerMain::after,
-.triggerClear::after,
-.clearAll::after {
+.triggerClear::after {
   content: '';
   position: absolute;
   inset-inline: 0;
   top: 50%;
   height: var(--tap-min);
   transform: translateY(-50%);
+}
+
+/* 기본값(상태 "진행 중")은 채우지 않은 칩 그대로, 값만 한 단계 흐리게 — 걸어 둔 조건(잉크 채움)과 모양으로 갈린다 */
+.defaultValue {
+  color: var(--text-body);
+  font-weight: var(--weight-regular);
 }
 
 .trigger svg {
@@ -166,39 +171,8 @@ button.trigger[aria-expanded='true'] {
   outline-offset: -3px;
 }
 
-/*
- * [전체 해제] — 줄 맨 앞, 글자 버튼. 칩과 다른 일을 하므로 칩 모양을 입히지 않고
- * 오른쪽에 가는 선을 그어 뒤의 칩들과 나눈다
- */
-.clearAll {
-  position: relative;
-  display: inline-flex;
-  flex: none;
-  align-items: center;
-  min-height: 2.25rem;
-  padding-inline: var(--space-2) var(--space-3);
-  margin-right: var(--space-0-5);
-  border-right: 1px solid var(--border-strong);
-  color: var(--text-body);
-  font-size: var(--text-sm);
-  font-weight: var(--weight-semibold);
-  white-space: nowrap;
-  text-decoration: underline;
-  text-decoration-color: var(--border-hover);
-  text-underline-offset: 0.25em;
-}
-
-.clearAll:focus-visible {
-  border-radius: var(--radius-sm);
-}
-
 @media (hover: hover) {
   button.trigger:hover {
     border-color: var(--border-hover);
-  }
-
-  .clearAll:hover {
-    color: var(--text-strong);
-    text-decoration-color: currentColor;
   }
 }

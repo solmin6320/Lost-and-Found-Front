@@ -26,11 +26,13 @@ export const POST_STATUS_LABEL: Record<PostStatus, string> = {
 
 /**
  * 이름표가 뜻하는 것 — 사용자가 직접 여는 설명(목록의 `이름표 안내`, 필터 시트의 상태 도움말)에 쓴다.
- * 없는 기능(쪽지 · 소유 확인)을 약속하지 않는다
+ * 없는 기능(쪽지 · 소유 확인)을 약속하지 않는다.
+ * 유형은 첫 화면 두 칸의 이름(`잃어버린 물건` · `주운 물건`)과 같은 말로 시작한다 — 칸에서 본 말을 이름표 설명에서 다시 만난다
+ * (본인 결정 2026-10-07 : 칸 이름 = 그 칸이 보여 주는 글의 종류)
  */
 export const POST_TYPE_MEANING: Record<PostType, string> = {
-  LOST: '누군가 잃어버린 물건이에요',
-  FOUND: '누군가 주워 둔 물건이에요',
+  LOST: '잃어버린 물건을 주인이 찾는 글이에요',
+  FOUND: '주운 물건의 주인을 찾는 글이에요',
 }
 
 export const POST_STATUS_MEANING: Record<PostStatus, string> = {

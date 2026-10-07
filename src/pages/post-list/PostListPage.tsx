@@ -6,6 +6,7 @@ import { OnboardingTour, usePostListGuide } from '@/app/onboarding'
 import { POST_DETAIL_FROM_LIST, paths } from '@/app/paths'
 import { useAuth } from '@/features/auth'
 import {
+  ANY_INTENT_EMPTY,
   BadgeGuide,
   PostCard,
   PostCardSkeleton,
@@ -62,15 +63,16 @@ interface ExpandAnchor {
 /**
  * SCR-01 게시글 목록 · `/`
  *
- * 맨 위에서 의도를 고른다(`잃어버렸어요` → 습득 글, `주웠어요` → 분실 글). 그 아래 검색 · 필터 칩 · 사진 피드.
- * 의도 · 검색 · 필터 · 펼친 수는 전부 URL 에 있다. 이 화면은 주소를 읽어 그리고, 바꿀 때는 주소를 바꾼다.
+ * 맨 위에서 글 종류를 고른다(`잃어버린 물건` = 분실 글, `주운 물건` = 습득 글 — 칸 이름 = 보여 주는 글, 본인 결정 2026-10-07).
+ * 그 아래 검색 · 필터 칩 · 사진 피드. 상태를 고르지 않으면 "진행 중"(게시중 + 연락중)만 보여 준다(회의 ⑧).
+ * 종류 · 검색 · 필터 · 펼친 수는 전부 URL 에 있다. 이 화면은 주소를 읽어 그리고, 바꿀 때는 주소를 바꾼다.
  * 조건을 바꾸는 동안에는 직전 목록을 흐리게 남겨 둔다(`keepPreviousData`) — 빈 화면으로 깜빡이지 않는다.
  *
  * 목록은 **[더 보기]로 이어진다**(모든 폭, 2026-10-03 회의 ⑥). 누를 때마다 24건 묶음을 하나 더 펼쳐 처음부터 한 번에
  * 다시 받는다(최대 96건). 이미 본 카드는 흐리게 하지 않고 제자리에 둔다 — 그사이 맨 위에 새 글이 끼어도 보던 자리가
  * 움직이지 않게 마지막 카드 위치를 맞춘다. 포커스는 새로 붙은 첫 카드로 간다. 자동으로 이어 붙이지 않는다.
  *
- * 누른 버튼이 사라지는 동작(검색 · 지우기 · 전체 해제 · 다시 시도)은 전부 결과 제목으로 포커스를 옮긴다.
+ * 누른 버튼이 사라지는 동작(검색 · 지우기 · 필터 모두 지우기 · 다시 시도)은 전부 결과 제목으로 포커스를 옮긴다.
  * 그냥 두면 포커스가 문서 맨 앞(body)으로 빠져, 키보드 · 스크린리더 사용자가 처음부터 다시 찾아 내려와야 한다.
  */
 export function PostListPage() {
@@ -81,8 +83,9 @@ export function PostListPage() {
   })
   const createHref = useCreateHref()
   const intent = intentShowing(search.type)
-  // 탭 제목은 결과 제목을 따른다 — "누군가 주워 둔 물건 | 분실물 찾기". 의도를 바꾸면 탭 제목도 바뀐다
-  useDocumentTitle(postListHeading(search.type))
+  // 탭 제목은 결과 제목을 따른다 — "잃어버린 물건 | 분실물 찾기". 칸을 바꾸면 탭 제목도 바뀐다. 검색어는 넣지 않는다
+  const heading = postListHeading(search.type, search.keyword)
+  useDocumentTitle(heading)
 
   const titleRef = useRef<HTMLHeadingElement>(null)
   const summaryRef = useRef<HTMLDivElement>(null)
@@ -243,13 +246,8 @@ export function PostListPage() {
         붙어 있는 동안만 아래에 가는 선과 바탕을 깐다(data-stuck)
       */}
       <div ref={chipsRef} className={styles.chips} data-stuck={stuck || undefined}>
-        <PostFilterBar
-          search={search}
-          onApply={apply}
-          onRemove={(field) => apply(withoutFilter(search, field))}
-          // 조건 검색이 0건이면 빈 상태의 [필터 초기화]가 같은 일을 한다. 같은 버튼을 두 곳에 두지 않는다
-          onClearAll={filtered && empty !== 'filtered' ? clearFilters : undefined}
-        />
+        {/* [전체 해제]는 두지 않는다(본인 피드백 2026-10-07) — 걸린 칩마다 [×], 0건이면 빈 상태의 [필터 모두 지우기] */}
+        <PostFilterBar search={search} onApply={apply} onRemove={(field) => apply(withoutFilter(search, field))} />
       </div>
 
       {/* 온보딩 2단계가 가리키는 자리 — 검색창 + 칩 줄을 함께 감싸는 틀(칩 줄이 붙기 위해 둘은 형제다) */}
@@ -258,7 +256,7 @@ export function PostListPage() {
       <section className={styles.results} aria-labelledby="post-list-heading">
         <div ref={summaryRef} className={styles.summary}>
           <h2 id="post-list-heading" ref={headingRef} tabIndex={-1} className={styles.heading}>
-            {postListHeading(search.type)}
+            {heading}
           </h2>
           <p className={styles.count} aria-live="polite" aria-atomic="true" data-stale={stale || undefined}>
             {total === undefined ? (
@@ -448,7 +446,8 @@ function PostListBody({
           description="검색어나 필터를 바꿔 보세요."
           action={
             hasActiveFilters(search) ? (
-              <Button onClick={onClearFilters}>필터 초기화</Button>
+              // 칩 줄에는 한 번에 지우는 버튼이 없다. 막다른 0건에서만 한 번에 되돌리는 길(검색어 · 종류는 남긴다)
+              <Button onClick={onClearFilters}>필터 모두 지우기</Button>
             ) : (
               <Button onClick={onClearKeyword}>검색어 지우기</Button>
             )
@@ -465,8 +464,8 @@ function PostListBody({
       <PostIntentNext
         intent={intent}
         to={createHref(intent?.concept)}
-        title={intent?.empty.title ?? '아직 올라온 글이 없어요.'}
-        description={intent?.empty.description ?? '잃어버렸거나 주운 물건을 올려 보세요.'}
+        title={intent?.empty.title ?? ANY_INTENT_EMPTY.title}
+        description={intent?.empty.description ?? ANY_INTENT_EMPTY.description}
       />
     )
   }
