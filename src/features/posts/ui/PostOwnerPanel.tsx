@@ -8,13 +8,13 @@ import {
   ChatCircleDots,
   Check,
   CheckCircle,
-  Info,
   MegaphoneSimple,
   PencilSimple,
   Trash,
   WarningCircle,
   type Icon,
 } from '@/shared/ui/icons'
+import { SafetyNote } from '@/shared/ui/SafetyNote'
 
 import type { PostDetailResponse, PostStatus, PostType } from '../api/types'
 import { POST_STATUS_LABEL } from '../model/labels'
@@ -202,9 +202,9 @@ export function PostOwnerPanel({ post, editHref, onDeleted }: PostOwnerPanelProp
         </div>
 
         {done ? null : showContactTip ? (
+          // 사칭 · 선입금을 막는 안전 경고 — 빨간 글자 + 경고 세모(본인 피드백 2026-10-07)
           <p id={hintId} className={styles.tip}>
-            <Info />
-            {CONTACT_TIP[post.type]}
+            <SafetyNote appear>{CONTACT_TIP[post.type]}</SafetyNote>
           </p>
         ) : (
           <p id={hintId} className={styles.hint}>

@@ -58,6 +58,21 @@
   padding-right: var(--tap-min);
 }
 
+/*
+ * 우리 버튼(비밀번호 보기 등)이 있는 칸에서는 브라우저가 칸 안에 그리는 버튼을 끈다.
+ * Edge 는 비밀번호 칸에 자기 "보기" 눈(`::-ms-reveal`)을 그려 눈이 두 개가 됐다(본인 피드백 2026-10-07 — 어느 쪽을 눌러야 할지 모른다).
+ * 우리 것은 남긴다 — 모든 브라우저에서 같은 자리 · 같은 모양이고, 누르는 면이 44px 이고, 이름(`비밀번호 보기`)과 눌림 상태를 읽어 준다.
+ * `::-ms-clear` 는 같은 자리에 그려지는 지우기(×)다.
+ * 두 규칙을 한 줄(선택자 목록)로 묶지 않는다 — 모르는 의사 요소가 하나라도 섞이면 브라우저가 규칙 전체를 버린다
+ */
+.withTrailing .input::-ms-reveal {
+  display: none;
+}
+
+.withTrailing .input::-ms-clear {
+  display: none;
+}
+
 .input::placeholder {
   color: var(--text-muted);
 }
@@ -127,7 +142,8 @@
   word-break: keep-all;
 }
 
-/* 결과 고지 · 개인정보 — 도움말보다 한 단계 진하게. 오류가 떠 있어도 남는다 */
+/* 결과 고지 · 개인정보 — 도움말보다 한 단계 진하게. 오류가 떠 있어도 남는다.
+   개인정보 · 안전 경고면 안에 `SafetyNote`(빨간 글자 + 경고 세모)를 넣는다 */
 .note {
   color: var(--text-body);
   font-size: var(--text-sm);
@@ -136,7 +152,7 @@
   word-break: keep-all;
 }
 
-/* 칸이 알아본 것(연락처 등) 한 줄. 빨강이 아니다(경고에는 빨강을 쓰지 않는다) — 잉크 글자로.
+/* 칸이 알아본 것(연락처 등) 한 줄. 글자는 부른 쪽이 `SafetyNote`(빨간 글자 + 경고 세모)로 준다 — 오류(동그라미 `!`)와 모양이 다르고 막지 않는다.
    자리를 미리 비우면(data-reserved) 한 줄 높이를 늘 잡아 둔다 */
 .detected {
   color: var(--text-strong);

@@ -1,0 +1,30 @@
+/*
+ * 개인정보 · 안전 경고 한 줄 — 빨간 글자 + 경고 세모(본인 피드백 2026-10-07).
+ * `--error-text` 는 밝게 #A62018 · 어둡게 #FF8F85 — 종이 위 7:1 이상, 옅은 면(내 글 관리) · 떠 있는 면 위에서도 4.5:1 이상(tokens.test.ts).
+ * 글자 크기 · 행간은 부른 쪽(`<p>`)을 따른다. 세모는 첫 줄 가운데에 맞춘다 — 두 줄이 되어도 첫 줄 옆에 남는다
+ */
+
+.note {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-1-5);
+  color: var(--error-text);
+  font-weight: var(--weight-semibold);
+  word-break: keep-all;
+}
+
+.note[data-strong] {
+  font-weight: var(--weight-bold);
+}
+
+.icon {
+  flex: none;
+  width: var(--icon-sm);
+  height: var(--icon-sm);
+  margin-top: calc((1lh - var(--icon-sm)) / 2);
+}
+
+/* 방금 생긴 줄 — 위에서 4px 내려오며 옅게(폼 오류 · 안내와 같은 움직임) */
+.appear {
+  composes: appear from '../styles/motion.module.css';
+}

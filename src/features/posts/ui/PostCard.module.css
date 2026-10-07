@@ -87,18 +87,26 @@
   padding-inline: var(--space-0-5);
 }
 
-/* ── 1 제목 ── 두 줄에서 자른다. 띄어쓰기 없는 100자도 칸을 밀어내지 않는다 */
+/* ── 1 제목 ── */
 .title {
-  display: -webkit-box;
-  overflow: hidden;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
   color: var(--text-strong);
   font-size: var(--text-base);
   font-weight: var(--weight-bold);
   line-height: var(--leading-snug);
   letter-spacing: var(--tracking-tight);
+}
+
+/*
+ * 두 줄에서 자른다. 띄어쓰기 없는 100자도 칸을 밀어내지 않는다.
+ * 자르는 칸은 링크 안쪽의 이 글자 칸뿐이다 — 제목(`.title`)이나 링크를 자르면 그 안의 덮개(`.link::after`)까지
+ * 잘리는 브라우저가 있어 사진을 눌러도 글이 열리지 않는다. 제목 · 링크에는 `overflow` 를 두지 않는다
+ */
+.titleText {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
   overflow-wrap: anywhere;
 }
 
@@ -110,17 +118,21 @@
 }
 
 .link {
+  display: block;
   color: inherit;
   text-decoration: none;
 }
 
-/* 제목 링크 하나가 카드 전체(사진 포함)를 덮는다. 카드 안에 링크가 하나뿐이라 읽는 이름이 제목으로 짧다 */
+/*
+ * 제목 링크 하나가 카드 전체(사진 · 배지 · 장소 포함)를 덮는다. 누르는 곳 · Tab 한 번 · 읽는 이름(제목)이 하나다.
+ * 기준은 카드(`position: relative`)다 — 카드와 링크 사이에 자리 · 자르기를 만드는 칸을 두지 않는다
+ */
 .link::after {
   content: '';
   position: absolute;
   inset: 0;
   z-index: 1;
-  border-radius: inherit;
+  border-radius: var(--radius-md);
 }
 
 .link:focus-visible {
@@ -197,7 +209,7 @@
 }
 
 @media (hover: hover) {
-  .card:hover .title {
+  .card:hover .titleText {
     text-decoration: underline;
     text-decoration-thickness: 1.5px;
     text-underline-offset: 0.2em;

@@ -28,6 +28,7 @@ export {
   Eye,
   EyeSlash,
   Gear,
+  House,
   Info,
   LockSimple,
   MagnifyingGlass,
@@ -42,6 +43,7 @@ export {
   Tag,
   Trash,
   User,
+  Warning,
   WarningCircle,
   X,
 } from '@phosphor-icons/react'

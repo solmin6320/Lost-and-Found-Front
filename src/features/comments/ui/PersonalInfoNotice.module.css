@@ -1,6 +1,7 @@
 /*
  * 개인정보 모양 감지 한 줄 — 제출 버튼 왼쪽의 남는 폭을 쓴다. 버튼 글자 줄에 맞춰 위 여백을 둔다
- * (`--notice-offset` : 버튼 높이 − 글자 한 줄 높이의 절반. 큰 버튼 44px 기준, 작은 버튼 칸은 부른 쪽이 바꾼다)
+ * (`--notice-offset` : 버튼 높이 − 글자 한 줄 높이의 절반. 큰 버튼 44px 기준, 작은 버튼 칸은 부른 쪽이 바꾼다).
+ * 글자 색 · 세모는 안의 `SafetyNote` 가 준다(빨간 글자 + 경고 세모)
  */
 
 .notice {
@@ -9,26 +10,9 @@
   flex: 1 1 10rem;
   min-width: 0;
   padding-top: var(--notice-offset);
-  color: var(--text-strong);
   font-size: var(--text-sm);
-  font-weight: var(--weight-semibold);
   line-height: var(--leading-snug);
   word-break: keep-all;
   /* 두 줄이 되면 고르게 — "봐요." 한 마디만 아래로 떨어지지 않게 */
   text-wrap: balance;
-}
-
-.line {
-  composes: appear from '../../../shared/styles/motion.module.css';
-
-  display: flex;
-  align-items: flex-start;
-  gap: var(--space-1-5);
-}
-
-.line svg {
-  flex: none;
-  width: var(--icon-sm);
-  height: var(--icon-sm);
-  margin-top: calc((1lh - var(--icon-sm)) / 2);
 }

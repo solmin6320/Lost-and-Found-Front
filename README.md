@@ -96,6 +96,6 @@ deploy/           배포에만 쓰는 것 — CloudFront Function(spa-rewrite.js
 - 글꼴은 Pretendard 하나. `pretendard` 패키지의 가변 동적 서브셋을 번들로 싣는다(`src/main.tsx`) — 화면에 뜬 글자가 속한 woff2 조각만 같은 출처에서 받고, 외부 CDN 요청이 없다
 - 아이콘은 Phosphor(`@phosphor-icons/react`) 한 벌, 반경은 4 · 8 · 12 · 알약 네 단계
 - 상태 — 외곽선 배지. 색을 쓰지 않고 라벨 · 아이콘 · 선 굵기로 가른다. 완료는 가장 약하게
-- 빨강은 삭제(파괴적 동작)에만 쓴다
+- 빨강은 "멈춰서 볼 것"에만 쓴다 — 방금 틀린 칸의 오류 문장 · 되돌릴 수 없는 동작(삭제) · 개인정보 · 안전 경고(빨간 글자 + 경고 세모, 2026-10-07). 빨간 채움은 삭제 확인 버튼 하나
 
 토큰은 `src/shared/styles/tokens.css` 한 파일에 있다.
