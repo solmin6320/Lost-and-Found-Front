@@ -12,7 +12,7 @@ import { useDirtyLeaveGuard } from '@/shared/lib/dirtyRegistry'
 import { ButtonLink } from '@/shared/ui/Button'
 import { ConfirmDialog } from '@/shared/ui/ConfirmDialog'
 import { FlashViewport } from '@/shared/ui/Flash'
-import { Gear, Plus, Question } from '@/shared/ui/icons'
+import { Gear, House, Plus, Question } from '@/shared/ui/icons'
 import tip from '@/shared/ui/Tooltip.module.css'
 
 import { AccountMenu } from './AccountMenu'
@@ -21,10 +21,11 @@ import styles from './RootLayout.module.css'
 /**
  * 모든 화면이 공유하는 껍데기. 헤더 · 본문 · 이탈 확인 하나. 푸터는 두지 않는다(2026-10-07).
  *
- * 헤더 — 로고(목록으로), [글 올리기], 서비스 안내(물음표), 그리고
+ * 헤더 — 로고(목록으로) · [홈](처음 목록으로), [글 올리기], 서비스 안내(물음표), 그리고
  *   비로그인 : 설정(톱니) · [로그인](글자 버튼). 화면 모드는 누구나 바꾼다(SCR-08)
  *   로그인   : 계정 메뉴 하나. 설정은 메뉴의 "설정"으로만 간다 — 같은 목적지가 두 곳이면 목표가 넷이 된다(회의 UI-6 c)
- * 오른쪽 묶음 사이는 8px(회의 UI-6 a). 360 미만은 로고 글자를 접어 한 줄을 지킨다(아래 CSS).
+ * 누르는 면 사이는 8px(회의 UI-6 a). 휴대폰 폭은 로고 글자를 접어 [홈]에 자리를 내주고,
+ * 360 미만은 로고 그림까지 접어 한 줄을 지킨다(아래 CSS).
  * [글 올리기]는 비로그인에게도 보인다. 수정·삭제와 달리 서비스로 들어오는 동선이다(SCR-01).
  *
  * 이탈 확인은 **여기 하나**다(쓰던 칸 등록부). 화면의 칸들은 "쓰던 글자 있음"만 알린다 — `useBlocker` 는 한 번에 하나라
@@ -45,6 +46,7 @@ export function RootLayout() {
             <BrandMark />
             <span className={styles.wordmarkText}>분실물 찾기</span>
           </Link>
+          <HomeLink />
 
           <div className={styles.actions}>
             <CreatePostLink />
@@ -77,6 +79,41 @@ export function RootLayout() {
         <p>{leave.copy.body}</p>
       </ConfirmDialog>
     </div>
+  )
+}
+
+/**
+ * 홈 — 조건 없는 처음 목록(`/`)으로. 로고도 같은 곳으로 가지만, 로고가 눌리는 줄 모르면 처음으로 돌아갈 길이 없다
+ * (본인 피드백 2026-10-07 "로고를 눌러야만 홈으로 간다").
+ *
+ * 로고 바로 오른쪽에 둔다 — 같은 곳으로 가는 둘을 붙여 한 묶음으로 읽힌다(근접성). 오른쪽 묶음은 할 일 · 계정이다.
+ * 집 아이콘 + `홈` 글자를 **모든 폭에서** 둔다. 아이콘만이면 터치에서 이름표가 뜨지 않아 무엇인지 모른다.
+ * 목록 화면이면(조건이 걸려 있어도) `aria-current="page"` + "지금 여기" 옅은 면 — 설정 톱니의 현재 표시와 같은 말투.
+ *
+ * 목록에서 누르면 맨 위로 올린다(모션 줄이기면 즉시). 조건 없는 목록이면 주소를 다시 쓰지 않는다 —
+ * 같은 주소로 가면 아무 일도 없어 보인다. 새 탭 열기(⌘ · Ctrl · 가운데 누름)는 브라우저에 맡긴다
+ */
+function HomeLink() {
+  const location = useLocation()
+  const onList = location.pathname === paths.postList
+
+  function handleClick(event: MouseEvent<HTMLAnchorElement>) {
+    if (!onList || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
+    if (location.search === '' && location.hash === '') event.preventDefault()
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    window.scrollTo({ top: 0, behavior: reduce ? 'instant' : 'smooth' })
+  }
+
+  return (
+    <Link
+      to={paths.postList}
+      className={styles.home}
+      aria-current={onList ? 'page' : undefined}
+      onClick={handleClick}
+    >
+      <House />
+      <span>홈</span>
+    </Link>
   )
 }
 

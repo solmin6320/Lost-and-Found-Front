@@ -58,6 +58,21 @@
   padding-right: var(--tap-min);
 }
 
+/*
+ * 우리 버튼(비밀번호 보기 등)이 있는 칸에서는 브라우저가 칸 안에 그리는 버튼을 끈다.
+ * Edge 는 비밀번호 칸에 자기 "보기" 눈(`::-ms-reveal`)을 그려 눈이 두 개가 됐다(본인 피드백 2026-10-07 — 어느 쪽을 눌러야 할지 모른다).
+ * 우리 것은 남긴다 — 모든 브라우저에서 같은 자리 · 같은 모양이고, 누르는 면이 44px 이고, 이름(`비밀번호 보기`)과 눌림 상태를 읽어 준다.
+ * `::-ms-clear` 는 같은 자리에 그려지는 지우기(×)다.
+ * 두 규칙을 한 줄(선택자 목록)로 묶지 않는다 — 모르는 의사 요소가 하나라도 섞이면 브라우저가 규칙 전체를 버린다
+ */
+.withTrailing .input::-ms-reveal {
+  display: none;
+}
+
+.withTrailing .input::-ms-clear {
+  display: none;
+}
+
 .input::placeholder {
   color: var(--text-muted);
 }
