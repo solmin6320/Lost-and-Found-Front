@@ -95,7 +95,7 @@ export function checkPostField(field: PostFormField, values: PostFormValues, tod
       }
       // 같은 모양의 문자열이라 글자 순서가 날짜 순서다
       if (values.lostFoundDate > today) {
-        return `${label}${particle(label, '은')} 오늘 이후로 고를 수 없어요`
+        return `${label}${particle(label, '은')} 오늘까지만 고를 수 있어요`
       }
       return undefined
     }

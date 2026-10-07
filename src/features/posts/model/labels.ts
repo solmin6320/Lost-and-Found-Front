@@ -29,15 +29,18 @@ export const POST_STATUS_LABEL: Record<PostStatus, string> = {
  * 없는 기능(쪽지 · 소유 확인)을 약속하지 않는다.
  * 유형은 첫 화면 두 칸의 이름(`잃어버린 물건` · `주운 물건`)과 같은 말로 시작한다 — 칸에서 본 말을 이름표 설명에서 다시 만난다
  * (본인 결정 2026-10-07 : 칸 이름 = 그 칸이 보여 주는 글의 종류)
+ *
+ * 상태 문장은 분실 글 · 습득 글 **둘 다에 맞는 말**로 쓴다. 분실 글은 주인이 직접 쓴 글이라
+ * "주인을 찾고 있어요" · "주인으로 보이는 사람"은 습득 글에만 맞는다(2026-10-08 문구 점검)
  */
 export const POST_TYPE_MEANING: Record<PostType, string> = {
-  LOST: '잃어버린 물건을 주인이 찾는 글이에요',
+  LOST: '잃어버린 물건을 찾는 글이에요',
   FOUND: '주운 물건의 주인을 찾는 글이에요',
 }
 
 export const POST_STATUS_MEANING: Record<PostStatus, string> = {
-  OPEN: '아직 주인을 찾고 있어요',
-  IN_PROGRESS: '주인으로 보이는 사람과 이야기하고 있어요',
+  OPEN: '아직 찾고 있어요',
+  IN_PROGRESS: '연락이 닿아 이야기하고 있어요',
   DONE: '주인에게 돌아간 물건이에요',
 }
 

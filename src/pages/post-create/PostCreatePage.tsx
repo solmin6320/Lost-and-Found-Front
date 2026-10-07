@@ -38,7 +38,7 @@ export function PostCreatePage() {
   return (
     <PostForm
       mode="create"
-      intro={<PostWriteHeader title="글 올리기" lead="사진만 빼고 모두 적어야 올라가요." {...page.guide} />}
+      intro={<PostWriteHeader title="글 올리기" lead="사진만 빼고 모두 채워야 올라가요." {...page.guide} />}
       initialValues={initialValues}
       draftKey={postDraftKey()}
       memberId={page.memberId}

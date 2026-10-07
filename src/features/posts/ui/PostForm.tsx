@@ -484,7 +484,7 @@ export function PostForm({
             value={values.title}
             count={{ value: values.title.trim().length, max: POST_TITLE_MAX_LENGTH }}
             // 예시는 칸 안 안내 글로(회의 UI-9 b). 칸 이름은 위에 그대로 — 안내 글을 이름 대신 쓰지 않는다
-            placeholder={values.type === 'FOUND' ? '예: 에어팟 프로 왼쪽 한 쪽' : '예: 검은색 가죽 반지갑'}
+            placeholder={values.type === 'FOUND' ? '예: 에어팟 프로 왼쪽 한 짝' : '예: 검은색 가죽 반지갑'}
             error={errors.title}
             announceError={liveField === 'title'}
             detected={<DetectedLine notice={titleInfo.notice} />}
