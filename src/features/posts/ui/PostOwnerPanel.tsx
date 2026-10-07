@@ -54,7 +54,7 @@ const CHANGED_TO: Record<PostStatus, string> = {
  */
 const CONTACT_TIP: Record<PostType, string> = {
   FOUND: '물건을 넘기기 전에 사진에 없는 특징을 물어 주인인지 확인해 주세요.',
-  LOST: '돈을 먼저 보내 달라는 요청은 받지 마세요.',
+  LOST: '돈을 먼저 보내 달라는 요청에는 응하지 마세요.',
 }
 
 /** 화면이 틀렸다는 뜻인 실패 — 이미 완료됨 · 남의 글 · 지워진 글. 상세를 다시 받아 맞춘다(훅이 409 · 404 를, 여기서 403 을) */

@@ -574,7 +574,7 @@ function PostListMore({
     return (
       <div className={styles.cap}>
         <p className={styles.capText}>
-          {seen}. 여기서부터는 조건을 좁혀 보세요.
+          {seen}. 더 보려면 조건을 좁혀 보세요.
         </p>
         <button type="button" className={styles.capAction} onClick={onGoToFilters}>
           필터로 좁히기
