@@ -215,6 +215,10 @@
   --scrim: rgb(25 27 31 / 0.5);
   --shadow-overlay: 0 16px 40px -12px rgb(25 27 31 / 0.3);
   --selection: #ffe199;
+
+  /* 목록 카드 윤곽 — 게시글 한 건(사진 + 글 칸)을 한 덩어리로 두른다(본인 피드백 2026-10-08 "검은색 윤곽").
+     밝게는 잉크 그대로. 종이 위 17.2:1 */
+  --card-outline: var(--ink-900);
 }
 
 /*
@@ -288,6 +292,13 @@
   --scrim: rgb(6 7 8 / 0.62);
   --shadow-overlay: 0 16px 40px -12px rgb(6 7 8 / 0.7);
   --selection: #5a4516;
+
+  /*
+   * 목록 카드 윤곽 — 어두운 바탕 위 "검은 윤곽"은 보이지 않는다. 뜻(카드 한 장이 선으로 갈린다)만 옮겨
+   * 바탕보다 밝은 중간 잉크로 두른다. ink-400 #737881 은 바탕 #16171A 위 4.2:1 — 선으로 또렷하되(3:1 이상)
+   * 글자색(#ECEDEF, 15.3:1)처럼 스무 장의 테두리가 화면에서 가장 밝은 선이 되지 않는다
+   */
+  --card-outline: var(--ink-400);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -343,6 +354,8 @@
     --scrim: rgb(6 7 8 / 0.62);
     --shadow-overlay: 0 16px 40px -12px rgb(6 7 8 / 0.7);
     --selection: #5a4516;
+
+    --card-outline: var(--ink-400);
   }
 }
 

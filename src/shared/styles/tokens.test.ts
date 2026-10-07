@@ -96,6 +96,24 @@ describe('색 토큰', () => {
     expect(value(light, '--action-fill')).toBe(value(light, '--ink-900'))
   })
 
+  it('목록 카드 윤곽 — 밝게는 잉크 그대로, 어둡게는 바탕 위에서 선으로 보이되 글자보다 밝지 않다(본인 피드백 2026-10-08)', () => {
+    // 같은 블록의 원값을 가리킨다(`var(--ink-…)`) — 새 색을 만들지 않는다
+    const resolve = (block: Map<string, string>, name: string) => {
+      const raw = value(block, name)
+      const ref = /^var\((--[\w-]+)\)$/.exec(raw)
+      return ref ? value(block, ref[1]) : raw
+    }
+    expect(value(light, '--card-outline')).toBe('var(--ink-900)')
+    expect(contrast(resolve(light, '--card-outline'), value(light, '--paper'))).toBeGreaterThanOrEqual(15)
+
+    // 어두운 바탕 위 "검은 윤곽"은 보이지 않는다 — 비텍스트 대비 3:1 이상으로 갈리되, 글자색(#ECEDEF)처럼 눈부시지 않게
+    const darkOutline = resolve(dark, '--card-outline')
+    expect(contrast(darkOutline, value(dark, '--paper'))).toBeGreaterThanOrEqual(3)
+    expect(contrast(darkOutline, value(dark, '--paper'))).toBeLessThan(contrast(value(dark, '--ink-900'), value(dark, '--paper')) / 2)
+    // 포커스 링(밝은 잉크)과 색으로도 갈린다
+    expect(luminance(darkOutline)).toBeLessThan(luminance(value(dark, '--ink-900')))
+  })
+
   it('어둡게 두 벌(고른 경우 · 기기 설정)은 값이 같다 — 하나만 고치면 어긋난다', () => {
     expect([...darkBySystem.entries()]).toEqual([...dark.entries()])
   })
