@@ -1,4 +1,5 @@
-import { Link } from 'react-router-dom'
+import type { MouseEvent } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 
 import { formatDate } from '@/shared/lib/date'
 import { MapPin } from '@/shared/ui/icons'
@@ -48,8 +49,23 @@ export function PostCard({
   priority = false,
   linkState,
 }: PostCardProps) {
+  const navigate = useNavigate()
+
+  /*
+   * 카드 어디를 눌러도(사진 · 배지 · 장소 · 윤곽) 글을 연다 — 덮개(`::after`)가 브라우저 · 폭에 따라 사진까지 닿지 않는 일이 있어
+   * 카드 자체가 한 번 더 받는다(본인 피드백 2026-10-08 "사진 쪽은 아예 안 된다, 전체로"). 링크 자체를 누른 것 · 글자를 끌어 고른 것 ·
+   * 새 탭(Ctrl · ⌘ · Shift · 가운데 단추)은 브라우저 기본 동작에 맡긴다. 키보드 · 스크린리더는 그대로 제목 링크 하나다
+   */
+  const openFromCard = (event: MouseEvent<HTMLElement>) => {
+    if (!to || event.defaultPrevented || event.button !== 0) return
+    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
+    if ((event.target as Element).closest('a, button')) return
+    if (window.getSelection()?.toString()) return
+    navigate(to, { state: linkState })
+  }
+
   return (
-    <article className={styles.card} data-status={post.status}>
+    <article className={styles.card} data-status={post.status} data-link={to ? '' : undefined} onClick={openFromCard}>
       <div className={styles.body}>
         <Heading className={styles.title}>
           {to ? (

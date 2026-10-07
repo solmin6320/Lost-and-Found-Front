@@ -33,6 +33,11 @@
   border-color: var(--skeleton);
 }
 
+/* 카드 어디서나 누를 수 있다는 표시(링크가 있는 카드만 — 등록 화면 미리보기는 아니다) */
+.card[data-link] {
+  cursor: pointer;
+}
+
 /* 눌림 — 전역과 같은 한 가지(잠깐 옅어짐)를 카드 전체에. 제목 링크만 따로 옅어지지 않게 막는다 */
 .card:has(.link:active) {
   opacity: var(--press-opacity);
