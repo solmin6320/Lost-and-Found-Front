@@ -1,21 +1,44 @@
 /*
- * 검색이 두 번째 진입점이다. 의도 선택 바로 아래, 필터보다 크게.
+ * 검색이 두 번째 진입점이다. 분실 · 습득 칸 바로 아래, 필터보다 크게.
  * 옅은 면으로 채운 칸 — 종이 위에서 선만 긋는 것보다 "여기에 치면 된다" 가 먼저 보인다.
+ * 왼쪽 돋보기는 보내기 버튼이다(누르는 면 44px). 치는 동안 칸 바로 아래에 추천 글이 펼쳐진다.
  */
 
 .form {
   position: relative;
 }
 
-.lead {
+/*
+ * 돋보기 = [검색] 버튼(본인 피드백 2026-10-07 — 아이콘을 눌러도 검색되게). 아이콘 자리는 그대로(왼쪽 16px),
+ * 누르는 면은 44px 네모로 넓혀 칸 왼쪽 끝을 덮는다. 이름은 스크린리더용 `검색`
+ */
+.submit {
   position: absolute;
   top: 50%;
-  left: var(--space-4);
-  width: var(--icon-md);
-  height: var(--icon-md);
+  left: var(--space-1);
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: var(--tap-min);
+  height: var(--tap-min);
+  border-radius: var(--radius-sm);
   color: var(--text-body);
   transform: translateY(-50%);
-  pointer-events: none;
+}
+
+.submit svg {
+  width: var(--icon-md);
+  height: var(--icon-md);
+}
+
+.submit:active {
+  opacity: var(--press-opacity);
+}
+
+@media (hover: hover) {
+  .submit:hover {
+    color: var(--text-strong);
+  }
 }
 
 .input {
@@ -89,4 +112,110 @@
   .clear:hover {
     color: var(--text-strong);
   }
+}
+
+/* ── 추천 — 칸 바로 아래 6px 에 붙어 펼친다(칩 펼침 칸과 같은 떠 있는 면) ── */
+
+.popup {
+  composes: appear from '../../../shared/styles/motion.module.css';
+
+  position: absolute;
+  top: calc(100% + var(--space-1-5));
+  right: 0;
+  left: 0;
+  z-index: var(--z-dropdown);
+  max-height: 22rem;
+  padding: var(--space-1);
+  overflow-y: auto;
+  border: var(--hairline);
+  border-radius: var(--radius-md);
+  background-color: var(--surface-raised);
+  box-shadow: var(--shadow-overlay);
+  overscroll-behavior: contain;
+}
+
+.popup[hidden],
+.listbox[hidden] {
+  display: none;
+}
+
+.listbox {
+  display: grid;
+  /* 칸 폭을 넘지 않게 — 긴 제목이 칸을 밀지 않고 말줄임으로 끝난다 */
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-0-5);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/*
+ * 한 줄 한 글 : [분실] 제목(맞는 조각만 굵게)…  [게시중]. 누르는 높이 48px, 줄 전체가 누르는 면.
+ * 이름표가 맨 앞이라 분실 · 습득이 줄머리에서 먼저 갈린다(카드의 사진 위 이름표와 같은 자리 — 왼쪽 위)
+ */
+.option {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 3rem;
+  padding: var(--space-1-5) var(--space-3);
+  border-radius: var(--radius-sm);
+  color: var(--text-body);
+  font-size: var(--text-base);
+  font-weight: var(--weight-regular);
+  line-height: var(--leading-snug);
+  cursor: pointer;
+  transition: background-color var(--duration-fast) var(--ease-out);
+}
+
+/* 키보드로 가리킨 칸 — 옅은 면 + 잉크 테 두 겹(포커스 링과 같은 잉크). 포커스는 입력칸에 그대로 있다 */
+.option[aria-selected='true'] {
+  background-color: var(--surface-sunken);
+  box-shadow: inset 0 0 0 2px var(--selected-line);
+}
+
+.option:active {
+  opacity: var(--press-opacity);
+}
+
+@media (hover: hover) {
+  .option:hover {
+    background-color: var(--surface-sunken);
+  }
+}
+
+.optionTitle {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/*
+ * 맞는 조각 — 색 면(형광펜)이 아니라 굵기와 진한 잉크로. 노랑 형광펜은 분실 색(마리골드)과 겹쳐 "분실"로 읽힌다.
+ * 나머지 글자는 보통 굵기 · 본문 잉크라 한 단계 차이가 분명하다(색만으로 가르지 않는다)
+ */
+.match {
+  background: none;
+  color: var(--text-strong);
+  font-weight: var(--weight-extrabold);
+}
+
+/* 제목이 아니라 본문에서 맞은 글 — 강조할 조각이 없는 까닭을 말한다 */
+.optionWhere {
+  flex: none;
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+}
+
+/* 완료 글(상태를 "완료"로 골랐을 때만 섞인다) — 목록 카드처럼 한 단계 흐리게 */
+.option[data-done] .optionTitle {
+  color: var(--text-muted);
+}
+
+.note {
+  padding: var(--space-3);
+  color: var(--text-muted);
+  font-size: var(--text-sm);
 }

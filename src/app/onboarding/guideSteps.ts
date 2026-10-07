@@ -34,7 +34,7 @@ export const GUIDE_STEPS: readonly GuideStep[] = [
   {
     target: 'finder',
     title: '물건 이름으로 찾아요',
-    body: '카테고리, 상태, 장소, 기간으로 더 좁힐 수 있어요.',
+    body: '검색은 분실 글과 습득 글을 함께 찾아요. 카테고리, 상태, 장소, 기간으로 더 좁힐 수 있어요.',
   },
   {
     target: 'create',

@@ -79,9 +79,11 @@ export {
   postListSearchKey,
   postListShownLimit,
   toPostListParams,
+  withKeyword,
   withoutFilter,
   withoutFilters,
 } from './model/postListSearch'
+export { SUGGESTION_LIMIT, highlightParts, suggestionParams } from './model/searchSuggest'
 export type { PostFilterField, PostListProgress, PostListSearch } from './model/postListSearch'
 export { usePostListSearch } from './model/usePostListSearch'
 export { MY_POSTS_PAGE_SIZE, toMyPostsParams, useMyPostsSearch } from './model/myPostsSearch'

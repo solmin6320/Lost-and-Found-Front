@@ -1,6 +1,6 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 
 import { OnboardingTour, usePostListGuide } from '@/app/onboarding'
 import { POST_DETAIL_FROM_LIST, paths } from '@/app/paths'
@@ -22,8 +22,10 @@ import {
   postListQueryOptions,
   postListSearchKey,
   postListShownLimit,
+  suggestionParams,
   toPostListParams,
   usePostListSearch,
+  withKeyword,
   withoutFilter,
   withoutFilters,
   type PostIntent,
@@ -77,6 +79,7 @@ interface ExpandAnchor {
  */
 export function PostListPage() {
   const { search, apply, expand, hrefWith } = usePostListSearch()
+  const navigate = useNavigate()
   const query = useQuery({
     ...postListQueryOptions(toPostListParams(search)),
     placeholderData: keepPreviousData,
@@ -237,7 +240,11 @@ export function PostListPage() {
         <PostSearchBar
           key={search.keyword}
           keyword={search.keyword}
-          onSearch={(keyword) => applyThenFocusResults({ ...search, keyword })}
+          // 새 검색어는 분실 · 습득을 함께 찾는다(골라 둔 칸을 푼다). 한쪽만 보려면 위의 칸을 누른다 — 검색어는 남는다
+          onSearch={(keyword) => applyThenFocusResults(withKeyword(search, keyword))}
+          // 추천 = 그 말로 Enter 를 눌렀을 때 나올 목록의 앞 5건(상태 기준 · 칩 조건이 같다)
+          suggestionParams={(term) => suggestionParams(search, term)}
+          onOpenPost={(postId) => navigate(paths.postDetail(postId), { state: POST_DETAIL_FROM_LIST })}
         />
       </div>
 
