@@ -21,7 +21,7 @@ import styles from './RootLayout.module.css'
 /**
  * 모든 화면이 공유하는 껍데기. 헤더 · 본문 · 이탈 확인 하나. 푸터는 두지 않는다(2026-10-07).
  *
- * 헤더 — 로고(목록으로) · [홈](처음 목록으로), [글 올리기], 서비스 안내(물음표), 그리고
+ * 헤더 — 로고(목록으로), 오른쪽에 [글 올리기] · [홈](처음 목록으로) · 서비스 안내(물음표), 그리고
  *   비로그인 : 설정(톱니) · [로그인](글자 버튼). 화면 모드는 누구나 바꾼다(SCR-08)
  *   로그인   : 계정 메뉴 하나. 설정은 메뉴의 "설정"으로만 간다 — 같은 목적지가 두 곳이면 목표가 넷이 된다(회의 UI-6 c)
  * 누르는 면 사이는 8px(회의 UI-6 a). 휴대폰 폭은 로고 글자를 접어 [홈]에 자리를 내주고,
@@ -46,10 +46,11 @@ export function RootLayout() {
             <BrandMark />
             <span className={styles.wordmarkText}>분실물 찾기</span>
           </Link>
-          <HomeLink />
 
+          {/* [홈]은 [글 올리기]와 서비스 안내 사이(본인 피드백 2026-10-08) */}
           <div className={styles.actions}>
             <CreatePostLink />
+            <HomeLink />
             <GuideButton />
             <HeaderAuth />
           </div>
