@@ -42,7 +42,7 @@ const TAB_EMPTY: Record<PostStatus, { title: string; description: string }> = {
   },
   IN_PROGRESS: {
     title: '연락중인 글이 없어요.',
-    description: '주인으로 보이는 사람과 이야기를 시작하면 글을 열어 연락중으로 바꿔 주세요.',
+    description: '댓글로 연락이 닿으면 글을 열어 연락중으로 바꿔 주세요.',
   },
   DONE: {
     title: '완료된 글이 없어요.',

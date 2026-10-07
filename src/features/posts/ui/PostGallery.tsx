@@ -136,12 +136,13 @@ function PhotoGallery({ images, title, type, category, seed, className }: PostGa
               <CaretLeft />
             </PagerButton>
             <p className={styles.counter} aria-live="polite" aria-atomic="true">
-              <span className="sr-only">사진 </span>
-              <strong>{index + 1}</strong>
-              <span aria-hidden="true"> / </span>
-              <span className="sr-only">번째, 전체 </span>
-              {count}
-              <span className="sr-only">장</span>
+              {/* 읽는 말은 "5장 중 2번째 사진" 한 문장, 보이는 것은 "2 / 5" 그대로 */}
+              <span className="sr-only">
+                {count}장 중 {index + 1}번째 사진
+              </span>
+              <span aria-hidden="true">
+                <strong>{index + 1}</strong> / {count}
+              </span>
             </p>
             <PagerButton label="다음 사진" disabled={index === count - 1} onClick={() => go(index + 1)}>
               <CaretRight />

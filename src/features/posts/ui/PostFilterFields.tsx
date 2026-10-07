@@ -42,7 +42,7 @@ const CHOICES: { [F in PostChoiceField]: ChoiceOption<F>[] } = {
 
 /** 칸에는 이름만. 뜻은 그 조건을 고르는 자리에서 한 줄로(온보딩 2층) */
 const CHOICE_HINT: Partial<Record<PostChoiceField, string>> = {
-  status: '연락중은 주인으로 보이는 사람과 이야기하는 글, 완료는 주인에게 돌아간 글이에요. 완료 글은 완료를 골라야 보여요.',
+  status: '연락중은 연락이 닿은 글, 완료는 물건이 주인에게 돌아간 글이에요. 완료 글은 완료를 골라야 보여요.',
 }
 
 interface FilterChoiceMenuProps<F extends PostChoiceField> {

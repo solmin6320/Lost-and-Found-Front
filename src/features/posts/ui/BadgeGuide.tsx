@@ -44,7 +44,7 @@ export function BadgeGuide({ className }: { className?: string }) {
           </dd>
         </div>
       </dl>
-      <p className={styles.note}>이름표가 하나뿐이면 아직 주인을 찾고 있는 글이에요.</p>
+      <p className={styles.note}>이름표가 하나뿐이면 아직 찾고 있는 글이에요.</p>
     </Toggletip>
   )
 }

@@ -189,8 +189,9 @@ export function PostListPage() {
       firstCard.scrollIntoView({ block: 'nearest', behavior: reduce ? 'instant' : 'smooth' })
     }
     const added = Math.max(content.length - at.count, 0)
+    // 화면의 "N건 중 M건을 봤어요"와 같은 말로 읽는다 — "48 / 58"은 스크린리더가 빗금까지 읽는다
     setAnnouncement(
-      `${added.toLocaleString('ko-KR')}건을 더 불러왔어요. ${content.length.toLocaleString('ko-KR')} / ${page.totalElements.toLocaleString('ko-KR')}`,
+      `${added.toLocaleString('ko-KR')}건을 더 불러왔어요. ${page.totalElements.toLocaleString('ko-KR')}건 중 ${content.length.toLocaleString('ko-KR')}건을 봤어요.`,
     )
   }, [query.data, query.isPlaceholderData, condition])
 
@@ -573,7 +574,7 @@ function PostListMore({
     return (
       <div className={styles.cap}>
         <p className={styles.capText}>
-          {seen}. 여기서부터는 조건을 좁혀 보세요.
+          {seen}. 더 보려면 조건을 좁혀 보세요.
         </p>
         <button type="button" className={styles.capAction} onClick={onGoToFilters}>
           필터로 좁히기

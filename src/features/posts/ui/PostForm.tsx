@@ -484,7 +484,7 @@ export function PostForm({
             value={values.title}
             count={{ value: values.title.trim().length, max: POST_TITLE_MAX_LENGTH }}
             // 예시는 칸 안 안내 글로(회의 UI-9 b). 칸 이름은 위에 그대로 — 안내 글을 이름 대신 쓰지 않는다
-            placeholder={values.type === 'FOUND' ? '예: 에어팟 프로 왼쪽 한 쪽' : '예: 검은색 가죽 반지갑'}
+            placeholder={values.type === 'FOUND' ? '예: 에어팟 프로 왼쪽 한 짝' : '예: 검은색 가죽 반지갑'}
             error={errors.title}
             announceError={liveField === 'title'}
             detected={<DetectedLine notice={titleInfo.notice} />}
@@ -583,7 +583,7 @@ export function PostForm({
             }}
             hint={
               values.type === 'FOUND'
-                ? '어떤 상태로 어디에 두었는지 적어 주세요. 주인만 알 만한 특징 한두 가지는 적지 않고 남겨 두면 진짜 주인을 가려낼 수 있어요.'
+                ? '어떤 상태로 어디에 두었는지 적어 주세요. 주인만 알 만한 특징 한두 가지는 적지 말고 남겨 두세요. 진짜 주인인지 물어볼 때 쓸 수 있어요.'
                 : '색, 브랜드, 흠집, 안에 든 것처럼 사진에 안 보이는 특징을 적어 주세요.'
             }
             // 개인정보 줄은 오류가 떠 있어도 남는다(결과 고지). 한 줄로 줄였다 — 연락처를 적으면 감지 줄이 따로 알린다(SE-3).
