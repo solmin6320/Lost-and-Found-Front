@@ -246,6 +246,8 @@ export function PostOwnerPanel({ post, editHref, onDeleted }: PostOwnerPanelProp
         fallbackFocus={() => headingRef.current}
       >
         <p>완료로 바꾸면 다시 게시중이나 연락중으로 되돌릴 수 없어요.</p>
+        {/* 목록 기본값이 "진행 중"이라 완료 글은 기본 목록에서 빠진다(회의 ⑧ · AR2-8). 누르기 전에 한 번만 말한다 */}
+        <p>기본 목록에서는 빠지고, 상태에서 완료를 고르면 보여요.</p>
       </ConfirmDialog>
 
       <ConfirmDialog

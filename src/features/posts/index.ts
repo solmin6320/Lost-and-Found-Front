@@ -66,24 +66,36 @@ export {
   lostFoundDateLabel,
 } from './model/labels'
 export {
+  DEFAULT_LIST_STATUSES,
+  DEFAULT_STATUS_LABEL,
   POST_FILTER_FIELDS,
   POST_FILTER_FIELD_NAME,
   POST_LIST_MAX_PAGES,
   POST_LIST_PAGE_SIZE,
   hasActiveFilters,
+  listStatuses,
   postListConditionKey,
   postListProgress,
   postListSearchKey,
   postListShownLimit,
   toPostListParams,
+  withKeyword,
   withoutFilter,
   withoutFilters,
 } from './model/postListSearch'
+export { SUGGESTION_LIMIT, highlightParts, suggestionParams } from './model/searchSuggest'
 export type { PostFilterField, PostListProgress, PostListSearch } from './model/postListSearch'
 export { usePostListSearch } from './model/usePostListSearch'
 export { MY_POSTS_PAGE_SIZE, toMyPostsParams, useMyPostsSearch } from './model/myPostsSearch'
 export type { MyPostsSearch } from './model/myPostsSearch'
-export { ALL_POSTS_HEADING, POST_INTENTS, intentShowing, postListHeading } from './model/postIntent'
+export {
+  ALL_POSTS_HEADING,
+  ANY_INTENT_EMPTY,
+  POST_INTENTS,
+  SEARCH_RESULTS_HEADING,
+  intentShowing,
+  postListHeading,
+} from './model/postIntent'
 export type { PostIntent } from './model/postIntent'
 export { BadgeGuide } from './ui/BadgeGuide'
 export { CategoryArt } from './ui/CategoryArt'

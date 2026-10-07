@@ -3,6 +3,7 @@ import { safeImageUrl } from '@/shared/lib/url'
 import type { PagedModel } from '@/shared/types/api'
 
 import {
+  POST_STATUSES,
   isPostCategory,
   isPostStatus,
   isPostType,
@@ -36,7 +37,10 @@ export function normalizePostListParams(params: PostListParams): PostListParams 
 
   if (isPostType(params.type)) result.type = params.type
   if (isPostCategory(params.category)) result.category = params.category
-  if (isPostStatus(params.status)) result.status = params.status
+  // 상태는 여러 값이다. 모르는 값은 버리고, 순서 · 겹침과 상관없이 서버 Enum 순서 한 모양으로 —
+  // 같은 조건이 다른 캐시가 되지 않게. 다 버려지면 싣지 않는다(서버는 상태를 거르지 않는다)
+  const statuses = POST_STATUSES.filter((status) => params.status?.includes(status))
+  if (statuses.length > 0) result.status = statuses
 
   const location = params.location?.trim()
   if (location) result.location = location

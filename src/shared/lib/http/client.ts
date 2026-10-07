@@ -8,12 +8,13 @@ import {
   UNEXPECTED_RESPONSE,
   isErrorResponse,
 } from './errors'
+import { buildQueryString, type QueryValue } from './query'
 import { expireSession, refreshAccessToken } from './tokenRefresh'
 
 type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
 
-/** 비어 있는 값(`undefined` · `null` · `''`)은 쿼리스트링에서 빠진다 */
-export type QueryValue = string | number | boolean | null | undefined
+/** 비어 있는 값(`undefined` · `null` · `''`)은 쿼리스트링에서 빠진다. 배열은 같은 이름을 되풀이한다(`status=OPEN&status=IN_PROGRESS`) */
+export type { QueryValue }
 
 export interface RequestOptions {
   method?: HttpMethod
@@ -109,16 +110,7 @@ function tokenForRetry(sentToken: string | null): Promise<string> {
 }
 
 function buildUrl(path: string, query: RequestOptions['query']): string {
-  const params = new URLSearchParams()
-
-  for (const [key, value] of Object.entries(query ?? {})) {
-    if (value === undefined || value === null || value === '') {
-      continue
-    }
-    params.append(key, String(value))
-  }
-
-  const search = params.toString()
+  const search = buildQueryString(query)
   // apiBaseUrl 이 빈 문자열이면 상대경로 — 개발은 Vite 프록시, 배포는 CloudFront 가 받는다
   return `${env.apiBaseUrl}${path}${search ? `?${search}` : ''}`
 }

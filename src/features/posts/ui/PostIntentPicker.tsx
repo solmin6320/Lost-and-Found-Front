@@ -7,11 +7,12 @@ import { X } from '@/shared/ui/icons'
 
 import type { PostType } from '../api/types'
 import { POST_INTENTS, intentHintTail, type PostIntent } from '../model/postIntent'
+import { DEFAULT_LIST_STATUSES } from '../model/postListSearch'
 import { postListQueryOptions } from '../model/postQueries'
 import styles from './PostIntentPicker.module.css'
 
 interface PostIntentPickerProps {
-  /** 지금 목록에 걸린 유형. 의도가 아니라 **보여주는 글의 유형**이다 */
+  /** 지금 목록에 걸린 유형. 칸 이름이 곧 이 유형이다(분실 글 · 습득 글) */
   selected: PostType | undefined
   /** 유형 → 주소. `undefined` 는 전체. 검색어 · 필터는 그대로 두고 1쪽으로 간다 */
   hrefFor: (type: PostType | undefined) => To
@@ -25,12 +26,15 @@ interface PostIntentPickerProps {
 }
 
 /**
- * 첫 화면의 두 갈래 — `물건을 잃어버렸어요` / `물건을 주웠어요`.
+ * 첫 화면의 두 갈래 — `잃어버린 물건`(분실 글, 분실 색) / `주운 물건`(습득 글, 습득 색).
+ * **칸 이름 = 보여 주는 글의 종류**(본인 결정 2026-10-07). 칸의 색과 결과 카드 이름표의 색이 같다 —
+ * 주황 칸을 누르면 주황 이름표(분실)의 글만, 파란 칸을 누르면 파란 이름표(습득)의 글만 나온다.
  * 분실/습득은 필터 하나가 아니라 이 서비스의 구조라 맨 위에 큰 색 면으로 둔다.
  * 면에는 글자만 둔다. 귀퉁이 장식(흐린 꼬리표)은 뺐다 — 뜻 없이 로고 모양을 되풀이하는 워터마크였다.
  *
  * 둘 다 링크다(새 탭 열기 · 주소 공유). 고른 쪽은 `aria-current` 로 알리고, 옆의 [×] 로 전체로 돌아간다.
  * 다른 쪽을 누르면 바로 갈아탄다. 고른 쪽을 다시 눌러도 같은 주소라 기록이 쌓이지 않는다.
+ * 검색어와 함께 쓴다 — 검색은 두 종류를 함께 찾고, 이 칸을 누르면 검색어는 그대로 둔 채 한쪽만 남긴다.
  */
 export function PostIntentPicker({ selected, hrefFor, showCounts, onReselect }: PostIntentPickerProps) {
   const listRef = useRef<HTMLUListElement>(null)
@@ -45,9 +49,9 @@ export function PostIntentPicker({ selected, hrefFor, showCounts, onReselect }: 
   }, [selected])
 
   return (
-    <ul ref={listRef} className={styles.intents} role="list" aria-label="무엇을 찾나요">
+    <ul ref={listRef} className={styles.intents} role="list" aria-label="글 종류">
       {POST_INTENTS.map((intent) => {
-        const on = selected === intent.shows
+        const on = selected === intent.concept
         return (
           <li
             key={intent.concept}
@@ -57,7 +61,7 @@ export function PostIntentPicker({ selected, hrefFor, showCounts, onReselect }: 
           >
             <Link
               className={styles.choice}
-              to={hrefFor(intent.shows)}
+              to={hrefFor(intent.concept)}
               aria-current={on ? 'true' : undefined}
               onClick={(event: MouseEvent) => {
                 if (on && isPlainClick(event)) onReselect?.()
@@ -72,7 +76,7 @@ export function PostIntentPicker({ selected, hrefFor, showCounts, onReselect }: 
               <Link
                 className={styles.reset}
                 to={hrefFor(undefined)}
-                aria-label="선택 풀고 모든 글 보기"
+                aria-label="선택 풀고 분실 글과 습득 글 모두 보기"
                 onClick={(event: MouseEvent) => {
                   // 새 탭으로 여는 클릭은 이 화면을 바꾸지 않는다. 포커스 이동을 예약하면 나중에 엉뚱할 때 튄다
                   if (isPlainClick(event)) refocus.current = intent.concept
@@ -89,16 +93,17 @@ export function PostIntentPicker({ selected, hrefFor, showCounts, onReselect }: 
 }
 
 /**
- * 무엇을 보게 되는지 한 줄 — "누가 주워 둔 물건 · 12건 보기". 좁은 칸에서는 두 조각을 두 줄로 끊는다
+ * 무엇을 보게 되는지 한 줄 — "분실 글 · 12건 보기". 카드 이름표와 같은 말이다. 좁은 칸에서는 두 조각을 두 줄로 끊는다
  * (넓은 칸에서는 면 오른쪽 끝에 한 줄로 선다 — CSS).
- * 건수는 목록과 별개로 불러온다 — 목록을 막지 않는다.
+ * 건수는 목록과 별개로 불러온다 — 목록을 막지 않는다. **기준은 기본 목록과 같은 "진행 중"**(게시중 + 연락중, 회의 ⑧) —
+ * 칸을 눌러 나오는 건수와 같다.
  * 불러오는 동안 숫자 자리를 비워 두어 글자가 밀리지 않고, 실패하면 숫자 대신 "모두" 를 쓴다.
- * 검색어 · 필터가 걸려 있으면 숫자를 빼고 **한 줄로 이어 쓴다**("누가 주워 둔 물건 보기") —
+ * 검색어 · 필터가 걸려 있으면 숫자를 빼고 **한 줄로 이어 쓴다**("분실 글 보기") —
  * 두 줄로 끊으면 "보기" 한 단어가 둘째 줄에 홀로 남는다.
  */
 function IntentHint({ intent, on, showCount }: { intent: PostIntent; on: boolean; showCount: boolean }) {
   const count = useQuery({
-    ...postListQueryOptions({ type: intent.shows, size: 1 }),
+    ...postListQueryOptions({ type: intent.concept, status: DEFAULT_LIST_STATUSES, size: 1 }),
     select: (data) => data.page.totalElements,
   })
 
