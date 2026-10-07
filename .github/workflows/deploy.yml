@@ -1,0 +1,158 @@
+# 프론트 자동 배포(docs/배포.md 9장). main 에 push 된 커밋의 CI 가 통과하면 바로 그 커밋을 S3 + CloudFront 로 올린다.
+# 배포는 main 에서만 — 이 조건 · environment `production` 의 main 제한 · IAM 신뢰 정책의 sub 세 겹으로 막는다(9.0)
+# AWS 권한은 OIDC 역할로 받는다. 액세스 키를 Secrets 에 두지 않는다(기능명세서 11장)
+name: Deploy
+
+on:
+  # workflow_run 은 기본 브랜치(main)에 있는 이 파일로 돈다 — 다른 브랜치에서 이 파일을 고쳐도 자동 배포는 바뀌지 않는다
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  # Actions 탭의 Run workflow. main 이 아닌 브랜치에서 누르면 아래 main-only 가 이유를 남기고 실패한다
+  workflow_dispatch:
+
+# 기본은 아무 권한도 없다. 필요한 것은 작업마다 연다
+permissions: {}
+
+jobs:
+  # 다른 브랜치에서 수동 실행하면 deploy 는 건너뛴다. 건너뛴 까닭이 보이도록 여기서 실패로 남긴다(권한 · 체크아웃 없음)
+  main-only:
+    name: main 에서만 배포
+    if: github.event_name == 'workflow_dispatch' && github.ref != 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 1
+    steps:
+      - name: 다른 브랜치에서는 배포하지 않는다
+        env:
+          REF: ${{ github.ref }}
+        run: |
+          echo "::error::배포는 main 에서만 합니다. Run workflow 의 Use workflow from 을 main 으로 두고 다시 누르세요(docs/배포.md 9.0)."
+          printf '받은 브랜치 : %q\n' "$REF"
+          exit 1
+
+  deploy:
+    name: S3 + CloudFront 배포
+    # 자동 : main 에 push 된 커밋의 CI 가 성공했을 때만(PR · 포크 · 다른 브랜치의 CI 는 올리지 않는다). 수동 : main 에서만
+    if: >-
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
+      (github.event_name == 'workflow_run' &&
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_branch == 'main' &&
+      github.event.workflow_run.head_repository.full_name == github.repository)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    # 이 이름이 OIDC 토큰의 sub(repo:<리포>:environment:production)가 된다. 환경의 main 제한 · 역할 신뢰 정책과 짝이다
+    environment:
+      name: production
+      url: ${{ vars.SITE_URL }}
+    # 배포 도중에 끊지 않는다 — 뒤 배포는 앞 배포가 끝날 때까지 기다린다
+    concurrency:
+      group: deploy-production
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      id-token: write # OIDC 토큰 요청(역할 받기)
+    env:
+      # CI 가 통과한 바로 그 커밋. 수동 실행이면 main 의 마지막 커밋
+      DEPLOY_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+    # 액션은 커밋 SHA 로 고정한다(ci.yml 과 같은 까닭). 주석의 버전은 Dependabot 이 SHA 와 함께 올린다
+    steps:
+      # 비어 있으면 빌드 · AWS 까지 가지 않고 여기서 멈춘다. 값은 비밀이 아니라 Variables 에 둔다(docs/배포.md 9.4)
+      - name: 설정 확인
+        env:
+          ROLE_ARN: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          FRONT_BUCKET: ${{ vars.FRONT_BUCKET }}
+          DISTRIBUTION_ID: ${{ vars.CLOUDFRONT_DISTRIBUTION_ID }}
+          SITE_URL: ${{ vars.SITE_URL }}
+        run: |
+          ok=1
+          fail() { echo "::error::$1"; ok=0; }
+          [ -n "$ROLE_ARN" ] || fail 'AWS_DEPLOY_ROLE_ARN 이 비어 있습니다. docs/배포.md 9.3 에서 만든 역할의 ARN 을 9.4 대로 production 환경 변수에 넣으세요.'
+          [ -n "$FRONT_BUCKET" ] || fail 'FRONT_BUCKET 이 비어 있습니다. 프론트 버킷 이름(3.1)을 docs/배포.md 9.4 대로 넣으세요.'
+          [ -n "$DISTRIBUTION_ID" ] || fail 'CLOUDFRONT_DISTRIBUTION_ID 가 비어 있습니다. 배포 ID(E…, 3.4-8)를 docs/배포.md 9.4 대로 넣으세요.'
+          [ -n "$SITE_URL" ] || fail 'SITE_URL 이 비어 있습니다. 사이트 주소(https://…cloudfront.net)를 docs/배포.md 9.4 대로 넣으세요.'
+          if [ -n "$ROLE_ARN" ] && ! [[ "$ROLE_ARN" =~ ^arn:aws:iam::[0-9]{12}:role/([A-Za-z0-9+=,.@_-]+/)*[A-Za-z0-9+=,.@_-]{1,64}$ ]]; then
+            fail 'AWS_DEPLOY_ROLE_ARN 이 역할 ARN 모양(arn:aws:iam::<계정 12자리>:role/<역할 이름>)이 아닙니다. 역할 화면의 ARN 을 앞뒤 공백 없이 복사하세요(docs/배포.md 9.3).'
+          fi
+          if [ -n "$SITE_URL" ] && ! [[ "$SITE_URL" =~ ^https://[a-z0-9.-]+/?$ ]]; then
+            fail 'SITE_URL 은 https://<도메인> 하나입니다(경로 · 공백 없이, 끝 / 는 있어도 된다). docs/배포.md 9.4.'
+          fi
+          [[ "$DEPLOY_SHA" =~ ^[0-9a-f]{40}$ ]] || fail '배포할 커밋을 알 수 없습니다.'
+          [ "$ok" = 1 ] || exit 1
+          echo "설정이 모두 있습니다. 올릴 커밋 : $DEPLOY_SHA"
+
+      # 이 뒤에 git push 같은 단계가 없다 — 토큰을 .git/config 에 남기지 않는다
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          ref: ${{ env.DEPLOY_SHA }}
+          persist-credentials: false
+
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - run: npm ci
+
+      # 사진 CloudFront. build/csp.ts 의 DEFAULT_IMAGE_ORIGINS 와 같은 값 — deploy-workflow.test.ts 가 맞춰 본다
+      - run: npm run build
+        env:
+          CSP_IMAGE_ORIGINS: https://d1xmzetvs0f1oh.cloudfront.net
+
+      # 자격(임시 키)은 빌드가 끝난 뒤에 받는다 — npm ci · 빌드 단계의 환경에는 AWS 키가 없다.
+      # 업로드는 1분 남짓이라 15분(최소)이면 남는다
+      - name: AWS 역할 받기(OIDC)
+        uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ap-northeast-2
+          role-session-name: lostfound-front-deploy-${{ github.run_id }}-${{ github.run_attempt }}
+          role-duration-seconds: 900
+
+      # 순서 · 캐시 · 무효화 · 빌드 점검은 손으로 배포할 때와 같은 스크립트(docs/배포.md 5장)
+      - name: S3 업로드 · CloudFront 무효화
+        env:
+          ROLE_ARN: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          FRONT_BUCKET: ${{ vars.FRONT_BUCKET }}
+          DISTRIBUTION_ID: ${{ vars.CLOUDFRONT_DISTRIBUTION_ID }}
+          AWS_PAGER: ''
+        run: |
+          # 스크립트의 자격 확인이 이 역할(assumed-role/<역할 이름>/…)만 통과시킨다. ARN 의 마지막 조각이 역할 이름이다
+          export DEPLOY_IAM_ROLE="${ROLE_ARN##*/}"
+          bash deploy/s3-upload.sh --apply
+
+      # AWS 권한 없이 사용자와 같은 길(CloudFront)로 받아 본다. 무효화가 퍼질 때까지 10초 간격으로 최대 10분
+      - name: 배포 확인 — 사이트의 index.html 이 이 빌드와 같은지
+        env:
+          SITE_URL: ${{ vars.SITE_URL }}
+        run: |
+          url="${SITE_URL%/}/"
+          live="$RUNNER_TEMP/live-index.html"
+          deadline=$((SECONDS + 600))
+          i=0
+          while :; do
+            i=$((i + 1))
+            if curl -fsS --proto '=https' --max-time 20 -o "$live" "$url" && cmp -s "$live" dist/index.html; then
+              echo "같습니다(${i}번째 확인). $url"
+              exit 0
+            fi
+            [ "$SECONDS" -lt "$deadline" ] || break
+            sleep 10
+          done
+          echo "::error::10분 동안 사이트의 index.html 이 이 빌드와 달랐습니다. CloudFront 무효화 상태와 SITE_URL 을 보세요(docs/배포.md 9.6)."
+          exit 1
+
+      - name: 요약
+        if: always()
+        env:
+          STATUS: ${{ job.status }}
+          SITE_URL: ${{ vars.SITE_URL }}
+        run: |
+          case "$STATUS" in
+            success) result='올림 · 사이트 확인 끝' ;;
+            cancelled) result='취소됨' ;;
+            *) result='실패 — 빨간 단계의 로그를 보세요(docs/배포.md 9.6)' ;;
+          esac
+          printf -- '- 커밋 `%s` → %s : %s\n' "${DEPLOY_SHA:0:12}" "${SITE_URL:-(SITE_URL 없음)}" "$result" >> "$GITHUB_STEP_SUMMARY"

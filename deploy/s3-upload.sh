@@ -18,6 +18,8 @@
 # 액세스 키를 이 파일 · 명령줄에 적지 않는다. `aws configure` 로 만든 프로필을 쓴다(AWS_PROFILE).
 # 누구로 도는지 먼저 확인한다(aws sts get-caller-identity). 배포 전용 사용자(DEPLOY_IAM_USER, 기본 lostfound-front-deployer)가
 # 아니면 --apply 는 멈춘다 — 기본 프로필(관리자 키 · 백엔드 키)로 잘못 돌리는 것을 막는다. 미리보기는 경고만 한다.
+# GitHub Actions(.github/workflows/deploy.yml)는 사용자가 아니라 OIDC 역할로 돈다 — DEPLOY_IAM_ROLE(역할 이름)을 주면
+# 그 역할의 세션(arn:aws:sts::<계정>:assumed-role/<역할 이름>/<세션>)도 통과한다. 비우면 위 그대로 사용자만(docs/배포.md 9장).
 
 set -euo pipefail
 
@@ -89,6 +91,9 @@ fi
 DEPLOY_IAM_USER="${DEPLOY_IAM_USER:-lostfound-front-deployer}"
 [[ "$DEPLOY_IAM_USER" =~ ^[A-Za-z0-9+=,.@_-]{1,64}$ ]] \
   || die "DEPLOY_IAM_USER 에는 IAM 사용자 이름만 넣습니다(ARN 이 아니라 이름): $DEPLOY_IAM_USER"
+DEPLOY_IAM_ROLE="${DEPLOY_IAM_ROLE:-}"
+[ -z "$DEPLOY_IAM_ROLE" ] || [[ "$DEPLOY_IAM_ROLE" =~ ^[A-Za-z0-9+=,.@_-]{1,64}$ ]] \
+  || die "DEPLOY_IAM_ROLE 에는 IAM 역할 이름만 넣습니다(ARN 이 아니라 이름): $DEPLOY_IAM_ROLE"
 
 if [ "$MODE" = upload ]; then
   [ -n "${DISTRIBUTION_ID:-}" ] || die 'DISTRIBUTION_ID 가 비어 있습니다. CloudFront 배포 ID(E 로 시작)를 넣으세요.'
@@ -115,15 +120,23 @@ caller_is_deployer() {
   [[ "$1" =~ ^arn:aws:iam::[0-9]{12}:user/(.+/)?([^/]+)$ ]] && [ "${BASH_REMATCH[2]}" = "$DEPLOY_IAM_USER" ]
 }
 
+# GitHub Actions 의 OIDC 역할 세션. DEPLOY_IAM_ROLE 이 비면 언제나 거짓 — 사람이 돌릴 때는 위 사용자만 통과한다
+caller_is_deploy_role() {
+  [ -n "$DEPLOY_IAM_ROLE" ] \
+    && [[ "$1" =~ ^arn:aws:sts::[0-9]{12}:assumed-role/([^/]+)/[^/]+$ ]] && [ "${BASH_REMATCH[1]}" = "$DEPLOY_IAM_ROLE" ]
+}
+
 step "자격 확인 — 프로필 ${AWS_PROFILE:-(기본)}, 기대하는 사용자 $DEPLOY_IAM_USER"
+[ -z "$DEPLOY_IAM_ROLE" ] || printf '  또는 역할 %s (GitHub Actions)\n' "$DEPLOY_IAM_ROLE"
 CALLER_ARN=''
 if ! CALLER_ARN="$(aws sts get-caller-identity --query Arn --output text | strip_cr)" || [ -z "$CALLER_ARN" ]; then
   [ "$APPLY" != 1 ] || die '누구로 실행하는지 확인하지 못했습니다(aws sts get-caller-identity). AWS_PROFILE 이 배포 프로필인지, 키가 살아 있는지 보세요(docs/배포.md 2.2). 아무것도 바꾸지 않았습니다.'
   warn '누구로 실행하는지 확인하지 못했습니다. 미리보기는 계속하지만 --apply 는 여기서 멈춥니다.'
 else
   printf '  %s\n' "$CALLER_ARN"
-  if ! caller_is_deployer "$CALLER_ARN"; then
+  if ! caller_is_deployer "$CALLER_ARN" && ! caller_is_deploy_role "$CALLER_ARN"; then
     WRONG_USER="배포 전용 사용자($DEPLOY_IAM_USER)가 아닙니다. export AWS_PROFILE=lostfound-deploy 로 바꾸세요(docs/배포.md 2.2). 사용자 이름을 바꿨다면 DEPLOY_IAM_USER 에 그 이름을 넣으세요."
+    [ -z "$DEPLOY_IAM_ROLE" ] || WRONG_USER="$WRONG_USER 역할로 돌린다면(GitHub Actions) 위 ARN 의 역할 이름이 $DEPLOY_IAM_ROLE 이어야 합니다(docs/배포.md 9.6)."
     [ "$APPLY" != 1 ] || die "$WRONG_USER 아무것도 바꾸지 않았습니다."
     warn "$WRONG_USER 미리보기는 계속하지만 --apply 는 여기서 멈춥니다."
   fi
