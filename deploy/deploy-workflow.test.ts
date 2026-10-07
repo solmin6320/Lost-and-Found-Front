@@ -108,13 +108,16 @@ describe('deploy.yml — main 에서만 배포한다', () => {
     expect(deployJob).toMatch(/^ {10}ref: \$\{\{ env\.DEPLOY_SHA \}\}$/m)
   })
 
-  it('environment production — 문서의 IAM 신뢰 정책 sub 와 같은 이름이다', () => {
+  it('environment production — 문서의 IAM 신뢰 정책 sub 는 고정 ID 형식이고 같은 환경 이름이다', () => {
     const name = /^ {4}environment:\n {6}name: (\S+)$/m.exec(deployJob)?.[1]
     expect(name).toBe('production')
     const docs = readFileSync(new URL('../docs/배포.md', import.meta.url), 'utf8')
-    expect(docs).toContain(
-      `"token.actions.githubusercontent.com:sub": "repo:solmin6320/Lost-and-Found-Front:environment:${name}"`,
-    )
+    // 이 리포는 GitHub OIDC 고정 ID 주체를 쓴다 — repo:<계정>@<번호>/<리포>@<번호>:… (2026-10-08 첫 배포에서 옛 모양이 거절됐다)
+    const subLines = docs.match(/"token\.actions\.githubusercontent\.com:sub": "[^"]*"/g) ?? []
+    expect(subLines).toEqual([
+      `"token.actions.githubusercontent.com:sub": "repo:solmin6320@282091421/Lost-and-Found-Front@1380027425:environment:${name}"`,
+    ])
+    expect(subLines[0]).toMatch(/"repo:[\w.-]+@\d+\/[\w.-]+@\d+:environment:[\w.-]+"$/)
   })
 })
 
