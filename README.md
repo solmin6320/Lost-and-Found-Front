@@ -85,6 +85,8 @@ deploy/           배포에만 쓰는 것 — CloudFront Function(spa-rewrite.js
 기본 동작(`/*`)에만 붙인 CloudFront Function(`deploy/cloudfront/spa-rewrite.js`)이 `/index.html` 로 돌린다(기능명세서 11장).
 커스텀 오류 응답(403/404 → `/index.html`)은 쓰지 않는다 — `/api/*` 의 403 · 404 까지 HTML 이 된다. 배포 절차는 `docs/배포.md`.
 
+배포는 main 에서만 한다 — main 에 합치면 CI 통과 뒤 `.github/workflows/deploy.yml` 이 그 커밋을 S3 + CloudFront 로 올린다(AWS 권한은 OIDC 역할, 키 없음 · `docs/배포.md` 9장).
+
 ## 디자인
 
 **색은 개념에 붙는다.** 이 서비스에는 두 갈래뿐이다 — 잃어버림과 주움.
