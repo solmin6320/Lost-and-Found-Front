@@ -18,10 +18,11 @@ import { Button } from '@/shared/ui/Button'
 import { GUIDE_STEPS, guideFallbackControl, guideTargetElement, type GuideTarget } from './guideSteps'
 import { markOnboardingDone } from './onboardingState'
 import styles from './OnboardingTour.module.css'
+import { enterPressesPrimary, keepsFocusOnPress, tourClickOutcome, tourPressArea, type TourPressArea } from './tourPress'
 
 interface OnboardingTourProps {
   open: boolean
-  /** 끝까지 봤든 · 건너뛰었든 · Esc · 바깥을 눌렀든 닫힐 때 한 번 */
+  /** 끝까지 봤든 · 건너뛰었든 · Esc · 테 안을 눌렀든 닫힐 때 한 번(바깥 막을 누르는 것으로는 닫히지 않는다) */
   onClose: () => void
   /**
    * 닫은 뒤 포커스를 둘 곳. 연 버튼(헤더 `서비스 안내`)이 있으면 그리로 돌아가고,
@@ -72,7 +73,9 @@ const prefersReducedMotion = () => window.matchMedia('(prefers-reduced-motion: r
  * "이게 그 자리구나" 가 이어진다. 좁은 화면은 바텀 시트, 넓은 화면은 대상 근처의 작은 카드.
  *
  * 네이티브 `<dialog>` 의 `showModal()` — 바깥이 inert 가 되어 포커스가 갇히고, Esc 로 닫힌다.
- * 막(backdrop)은 투명이다. 카드 바깥을 누르면 닫힌다(건너뛰기와 같다).
+ * 막(backdrop)은 투명이다. **카드 · 테 바깥(막)을 눌러도 아무 일도 없다**(본인 피드백 2026-10-07 — 화면을 톡 건드리기만 해도
+ * 닫혀 버렸다). 넘기기는 [다음]과 Enter, 닫기는 [건너뛰기] · [시작하기] · Esc. 막을 눌러도 포커스는 [다음]에 그대로 남는다
+ * (Enter 가 계속 넘긴다). 판정은 `tourPress.ts`(시험 있음).
  * **테 안을 누르면** 안내를 닫고 그 자리의 동작을 바로 한다(회의 RV-10) — 가리킨 것을 누르는 게 가장 자연스러운 다음 동작이다.
  * 의도 칸이면 그 의도를, 칩이면 그 칩을, [글 올리기]면 글쓰기를. 칸 사이 틈이면 그 대상의 대표 동작(검색칸에 포커스 등).
  * 테가 막 나타난 0.5초 안에 시작된 누름은 무시한다(`usePressGuard`, SE-1) — [다음]을 두 번 누른 둘째 누름이 테에 떨어져도 실행되지 않게.
@@ -86,8 +89,8 @@ export function OnboardingTour({ open, onClose, fallbackFocus }: OnboardingTourP
   const ringRef = useRef<HTMLDivElement>(null)
   const textRef = useRef<HTMLDivElement>(null)
   const returnFocusRef = useRef<HTMLElement | null>(null)
-  const pressedOutside = useRef(false)
-  const pressedRing = useRef(false)
+  /** 누름이 시작된 곳(`pointerdown`). click 이 끝난 곳과 맞춰 본다 */
+  const pressedIn = useRef<TourPressArea | null>(null)
   const pendingAction = useRef<PendingAction | null>(null)
   const ringGuard = usePressGuard()
   const onCloseRef = useRef(onClose)
@@ -220,14 +223,44 @@ export function OnboardingTour({ open, onClose, fallbackFocus }: OnboardingTourP
 
   const close = () => dialogRef.current?.close()
 
-  // 카드 바깥을 누르면 닫는다. 안에서 누르고 밖에서 뗀 드래그(글자 선택)로는 닫지 않는다.
-  // 테 안 누름은 따로 적는다 — 닫기가 아니라 그 자리의 동작이다
-  function handlePointerDown(event: PointerEvent<HTMLDialogElement>) {
-    const target = event.target as Node
-    pressedRing.current = Boolean(ringRef.current?.contains(target))
-    pressedOutside.current = !pressedRing.current && !cardRef.current?.contains(target)
-    if (pressedRing.current) ringGuard.pointerDown()
+  function areaOf(target: EventTarget | null): TourPressArea {
+    const node = target instanceof Node ? target : null
+    return tourPressArea({
+      inCard: Boolean(node && cardRef.current?.contains(node)),
+      inRing: Boolean(node && ringRef.current?.contains(node)),
+    })
   }
+
+  // 누름이 시작된 곳을 적는다. 바깥(막)은 닫지 않는다 — 테 안 누름만 그 자리의 동작이다
+  function handlePointerDown(event: PointerEvent<HTMLDialogElement>) {
+    pressedIn.current = areaOf(event.target)
+    if (pressedIn.current === 'ring') ringGuard.pointerDown()
+  }
+
+  // 카드 밖을 눌러도 포커스가 [다음]에서 빠지지 않게 — 브라우저는 눌린 빈자리로 포커스를 옮기며 문서로 빼 버린다.
+  // 그러면 Enter 가 더는 넘기지 못한다. 막은 그 밖에 아무 반응도 하지 않는다(눌림 · 글자 고르기 없음)
+  function handleMouseDown(event: MouseEvent<HTMLDialogElement>) {
+    if (keepsFocusOnPress(areaOf(event.target))) event.preventDefault()
+  }
+
+  // Enter — 포커스가 카드의 버튼에 있으면 그 버튼이 스스로 눌린다. 버튼 밖(포커스를 잃은 때 포함)이면 기본 버튼([다음] · [시작하기])을.
+  // 포커스가 문서로 빠졌어도 받게 문서에서 듣는다(대화상자 밖의 키는 대화상자에 오지 않는다)
+  useEffect(() => {
+    if (!open) return
+    function handleEnter(event: globalThis.KeyboardEvent) {
+      if (event.defaultPrevented) return
+      const active = document.activeElement
+      const focusOnControl = Boolean(active && cardRef.current?.contains(active) && active.matches('button, a[href]'))
+      if (!enterPressesPrimary({ key: event.key, isComposing: event.isComposing, repeat: event.repeat, focusOnControl })) return
+      event.preventDefault()
+      // 포커스도 기본 버튼으로 옮긴다 — 다음 Enter · Tab 이 카드 안에서 이어진다
+      const primary = cardRef.current?.querySelector<HTMLButtonElement>('[data-guide-primary]')
+      primary?.focus({ preventScroll: true })
+      primary?.click()
+    }
+    document.addEventListener('keydown', handleEnter)
+    return () => document.removeEventListener('keydown', handleEnter)
+  }, [open])
 
   // 포커스를 카드 안에서 돌린다. 네이티브 모달은 마지막 버튼에서 Tab 을 누르면 주소창으로 빠진다
   function handleKeyDown(event: KeyboardEvent<HTMLDialogElement>) {
@@ -245,20 +278,20 @@ export function OnboardingTour({ open, onClose, fallbackFocus }: OnboardingTourP
     }
   }
 
+  // 누름이 끝났다. 바깥(막)은 아무 일도 하지 않는다(본인 피드백 2026-10-07). 테에서 시작해 테에서 끝난 누름만 그 자리를 누른다 —
+  // 테가 막 나타난 바로 그때 시작된 누름은 원래 [다음] 같은 다른 것을 노린 누름이라 무시한다(SE-1)
   function handleClick(event: MouseEvent<HTMLDialogElement>) {
-    const target = event.target as Node
-    const inRing = pressedRing.current && Boolean(ringRef.current?.contains(target))
-    const outside = pressedOutside.current && !cardRef.current?.contains(target)
-    pressedRing.current = false
-    pressedOutside.current = false
-    if (inRing) {
-      // 테가 막 나타난 바로 그때 시작된 누름 — 원래 [다음] 같은 다른 것을 노린 누름이다. 아무 일도 하지 않는다
-      if (!ringGuard.allows(event)) return
-      pendingAction.current = { x: event.clientX, y: event.clientY, target: current.target }
-      close()
-      return
-    }
-    if (outside) close()
+    const releasedIn = areaOf(event.target)
+    const started = pressedIn.current
+    pressedIn.current = null
+    const outcome = tourClickOutcome({
+      pressedIn: started,
+      releasedIn,
+      guardAllows: started === 'ring' && releasedIn === 'ring' && ringGuard.allows(event),
+    })
+    if (outcome !== 'ring-action') return
+    pendingAction.current = { x: event.clientX, y: event.clientY, target: current.target }
+    close()
   }
 
   const ringStyle: CSSProperties | undefined = placement ? { ...placement.ring } : undefined
@@ -271,6 +304,7 @@ export function OnboardingTour({ open, onClose, fallbackFocus }: OnboardingTourP
       aria-labelledby={titleId}
       aria-describedby={bodyId}
       onPointerDown={handlePointerDown}
+      onMouseDown={handleMouseDown}
       onClick={handleClick}
       onKeyDown={handleKeyDown}
     >

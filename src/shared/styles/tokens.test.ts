@@ -69,6 +69,18 @@ describe('색 토큰', () => {
     expect(contrast(value(light, '--error-ink'), value(light, '--ink-050'))).toBeGreaterThanOrEqual(4.5)
   })
 
+  it('개인정보 · 안전 경고(같은 빨강)는 놓이는 모든 면 위에서 두 모드 다 4.5:1 을 넘는다(본인 피드백 2026-10-07)', () => {
+    // 종이(폼 · 댓글) · 떠 있는 면 · 옅은 면(내 글 관리의 연락중 안내)
+    for (const block of [light, dark]) {
+      for (const surface of ['--paper', '--paper-raised', '--ink-050']) {
+        expect(contrast(value(block, '--error-ink'), value(block, surface))).toBeGreaterThanOrEqual(4.5)
+      }
+    }
+    // 내 글 관리 옅은 면 위 — 주석에 적은 값(밝게 6.7 · 어둡게 7.1)
+    expect(contrast(value(light, '--error-ink'), value(light, '--ink-050'))).toBeGreaterThanOrEqual(6.7)
+    expect(contrast(value(dark, '--error-ink'), value(dark, '--ink-050'))).toBeGreaterThanOrEqual(7.1)
+  })
+
   it('어둡게 주 버튼은 글자색보다 한 단계 낮고, 버튼 글자와 12:1 을 넘는다(UI-13)', () => {
     const fill = value(dark, '--action-fill')
     expect(fill).toBe('#d5d8dd')

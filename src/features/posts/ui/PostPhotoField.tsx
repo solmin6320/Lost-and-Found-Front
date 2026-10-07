@@ -4,6 +4,7 @@ import { useObjectUrls } from '@/shared/lib/image'
 import { useMediaQuery } from '@/shared/lib/useMediaQuery'
 import { Button } from '@/shared/ui/Button'
 import { ArrowUUpLeft, Camera, CaretLeft, CaretRight, Plus, Trash, WarningCircle, X } from '@/shared/ui/icons'
+import { SafetyNote } from '@/shared/ui/SafetyNote'
 
 import type { PostCategory, PostImageResponse } from '../api/types'
 import {
@@ -493,13 +494,13 @@ export function PostPhotoField({
       ) : null}
 
       {/* 사진 속 개인정보 — 고르기 전 · 고른 뒤 둘 다, 격자 바로 아래 한 줄(회의 SE-2). 카드 · 지갑이면 한 단계 진하게.
+          빨간 글자 + 경고 세모(본인 피드백 2026-10-07). 막지 않는다.
           [올리기] 곁이나 확인 창에 두지 않는다 — 누르기 직전 경고는 읽히지 않는다 */}
       {mode === 'empty' || mode === 'new' ? (
-        <p
-          className={styles.privacy}
-          data-strong={category !== null && ID_HEAVY_CATEGORIES.has(category) ? '' : undefined}
-        >
-          신분증 · 카드 번호 · 이름이 보이면 가리고 올려 주세요.
+        <p className={styles.privacy}>
+          <SafetyNote strong={category !== null && ID_HEAVY_CATEGORIES.has(category)}>
+            신분증 · 카드 번호 · 이름이 보이면 가리고 올려 주세요.
+          </SafetyNote>
         </p>
       ) : null}
 

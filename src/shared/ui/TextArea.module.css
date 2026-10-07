@@ -98,7 +98,8 @@
   word-break: keep-all;
 }
 
-/* 결과 고지 · 개인정보 — 도움말보다 한 단계 진하게. 오류가 떠 있어도 남는다 */
+/* 결과 고지 · 개인정보 — 도움말보다 한 단계 진하게. 오류가 떠 있어도 남는다.
+   개인정보 · 안전 경고면 안에 `SafetyNote`(빨간 글자 + 경고 세모)를 넣는다 */
 .note {
   color: var(--text-body);
   font-size: var(--text-sm);
@@ -107,7 +108,7 @@
   word-break: keep-all;
 }
 
-/* 칸이 알아본 것(연락처 등) 한 줄 — 잉크 글자. 자리를 미리 비우면 한 줄 높이를 늘 잡아 둔다 */
+/* 칸이 알아본 것(연락처 등) 한 줄 — 글자는 부른 쪽이 `SafetyNote`(빨간 글자 + 경고 세모)로 준다. 자리를 미리 비우면 한 줄 높이를 늘 잡아 둔다 */
 .detected {
   color: var(--text-strong);
   font-size: var(--text-sm);

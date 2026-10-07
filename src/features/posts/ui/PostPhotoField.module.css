@@ -281,18 +281,14 @@
   word-break: keep-all;
 }
 
-/* 사진 속 개인정보 한 줄. 도움말보다 한 단계 진하고, 카드 · 지갑이면 한 단계 더(빨강은 쓰지 않는다 — 경고에는 빨강 금지) */
+/*
+ * 사진 속 개인정보 한 줄 — 빨간 글자 + 경고 세모(`SafetyNote`, 본인 피드백 2026-10-07).
+ * 카드 · 지갑이면 한 단계 더 굵게(`strong`). 색 · 굵기는 안의 `SafetyNote` 가 준다
+ */
 .privacy {
-  color: var(--text-body);
   font-size: var(--text-sm);
-  font-weight: var(--weight-medium);
   line-height: var(--leading-snug);
   word-break: keep-all;
-}
-
-.privacy[data-strong] {
-  color: var(--text-strong);
-  font-weight: var(--weight-bold);
 }
 
 /* 지금 상태를 말하는 옅은 면 한 장 — 교체 · 삭제. 무엇이 일어날지 → 되돌리는 길 */

@@ -18,7 +18,8 @@ import { usePersonalInfoCheck } from '@/shared/lib/usePersonalInfoCheck'
 import { Button, ButtonLink } from '@/shared/ui/Button'
 import { ConfirmDialog } from '@/shared/ui/ConfirmDialog'
 import { FormAlert } from '@/shared/ui/FormAlert'
-import { Check, ClockCounterClockwise, Eye, LockSimple } from '@/shared/ui/icons'
+import { Check, ClockCounterClockwise, LockSimple } from '@/shared/ui/icons'
+import { SafetyNote } from '@/shared/ui/SafetyNote'
 import { TextArea } from '@/shared/ui/TextArea'
 import { TextField } from '@/shared/ui/TextField'
 
@@ -585,8 +586,9 @@ export function PostForm({
                 ? '어떤 상태로 어디에 두었는지 적어 주세요. 주인만 알 만한 특징 한두 가지는 적지 않고 남겨 두면 진짜 주인을 가려낼 수 있어요.'
                 : '색, 브랜드, 흠집, 안에 든 것처럼 사진에 안 보이는 특징을 적어 주세요.'
             }
-            // 개인정보 줄은 오류가 떠 있어도 남는다(결과 고지). 한 줄로 줄였다 — 연락처를 적으면 감지 줄이 따로 알린다(SE-3)
-            note="전화번호 · 집 주소를 적으면 누구나 봐요."
+            // 개인정보 줄은 오류가 떠 있어도 남는다(결과 고지). 한 줄로 줄였다 — 연락처를 적으면 감지 줄이 따로 알린다(SE-3).
+            // 빨간 글자 + 경고 세모(본인 피드백 2026-10-07). 막지 않는다
+            note={<SafetyNote>전화번호 · 집 주소를 적으면 누구나 봐요.</SafetyNote>}
           />
         </div>
 
@@ -650,15 +652,15 @@ export function PostForm({
 /** 로그인 뒤 돌아왔다 — 이어서 쓸지 묻는다. 고르기 전에는 빈 폼을 건드려도 이 칸이 남아 있다 */
 /**
  * 연락처 감지 한 줄의 글자(SE-3). 없으면 아무것도 그리지 않는다 — 줄(`detected`)은 비어 있어도 알림 영역으로 남아 처음 뜰 때 한 번 읽힌다.
- * 눈 아이콘 = "누구나 봐요"(댓글 칸과 같은 모양). 빨강을 쓰지 않는다
+ * 개인정보 · 안전 경고 — 빨간 글자 + 경고 세모(본인 피드백 2026-10-07, 댓글 칸과 같은 모양). 막지 않는다.
+ * 문장이 바뀌면(`key`) 새로 나타난다
  */
 function DetectedLine({ notice }: { notice: string | null }) {
   if (!notice) return null
   return (
-    <span key={notice} className={styles.detectedLine}>
-      <Eye />
+    <SafetyNote key={notice} appear>
       {notice}
-    </span>
+    </SafetyNote>
   )
 }
 
