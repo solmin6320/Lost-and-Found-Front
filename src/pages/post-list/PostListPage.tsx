@@ -2,7 +2,6 @@ import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 
-import { OnboardingTour, usePostListGuide } from '@/app/onboarding'
 import { POST_DETAIL_FROM_LIST, paths } from '@/app/paths'
 import { useAuth } from '@/features/auth'
 import {
@@ -90,12 +89,10 @@ export function PostListPage() {
   const heading = postListHeading(search.type, search.keyword)
   useDocumentTitle(heading)
 
-  const titleRef = useRef<HTMLHeadingElement>(null)
   const summaryRef = useRef<HTMLDivElement>(null)
   const headingRef = useRef<HTMLHeadingElement>(null)
   const chipsRef = useRef<HTMLDivElement>(null)
   const gridRef = useRef<HTMLUListElement>(null)
-  const guide = usePostListGuide()
   const stuck = useStuck(chipsRef)
 
   const searchKey = postListSearchKey(search)
@@ -217,23 +214,19 @@ export function PostListPage() {
     <div className={styles.page}>
       {/* 읽는 순서 = Tab 순서 : 의도 → 검색 → 필터 → 결과. 가장 먼저 할 일이 가장 위에 있다 */}
       <section className={styles.hero} aria-labelledby="post-list-title">
-        {/* 가입 직후 안내를 닫으면 포커스가 여기로 온다(누른 가입 버튼은 이미 사라졌다) */}
-        <h1 id="post-list-title" ref={titleRef} tabIndex={-1} className={styles.title}>
+        <h1 id="post-list-title" tabIndex={-1} className={styles.title}>
           잃어버렸나요, 주웠나요?
         </h1>
-        {/* 온보딩 1단계가 가리키는 자리 */}
-        <div data-guide="intent">
-          <PostIntentPicker
-            selected={search.type}
-            hrefFor={(type) => hrefWith({ type })}
-            showCounts={!search.keyword && !filtered}
-            // 같은 의도를 다시 눌렀다. 링크가 첫 묶음으로 이동한다 — 이미 첫 묶음이면 주소가 그대로라 바로 옮긴다
-            onReselect={() => {
-              if (search.page === 1) focusResults()
-              else refocusResults.current = true
-            }}
-          />
-        </div>
+        <PostIntentPicker
+          selected={search.type}
+          hrefFor={(type) => hrefWith({ type })}
+          showCounts={!search.keyword && !filtered}
+          // 같은 의도를 다시 눌렀다. 링크가 첫 묶음으로 이동한다 — 이미 첫 묶음이면 주소가 그대로라 바로 옮긴다
+          onReselect={() => {
+            if (search.page === 1) focusResults()
+            else refocusResults.current = true
+          }}
+        />
       </section>
 
       {/* 검색은 위에 붙지 않는다(입력칸은 한 벌 — 두 벌이면 치던 글자가 갈린다). 넓은 화면은 칩 줄과 한 줄에 선다 */}
@@ -257,9 +250,6 @@ export function PostListPage() {
         {/* [전체 해제]는 두지 않는다(본인 피드백 2026-10-07) — 걸린 칩마다 [×], 0건이면 빈 상태의 [필터 모두 지우기] */}
         <PostFilterBar search={search} onApply={apply} onRemove={(field) => apply(withoutFilter(search, field))} />
       </div>
-
-      {/* 온보딩 2단계가 가리키는 자리 — 검색창 + 칩 줄을 함께 감싸는 틀(칩 줄이 붙기 위해 둘은 형제다) */}
-      <div className={styles.guideFrame} data-guide="finder" aria-hidden="true" />
 
       <section className={styles.results} aria-labelledby="post-list-heading">
         <div ref={summaryRef} className={styles.summary}>
@@ -337,8 +327,6 @@ export function PostListPage() {
           </div>
         ) : null}
       </section>
-
-      <OnboardingTour open={guide.open} onClose={guide.close} fallbackFocus={() => titleRef.current} />
     </div>
   )
 }

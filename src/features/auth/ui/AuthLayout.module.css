@@ -36,6 +36,7 @@
   font-weight: var(--weight-extrabold);
   line-height: var(--leading-tight);
   letter-spacing: var(--tracking-tight);
+  text-wrap: balance;
 }
 
 .lead {

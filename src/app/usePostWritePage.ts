@@ -2,14 +2,13 @@ import { useEffect, useRef, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 
 import { loginPath } from '@/app/authRedirect'
-import { usePageGuide } from '@/app/onboarding'
 import type { LoginNoticeState } from '@/app/paths'
 import { subscribeSignedOutElsewhere, useAuth } from '@/features/auth'
 import type { LeaveFn } from '@/features/posts'
 import { subscribeSessionExpired } from '@/shared/lib/http'
 
 /**
- * 등록 · 수정 화면(SCR-02 · SCR-04)이 같이 쓰는 연결 — 로그인 여부 · 로그인이 끊겼을 때 · 헤더 `서비스 안내`.
+ * 등록 · 수정 화면(SCR-02 · SCR-04)이 같이 쓰는 연결 — 로그인 여부 · 로그인이 끊겼을 때.
  *
  * - `gate` : `pending`(세션 복구 중 — 폼 모양 스켈레톤) · `login`(처음부터 비로그인 — 로그인으로 보낸다) · `form`
  * - 쓰는 도중 로그인이 끊기면(재발급 거절 · 로그아웃) 폼을 **내리지 않는다.** 폼이 쓰던 글자를 보관한 뒤
@@ -50,24 +49,11 @@ export function usePostWritePage() {
     leave(loginPath(here), { replace: true, state })
   }
 
-  // 헤더 `서비스 안내` — 목록으로 떠나지 않고 이 화면의 `쓰는 요령`을 연다(쓰던 글을 두고 가지 않는다)
-  const [guideOpen, setGuideOpen] = useState(false)
-  const guideRef = useRef<HTMLDivElement>(null)
-  usePageGuide(() => {
-    const root = guideRef.current
-    if (!root) return
-    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    root.scrollIntoView({ block: 'center', behavior: reduce ? 'instant' : 'smooth' })
-    root.querySelector<HTMLButtonElement>('button')?.focus({ preventScroll: true })
-    setGuideOpen(true)
-  })
-
   return {
     gate,
     memberId,
     signedIn: auth.status === 'authenticated',
     loginHref: loginPath(here),
     onSessionLost,
-    guide: { guideOpen, onGuideOpenChange: setGuideOpen, guideRef },
   }
 }

@@ -9,9 +9,6 @@ import { TypeBadge } from './TypeBadge'
 interface PostStatusGuideProps {
   type: PostType
   status: PostStatus
-  /** 헤더 `서비스 안내`가 열 때(제어). 주지 않으면 스스로 여닫는다 */
-  open?: boolean
-  onOpenChange?: (open: boolean) => void
   className?: string
 }
 
@@ -21,9 +18,9 @@ interface PostStatusGuideProps {
  * 상태가 게시중 → 연락중 → 완료로 흘러간다는 것을 이 글 앞에서 한 번에 본다.
  * 배지 줄의 오른쪽 끝에 두고 판을 오른쪽에 맞춰 펼친다 — 320 폭에서도 화면 밖으로 나가지 않는다.
  */
-export function PostStatusGuide({ type, status, open, onOpenChange, className }: PostStatusGuideProps) {
+export function PostStatusGuide({ type, status, className }: PostStatusGuideProps) {
   return (
-    <Toggletip label="이름표 안내" align="end" open={open} onOpenChange={onOpenChange} className={className}>
+    <Toggletip label="이름표 안내" align="end" className={className}>
       <p className={styles.title}>이 글의 이름표</p>
       <dl className={styles.list}>
         <div className={styles.row}>

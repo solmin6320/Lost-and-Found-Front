@@ -1,7 +1,6 @@
 import { useEffect, useRef, type MouseEvent } from 'react'
-import { Link, NavLink, Outlet, matchPath, useLocation, useNavigate } from 'react-router-dom'
+import { Link, NavLink, Outlet, matchPath, useLocation } from 'react-router-dom'
 
-import { openPageGuide, requestGuide } from '@/app/onboarding'
 import { paths } from '@/app/paths'
 import { RouteFocus } from '@/app/RouteFocus'
 import { ScrollMemory } from '@/app/ScrollMemory'
@@ -12,7 +11,7 @@ import { useDirtyLeaveGuard } from '@/shared/lib/dirtyRegistry'
 import { ButtonLink } from '@/shared/ui/Button'
 import { ConfirmDialog } from '@/shared/ui/ConfirmDialog'
 import { FlashViewport } from '@/shared/ui/Flash'
-import { Gear, House, Plus, Question } from '@/shared/ui/icons'
+import { Gear, House, Plus } from '@/shared/ui/icons'
 import tip from '@/shared/ui/Tooltip.module.css'
 
 import { AccountMenu } from './AccountMenu'
@@ -21,11 +20,11 @@ import styles from './RootLayout.module.css'
 /**
  * 모든 화면이 공유하는 껍데기. 헤더 · 본문 · 이탈 확인 하나. 푸터는 두지 않는다(2026-10-07).
  *
- * 헤더 — 로고(목록으로), 오른쪽에 [글 올리기] · [홈](처음 목록으로) · 서비스 안내(물음표), 그리고
+ * 헤더 — 로고(목록으로), 오른쪽에 [글 올리기] · [홈](처음 목록으로), 그리고
  *   비로그인 : 설정(톱니) · [로그인](글자 버튼). 화면 모드는 누구나 바꾼다(SCR-08)
  *   로그인   : 계정 메뉴 하나. 설정은 메뉴의 "설정"으로만 간다 — 같은 목적지가 두 곳이면 목표가 넷이 된다(회의 UI-6 c)
- * 누르는 면 사이는 8px(회의 UI-6 a). 휴대폰 폭은 로고 글자를 접어 [홈]에 자리를 내주고,
- * 360 미만은 로고 그림까지 접어 한 줄을 지킨다(아래 CSS).
+ * 누르는 면 사이는 8px(회의 UI-6 a). 휴대폰 폭은 로고 글자를 접어 [홈]에 자리를 내준다(아래 CSS).
+ * 서비스 안내(물음표 · 가입 직후 안내)는 2026-10-11 뺐다(본인 결정) — 그 자리는 관리자 권한이 생긴 뒤 공지사항(관리자만 작성)이 받는다.
  * [글 올리기]는 비로그인에게도 보인다. 수정·삭제와 달리 서비스로 들어오는 동선이다(SCR-01).
  *
  * 이탈 확인은 **여기 하나**다(쓰던 칸 등록부). 화면의 칸들은 "쓰던 글자 있음"만 알린다 — `useBlocker` 는 한 번에 하나라
@@ -47,11 +46,10 @@ export function RootLayout() {
             <span className={styles.wordmarkText}>분실물 찾기</span>
           </Link>
 
-          {/* [홈]은 [글 올리기]와 서비스 안내 사이(본인 피드백 2026-10-08) */}
+          {/* [홈]은 [글 올리기] 바로 뒤(본인 피드백 2026-10-08). 그 뒤가 설정 · 로그인 또는 계정 메뉴 */}
           <div className={styles.actions}>
             <CreatePostLink />
             <HomeLink />
-            <GuideButton />
             <HeaderAuth />
           </div>
         </div>
@@ -66,7 +64,7 @@ export function RootLayout() {
       <RouteFocus />
       <FlashViewport />
 
-      {/* 쓰던 글자를 두고 다른 화면으로 — 로고 · 메뉴 · 뒤로가기 · 서비스 안내 모든 출구를 한 번에 막는다. 기본 포커스는 [계속 쓰기] */}
+      {/* 쓰던 글자를 두고 다른 화면으로 — 로고 · [홈] · 메뉴 · 뒤로가기 모든 출구를 한 번에 막는다. 기본 포커스는 [계속 쓰기] */}
       <ConfirmDialog
         open={leave.blocker.state === 'blocked'}
         title={leave.copy.title}
@@ -87,7 +85,7 @@ export function RootLayout() {
  * 홈 — 조건 없는 처음 목록(`/`)으로. 로고도 같은 곳으로 가지만, 로고가 눌리는 줄 모르면 처음으로 돌아갈 길이 없다
  * (본인 피드백 2026-10-07 "로고를 눌러야만 홈으로 간다").
  *
- * 로고 바로 오른쪽에 둔다 — 같은 곳으로 가는 둘을 붙여 한 묶음으로 읽힌다(근접성). 오른쪽 묶음은 할 일 · 계정이다.
+ * 오른쪽 묶음의 [글 올리기] 바로 뒤에 둔다(본인 피드백 2026-10-08 — 처음엔 로고 바로 오른쪽이었다).
  * 집 아이콘 + `홈` 글자를 **모든 폭에서** 둔다. 아이콘만이면 터치에서 이름표가 뜨지 않아 무엇인지 모른다.
  * 목록 화면이면(조건이 걸려 있어도) `aria-current="page"` + "지금 여기" 옅은 면 — 설정 톱니의 현재 표시와 같은 말투.
  *
@@ -155,8 +153,6 @@ function CreatePostLink() {
       data-here={onCreate || onEdit ? '' : undefined}
       aria-current={onCreate ? 'page' : undefined}
       onClick={handleClick}
-      // 온보딩 3단계가 가리키는 자리
-      data-guide="create"
     >
       <Plus />
       <span className={styles.createLabel}>{label}</span>
@@ -164,33 +160,6 @@ function CreatePostLink() {
         {label}
       </span>
     </ButtonLink>
-  )
-}
-
-/**
- * 서비스 안내 — 온보딩 1층을 언제든 다시 연다(docs/온보딩설계.md 2장). 안내는 목록 위에 뜬다 —
- * 다른 화면이면 목록으로 가면서 요청을 남기고, 목록이 요청을 가져가며 연다. 닫으면 이 버튼으로 포커스가 돌아온다.
- * 그 화면에 자기 안내가 있으면(상세의 `이름표 안내`) 목록으로 떠나지 않고 그것을 연다 — 보던 글을 잃지 않는다.
- * 모양은 설정과 같다 — 휴대폰 폭에서는 물음표만(이름은 aria-label, 마우스 · 키보드에는 이름표), 48rem 이상은 글자도.
- */
-function GuideButton() {
-  const location = useLocation()
-  const navigate = useNavigate()
-
-  function handleClick() {
-    if (location.pathname !== paths.postList && openPageGuide()) return
-    requestGuide()
-    if (location.pathname !== paths.postList) navigate(paths.postList)
-  }
-
-  return (
-    <button type="button" className={cx(styles.settings, tip.host)} aria-label="서비스 안내" onClick={handleClick}>
-      <Question />
-      <span className={styles.settingsLabel}>서비스 안내</span>
-      <span className={cx(tip.tip, styles.settingsTip)} aria-hidden="true">
-        서비스 안내
-      </span>
-    </button>
   )
 }
 

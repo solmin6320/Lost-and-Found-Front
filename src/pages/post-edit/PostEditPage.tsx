@@ -97,7 +97,7 @@ export function PostEditPage() {
       post={post}
       memberId={page.memberId}
       signedIn={page.signedIn}
-      intro={<PostWriteHeader title="글 수정" lead="사진만 빼고 모두 채워져 있어야 저장돼요." {...page.guide} />}
+      intro={<PostWriteHeader title="글 수정" lead="사진만 빼고 모두 채워져 있어야 저장돼요." />}
       onSessionLost={page.onSessionLost}
       loginHref={page.loginHref}
     />

@@ -37,7 +37,7 @@
   letter-spacing: var(--tracking-tight);
 }
 
-/* 안내를 닫은 뒤 포커스만 받는다. 제목에 링을 두르지 않는다(누른 적 없는 사람에게 링이 뜬금없다) */
+/* 화면을 옮겨 왔을 때 포커스만 받는다(RouteFocus). 제목에 링을 두르지 않는다(누른 적 없는 사람에게 링이 뜬금없다) */
 .title:focus {
   outline: none;
 }
@@ -62,14 +62,6 @@
   grid-area: chips;
   min-width: 0;
   margin-bottom: var(--space-5);
-}
-
-/* 온보딩 2단계의 틀 — 검색과 칩 줄 두 칸을 겹쳐 덮는 빈 칸. 아래 여백은 칩 줄과 같게 둬 칩 줄 끝에서 멈춘다 */
-.guideFrame {
-  grid-row: search-start / chips-end;
-  grid-column: 1 / -1;
-  margin-bottom: var(--space-5);
-  pointer-events: none;
 }
 
 /*
@@ -119,14 +111,9 @@
   }
 
   .search,
-  .chips,
-  .guideFrame {
+  .chips {
     align-self: center;
     margin-bottom: var(--space-8);
-  }
-
-  .guideFrame {
-    align-self: stretch;
   }
 }
 
