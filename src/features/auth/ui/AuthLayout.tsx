@@ -13,11 +13,6 @@ interface AuthLayoutProps {
   lead: string
   /** 돌아갈 곳 안내(`AuthReturnNote`). 제목 아래에 둔다 — "왜 여기 왔는지"에 붙는 정보다 */
   returnNote?: ReactNode
-  /**
-   * 보조 안내(글 두 갈래). 휴대폰에서는 두지 않는다(폼이 먼저) · 태블릿은 폼 아래 · 넓은 화면은 제목 칸 아래.
-   * 문서 순서는 늘 폼 뒤다 — 키보드 · 스크린리더가 폼을 먼저 만난다
-   */
-  aside?: ReactNode
   /** 폼 위 안내 한 줄(비밀번호를 바꾼 뒤 · 가입 직후). 서버 오류가 아니라 확인 문장이다 */
   notice?: string | null
   /** 이메일 · 비밀번호 폼 */
@@ -32,42 +27,43 @@ interface AuthLayoutProps {
 }
 
 /**
- * 로그인 · 가입의 공통 틀(SCR-05 · SCR-06).
+ * 로그인 · 가입의 공통 틀(SCR-05 · SCR-06) — 가운데 한 칸(본인 피드백 2026-10-11).
  *
- * 좁은 화면 : 제목 → 돌아갈 곳 → 안내 → 폼 → (다른 방법) → 전환 링크, 한 줄로 쌓는다. 태블릿은 그 아래 글 두 갈래 안내.
- * 넓은 화면(60rem~) : 왼쪽에 제목 · 돌아갈 곳 · 글 두 갈래 안내, 오른쪽에 폼. 가운데 좁은 칸만 덩그러니 남지 않게
- * 두 칸으로 벌리고 화면 높이 가운데에 둔다. 폼은 읽기 좋은 폭(26rem)을 지킨다. 장식 도형은 두지 않는다.
+ * 위에서 아래로 한 줄 : 제목 → 한 줄 안내 → 돌아갈 곳 → (확인 문장) → 폼 → (다른 방법) → 전환 링크.
+ * 옆 칸 안내(글 두 갈래)는 뺐다 — 로그인 화면에서 할 일은 폼 하나라, 눈이 갈 곳을 하나로 둔다.
+ * 휴대폰은 여백 안을 꽉 채우고 위에서 시작한다(키보드가 아래를 덮는다).
+ * 넓은 화면(48rem~)은 가는 선을 두른 한 장(폼 칸 27rem)을 화면 높이 가운데에 둔다. 칸 · 버튼은 기본보다 크다(CSS).
  */
-export function AuthLayout({ title, lead, returnNote, aside, notice, children, alternatives, footer }: AuthLayoutProps) {
+export function AuthLayout({ title, lead, returnNote, notice, children, alternatives, footer }: AuthLayoutProps) {
   return (
     <div className={styles.page}>
-      <header className={styles.intro}>
-        <h1 className={styles.title}>{title}</h1>
-        <p className={styles.lead}>{lead}</p>
-        {returnNote}
-      </header>
+      <div className={styles.card}>
+        <header className={styles.intro}>
+          <h1 className={styles.title}>{title}</h1>
+          <p className={styles.lead}>{lead}</p>
+          {returnNote}
+        </header>
 
-      <div className={styles.panel}>
-        {notice ? (
-          <p className={styles.notice} role="status">
-            <CheckCircle />
-            {notice}
-          </p>
-        ) : null}
+        <div className={styles.panel}>
+          {notice ? (
+            <p className={styles.notice} role="status">
+              <CheckCircle />
+              {notice}
+            </p>
+          ) : null}
 
-        {children}
+          {children}
 
-        {alternatives ? (
-          <div className={styles.alternatives}>
-            <p className={styles.or}>또는</p>
-            {alternatives}
-          </div>
-        ) : null}
+          {alternatives ? (
+            <div className={styles.alternatives}>
+              <p className={styles.or}>또는</p>
+              {alternatives}
+            </div>
+          ) : null}
 
-        <div className={styles.footer}>{footer}</div>
+          <div className={styles.footer}>{footer}</div>
+        </div>
       </div>
-
-      {aside ? <div className={styles.aside}>{aside}</div> : null}
     </div>
   )
 }

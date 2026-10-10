@@ -119,7 +119,6 @@ export { PostIntentNext } from './ui/PostIntentNext'
 export { PostIntentPicker } from './ui/PostIntentPicker'
 export { PostSearchBar } from './ui/PostSearchBar'
 export { PostThumbnail } from './ui/PostThumbnail'
-export { PostTypeGuide } from './ui/PostTypeGuide'
 export { StatusBadge } from './ui/StatusBadge'
 export { TypeBadge } from './ui/TypeBadge'
 export {

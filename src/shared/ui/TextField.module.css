@@ -1,6 +1,8 @@
 /*
  * 한 줄 입력. 이름 위 · 입력 · 오류 · 도움말 순서로 세로로 쌓는다.
  * 입력 높이 44px(터치 최소) · 글자 16px(iOS 입력 확대를 막는 하한).
+ * 한 화면이 칸을 통째로 키울 때는 조상에 변수를 둔다(로그인 · 가입 — `AuthLayout`). 두지 않으면 위 기본값이다 —
+ *   `--field-h` 입력 높이 · `--field-text` 입력 글자 · `--field-label-text` 이름 글자 · `--field-pad` 입력 안 좌우 여백
  */
 
 .field {
@@ -18,7 +20,7 @@
 
 .label {
   color: var(--text-strong);
-  font-size: var(--text-sm);
+  font-size: var(--field-label-text, var(--text-sm));
   font-weight: var(--weight-bold);
   line-height: var(--leading-snug);
 }
@@ -42,13 +44,13 @@
 
 .input {
   width: 100%;
-  min-height: var(--tap-min);
-  padding: 0 var(--space-3);
+  min-height: var(--field-h, var(--tap-min));
+  padding: 0 var(--field-pad, var(--space-3));
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
   background-color: var(--surface);
   color: var(--text-strong);
-  font-size: var(--text-base);
+  font-size: var(--field-text, var(--text-base));
   line-height: var(--leading-snug);
   transition: border-color var(--duration-fast) var(--ease-out);
 }

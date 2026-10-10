@@ -8,8 +8,15 @@
   gap: var(--space-5);
 }
 
-.submit {
+/*
+ * 주 버튼 — 칸과 같은 높이(56px) · 18px 글자. 이 화면에서 튀는 것은 이것 하나다.
+ * 공통 버튼(`.button`)이 자기 높이 변수를 스스로 정해 두므로, 두 클래스로 눌러 덮는다(CSS 순서와 무관하게)
+ */
+.form .submit {
+  --button-h: 3.5rem;
+
   margin-top: var(--space-1);
+  font-size: var(--text-lg);
 }
 
 /* 잠금 안내는 포커스를 받는다(423 을 받으면 여기로 옮긴다). 면에 붙은 링은 답답해 한 칸 띄운다 */

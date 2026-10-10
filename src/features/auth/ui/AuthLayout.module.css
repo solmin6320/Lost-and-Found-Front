@@ -1,25 +1,40 @@
 /*
- * 로그인 · 가입 틀. 좁은 화면은 한 줄로 쌓고, 60rem 부터 제목 칸 | 폼 칸 두 칸.
- * 폼 칸은 26rem — 이메일 한 줄이 끝까지 보이고, 눈이 좌우로 멀리 오가지 않는 폭이다.
+ * 로그인 · 가입 틀 — 가운데 한 칸(본인 피드백 2026-10-11 : 장식 없이 크게, 가운데 카드 한 장).
+ * 폼 칸은 27rem(432px) — 이메일 한 줄이 끝까지 보이고, 큰 칸 · 큰 버튼이 한눈에 들어오는 폭이다.
+ * 휴대폰은 여백 안을 채우고 위에서 시작한다. 48rem 부터 가는 선을 두른 한 장을 화면 높이 가운데에 둔다.
  */
 
 .page {
   display: grid;
-  gap: var(--space-6);
-  max-width: 26rem;
-  margin-inline: auto;
   padding-top: var(--space-4);
 }
 
+.card {
+  /* 이 화면의 칸 · 버튼은 기본(44px · 16px)보다 크다 — 할 일이 이것 하나다. TextField 가 이 변수를 읽는다 */
+  --field-h: 3.5rem;
+  --field-text: 1.0625rem;
+  --field-label-text: var(--text-base);
+  --field-pad: var(--space-4);
+
+  display: grid;
+  gap: var(--space-8);
+  width: 100%;
+  max-width: 27rem;
+  margin-inline: auto;
+}
+
+/* 제목 · 안내는 가운데 — 한 장의 머리다. 폼의 이름 · 칸은 왼쪽 정렬 그대로(읽는 시작점이 같게) */
 .intro {
   display: grid;
   gap: var(--space-3);
-  align-content: start;
+  justify-items: center;
+  text-align: center;
 }
 
 .title {
   font-size: var(--text-3xl);
   font-weight: var(--weight-extrabold);
+  line-height: var(--leading-tight);
   letter-spacing: var(--tracking-tight);
 }
 
@@ -28,6 +43,7 @@
   font-size: var(--text-base);
   line-height: var(--leading-snug);
   word-break: keep-all;
+  text-wrap: balance;
 }
 
 .panel {
@@ -36,25 +52,13 @@
   min-width: 0;
 }
 
-/* 휴대폰에서는 두지 않는다 — 폼을 밀어내지 않게. 태블릿(48rem~)은 폼 아래, 넓은 화면은 제목 칸 아래 */
-.aside {
-  display: none;
-}
-
-@media (min-width: 48rem) {
-  .aside {
-    display: block;
-    padding-top: var(--space-2);
-  }
-}
-
 /* ── 돌아갈 곳 ── 제목 아래 한 줄. 한쪽 개념에 묶인 곳이면 그 색을 옅게 */
 
 .returnNote {
   display: flex;
   align-items: flex-start;
   gap: var(--space-2);
-  justify-self: start;
+  justify-self: center;
   max-width: 100%;
   margin-top: var(--space-1);
   padding: var(--space-2) var(--space-3);
@@ -63,6 +67,7 @@
   color: var(--text-body);
   font-size: var(--text-sm);
   line-height: var(--leading-snug);
+  text-align: start;
   word-break: keep-all;
 }
 
@@ -146,14 +151,15 @@
   border-top: var(--hairline);
 }
 
-/* ── 전환 ── */
+/* ── 전환 ── 주 버튼 아래 작은 글자 한 줄, 가운데. 선 대신 간격으로 가른다(근접성) */
 
 .footer {
-  padding-top: var(--space-5);
-  border-top: var(--hairline);
+  padding-top: var(--space-2);
+  text-align: center;
 }
 
 .switch {
+  max-width: none;
   color: var(--text-body);
   font-size: var(--text-base);
   line-height: var(--leading-snug);
@@ -175,39 +181,26 @@
   inset: calc((var(--tap-min) - 1lh) / -2) calc(var(--space-2) * -1);
 }
 
-/* ── 넓은 화면 — 제목 칸 | 폼 칸 ── */
+/* ── 넓은 화면 — 가운데 한 장 ── */
 
-@media (min-width: 60rem) {
+@media (min-width: 48rem) {
   /*
-   * 제목 · 안내 | 폼. 위에 붙어 아래가 통째로 비지 않게 화면 높이에 맞춰 조금 내려 둔다 —
-   * (보이는 높이 − 헤더 · 여백 − 내용 약 36rem) 의 절반. 낮은 화면에서는 24px 까지만 줄어든다.
-   * 폼 칸이 두 줄에 걸치고 둘째 줄이 남는 높이를 받는다 — 제목 칸의 줄이 폼 높이에 끌려 벌어지지 않게
+   * 본문 칸(헤더와 그 아래 선 1px · 위아래 여백을 뺀 보이는 높이)을 채우고 그 가운데에 둔다. 아래를 조금 더 비워 눈높이 쪽으로 올린다.
+   * 낮은 화면 · 200% 확대에서 내용이 더 길면 그냥 위에서부터 흐른다(잘리지 않는다)
    */
   .page {
-    grid-template-columns: minmax(0, 1fr) 26rem;
-    grid-template-areas:
-      'intro panel'
-      'aside panel';
-    grid-template-rows: auto 1fr;
-    column-gap: var(--space-18);
-    row-gap: var(--space-8);
-    max-width: 58rem;
-    padding-top: max(var(--space-6), calc((100dvh - var(--header-h) - 47rem) / 2));
-  }
-
-  .intro {
-    grid-area: intro;
-  }
-
-  /* 두 줄에 걸쳐 있어도 늘어나지 않는다 — 늘어나면 칸 사이가 벌어지고 버튼이 부푼다 */
-  .panel {
-    grid-area: panel;
-    align-self: start;
-  }
-
-  .aside {
-    grid-area: aside;
+    min-height: calc(100dvh - var(--header-h) - 1px - var(--space-5) - var(--space-14) - env(safe-area-inset-bottom));
+    align-content: center;
     padding-top: 0;
+    padding-bottom: var(--space-10);
+  }
+
+  /* 선 한 줄을 두른 놓이는 면. 떠 있는 것이 아니라 그림자는 두지 않는다 */
+  .card {
+    max-width: 31rem;
+    padding: var(--space-10) var(--space-8);
+    border: var(--hairline);
+    border-radius: var(--radius-md);
   }
 
   .title {

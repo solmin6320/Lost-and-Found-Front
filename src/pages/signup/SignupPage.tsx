@@ -9,7 +9,6 @@ import {
   type PostListEntryState,
 } from '@/app/paths'
 import { AuthLayout, AuthReturnNote, AuthSwitch, SignupForm, AuthTextLink, useAuth, useSignup } from '@/features/auth'
-import { PostTypeGuide } from '@/features/posts'
 import { useDocumentTitle } from '@/shared/lib/useDocumentTitle'
 
 const JUST_SIGNED_UP: PostListEntryState = { justSignedUp: true }
@@ -47,7 +46,6 @@ export function SignupPage() {
       title="회원가입"
       lead="분실 글과 습득 글을 올리고, 댓글로 연락할 수 있어요."
       returnNote={target ? <AuthReturnNote lead="가입하면" {...target} /> : null}
-      aside={<PostTypeGuide />}
       // 추후 OAuth(구글 · 네이버) — alternatives 에 버튼 묶음을 넘긴다. 미구현이라 두지 않는다
       footer={
         <AuthSwitch prompt="이미 계정이 있나요?">

@@ -3,7 +3,6 @@ import { Navigate, useLocation, useSearchParams } from 'react-router-dom'
 import { describeReturnTarget, isPostDetailPath, safeRedirectPath, signupPath } from '@/app/authRedirect'
 import { paths, readReturnEntry, type AuthReturnState, type LoginNoticeState } from '@/app/paths'
 import { AuthLayout, AuthReturnNote, AuthSwitch, LoginForm, AuthTextLink, useAuth } from '@/features/auth'
-import { PostTypeGuide } from '@/features/posts'
 import { useDocumentTitle } from '@/shared/lib/useDocumentTitle'
 
 /**
@@ -38,7 +37,6 @@ export function LoginPage() {
       title="로그인"
       lead="글을 올리거나 댓글을 남기려면 로그인해 주세요."
       returnNote={target ? <AuthReturnNote lead="로그인하면" {...target} /> : null}
-      aside={<PostTypeGuide />}
       notice={state?.notice}
       // 추후 OAuth(구글 · 네이버) — alternatives 에 버튼 묶음을 넘긴다. 미구현이라 두지 않는다
       footer={
