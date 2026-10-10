@@ -1,6 +1,7 @@
 import { useEffect, useRef, type MouseEvent } from 'react'
 import { Link, NavLink, Outlet, matchPath, useLocation } from 'react-router-dom'
 
+import { isAuthScreen } from '@/app/authRedirect'
 import { paths } from '@/app/paths'
 import { RouteFocus } from '@/app/RouteFocus'
 import { ScrollMemory } from '@/app/ScrollMemory'
@@ -127,6 +128,9 @@ function HomeLink() {
  *
  * 등록 · 수정 화면에서는 "지금 여기" 옅은 면을 깐다. 등록 화면에서는 `aria-current="page"` 이고 눌러도 무시한다 —
  * 같은 경로라 이탈 확인을 타지 않고 폼은 `?type` 을 처음 한 번만 읽어, 누르면 주소만 바뀌고 아무 일도 없었다(AR2-9)
+ *
+ * 로그인 · 가입 화면에서는 넓은 화면의 잉크 채움을 거두고 선만 두른 버튼으로 둔다(`data-quiet`, 본인 결정 2026-10-11) —
+ * 그 화면에서 튀는 것은 폼의 큰 [로그인] · [가입] 하나여야 한다(폰 레스토프). 자리 · 크기 · 이름 · 누르는 면은 그대로다
  */
 function CreatePostLink() {
   const auth = useAuth()
@@ -139,6 +143,7 @@ function CreatePostLink() {
 
   const onCreate = location.pathname === paths.postCreate
   const onEdit = matchPath(paths.postEdit(':postId'), location.pathname) !== null
+  const quiet = isAuthScreen(location.pathname)
 
   function handleClick(event: MouseEvent<HTMLAnchorElement>) {
     if (onCreate) event.preventDefault()
@@ -151,6 +156,7 @@ function CreatePostLink() {
       size="sm"
       className={cx(styles.create, tip.host)}
       data-here={onCreate || onEdit ? '' : undefined}
+      data-quiet={quiet ? '' : undefined}
       aria-current={onCreate ? 'page' : undefined}
       onClick={handleClick}
     >
@@ -213,7 +219,7 @@ function HeaderAuth() {
 
   if (auth.status === 'anonymous') {
     const here = `${location.pathname}${location.search}`
-    const onAuthScreen = location.pathname === paths.login || location.pathname === paths.signup
+    const onAuthScreen = isAuthScreen(location.pathname)
     const to = here === paths.postList || onAuthScreen ? paths.login : paths.loginThenReturn(here)
 
     return (
