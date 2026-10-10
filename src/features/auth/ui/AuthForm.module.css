@@ -58,7 +58,7 @@
 
 .lockHint {
   color: var(--text-body);
-  font-size: var(--text-sm);
+  font-size: var(--text-base);
   line-height: var(--leading-snug);
   word-break: keep-all;
 }

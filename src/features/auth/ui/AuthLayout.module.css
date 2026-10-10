@@ -1,7 +1,7 @@
 /*
  * 로그인 · 가입 틀 — 가운데 한 칸(본인 피드백 2026-10-11 : 장식 없이 크게, 가운데 카드 한 장).
  * 폼 칸은 27rem(432px) — 이메일 한 줄이 끝까지 보이고, 큰 칸 · 큰 버튼이 한눈에 들어오는 폭이다.
- * 휴대폰은 여백 안을 채우고 위에서 시작한다. 48rem 부터 가는 선을 두른 한 장을 화면 높이 가운데에 둔다.
+ * 휴대폰은 여백 안을 채우고 위에서 시작한다. 48rem 부터 가는 선을 두른 한 장 — 위에 맞추고, 위 여백은 화면 높이로만 정한다.
  */
 
 .page {
@@ -12,9 +12,15 @@
 .card {
   /* 이 화면의 칸 · 버튼은 기본(44px · 16px)보다 크다 — 할 일이 이것 하나다. TextField 가 이 변수를 읽는다 */
   --field-h: 3.5rem;
-  --field-text: 1.0625rem;
+  --field-text: var(--text-lg);
   --field-label-text: var(--text-base);
   --field-pad: var(--space-4);
+  /*
+   * 이 화면에서 읽어야 하는 짧은 문장(칸 오류 · 폼 위 한 줄)도 16px — 여기서 할 일이 막히면 그 까닭이 이 문장이다.
+   * 다른 화면은 기본 14px 그대로(TextField · FormAlert 가 변수가 없으면 14px). 도움말(회색 한 줄)은 14px 그대로 — 오류보다 한 단계 아래
+   */
+  --field-error-text: var(--text-base);
+  --form-alert-text: var(--text-base);
 
   display: grid;
   gap: var(--space-8);
@@ -47,6 +53,11 @@
   text-wrap: balance;
 }
 
+/* 끊기지 않는 말 묶음(`AuthPhrase`) — 글자처럼 흐르는 상자라 넘치면 그 안에서 접힌다(nowrap 과 달리 넘치지 않는다) */
+.phrase {
+  display: inline-block;
+}
+
 .panel {
   display: grid;
   gap: var(--space-6);
@@ -66,17 +77,18 @@
   border-radius: var(--radius-md);
   background-color: var(--surface-sunken);
   color: var(--text-body);
-  font-size: var(--text-sm);
+  font-size: var(--text-base);
   line-height: var(--leading-snug);
   text-align: start;
   word-break: keep-all;
 }
 
+/* 아이콘은 첫 줄 가운데에 — 글자 크기가 바뀌어도 맞게 줄 높이(1lh)로 잰다 */
 .returnNote svg {
   flex: none;
   width: var(--icon-sm);
   height: var(--icon-sm);
-  margin-top: var(--space-0-5);
+  margin-top: calc((1lh - var(--icon-sm)) / 2);
   color: var(--text-muted);
 }
 
@@ -117,7 +129,7 @@
   border-radius: var(--radius-md);
   background-color: var(--surface-sunken);
   color: var(--text-strong);
-  font-size: var(--text-sm);
+  font-size: var(--text-base);
   font-weight: var(--weight-semibold);
   line-height: var(--leading-snug);
   word-break: keep-all;
@@ -127,6 +139,7 @@
   flex: none;
   width: var(--icon-md);
   height: var(--icon-md);
+  margin-top: calc((1lh - var(--icon-md)) / 2);
 }
 
 /* ── 다른 방법(추후 OAuth) ── "또는" 양옆에 가는 선 */
@@ -166,7 +179,7 @@
   line-height: var(--leading-snug);
 }
 
-/* 글자 링크 — 밑줄 + 굵게. 줄 높이는 그대로 두고 누르는 면적만 44px 로 넓힌다 */
+/* 글자 링크 — 밑줄 + 굵게. 줄 높이는 그대로 두고 누르는 면적만 넓힌다 — 글자 가운데에서 위아래로 꼭 44px, 양옆 8px */
 .textLink {
   position: relative;
   color: var(--text-strong);
@@ -179,21 +192,25 @@
 .textLink::after {
   content: '';
   position: absolute;
-  inset: calc((var(--tap-min) - 1lh) / -2) calc(var(--space-2) * -1);
+  top: 50%;
+  right: calc(var(--space-2) * -1);
+  left: calc(var(--space-2) * -1);
+  height: var(--tap-min);
+  translate: 0 -50%;
 }
 
 /* ── 넓은 화면 — 가운데 한 장 ── */
 
 @media (min-width: 48rem) {
   /*
-   * 본문 칸(헤더와 그 아래 선 1px · 위아래 여백을 뺀 보이는 높이)을 채우고 그 가운데에 둔다. 아래를 조금 더 비워 눈높이 쪽으로 올린다.
-   * 낮은 화면 · 200% 확대에서 내용이 더 길면 그냥 위에서부터 흐른다(잘리지 않는다)
+   * 한 장은 **위에 맞춘다.** 위 여백은 화면 높이로만 정한다 — 내용 높이로 가운데를 잡으면 오류 · 안내 한 줄이 생길 때마다
+   * 장 전체가 위로 뛰고 [로그인]이 누르려던 손 밑에서 움직였다(QA D-1 · P-2, 2026-10-11).
+   * 여백 = (본문 높이 − 기본 로그인 한 장 높이 36rem) / 2, 24 ~ 72px — 기본 로그인 한 장이 화면 높이 가운데쯤에 온다.
+   * 오류 줄이 생기면 그 줄 아래만 내려간다. 낮은 화면 · 200% 확대에서는 24px 로 줄고, 긴 내용은 위에서부터 흐른다(잘리지 않는다)
    */
   .page {
-    min-height: calc(100dvh - var(--header-h) - 1px - var(--space-5) - var(--space-14) - env(safe-area-inset-bottom));
-    align-content: center;
-    padding-top: 0;
-    padding-bottom: var(--space-10);
+    align-content: start;
+    padding-top: clamp(var(--space-6), (100dvh - var(--header-h) - 36rem) / 2, var(--space-18));
   }
 
   /* 선 한 줄을 두른 놓이는 면. 떠 있는 것이 아니라 그림자는 두지 않는다 */
@@ -202,10 +219,6 @@
     padding: var(--space-10) var(--space-8);
     border: var(--hairline);
     border-radius: var(--radius-md);
-  }
-
-  .title {
-    font-size: var(--text-4xl);
   }
 
   .lead {

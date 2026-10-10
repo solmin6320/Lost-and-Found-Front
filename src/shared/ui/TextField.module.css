@@ -2,7 +2,8 @@
  * 한 줄 입력. 이름 위 · 입력 · 오류 · 도움말 순서로 세로로 쌓는다.
  * 입력 높이 44px(터치 최소) · 글자 16px(iOS 입력 확대를 막는 하한).
  * 한 화면이 칸을 통째로 키울 때는 조상에 변수를 둔다(로그인 · 가입 — `AuthLayout`). 두지 않으면 위 기본값이다 —
- *   `--field-h` 입력 높이 · `--field-text` 입력 글자 · `--field-label-text` 이름 글자 · `--field-pad` 입력 안 좌우 여백
+ *   `--field-h` 입력 높이 · `--field-text` 입력 글자 · `--field-label-text` 이름 글자 · `--field-pad` 입력 안 좌우 여백 ·
+ *   `--field-error-text` 오류 글자(기본 14px)
  */
 
 .field {
@@ -125,16 +126,17 @@
   align-items: flex-start;
   gap: var(--space-1);
   color: var(--error-text);
-  font-size: var(--text-sm);
+  font-size: var(--field-error-text, var(--text-sm));
   font-weight: var(--weight-semibold);
   line-height: var(--leading-snug);
 }
 
+/* 아이콘은 첫 줄 가운데에 — 글자 크기(14 · 16px)가 바뀌어도 맞게 줄 높이(1lh)로 잰다 */
 .error svg {
   flex: none;
   width: var(--icon-sm);
   height: var(--icon-sm);
-  margin-top: var(--space-0-5);
+  margin-top: calc((1lh - var(--icon-sm)) / 2);
 }
 
 .hint {
