@@ -206,9 +206,15 @@ export function PostListPage() {
   // 확정된 데이터로만 판정한다. 조건을 바꾸는 동안의 앞 목록 숫자로 판정하면 입구가 한 번 떴다 사라진다
   const confirmedTotal = view && (!query.isPlaceholderData || expanding) ? view.page.totalElements : undefined
   const progress = view && !empty ? postListProgress(search, view.content.length, view.page.totalElements) : null
-  // 의도를 골랐으면 목록 끝에 "내 글을 올려 두기" 를 둔다. 더 펼칠 수 있으면 아직 끝이 아니다
+  // 목록 끝의 "내 글을 올려 두기".
+  //  칸을 골랐으면 그 종류 하나. 더 펼칠 수 있으면 아직 끝이 아니다 — 결과 제목 아래 한 줄이 이미 입구다(5건 이상)
+  //  칸 · 검색어 · 필터가 없는 처음 목록이면 두 종류를 나란히(QA P-1). 휴대폰 헤더의 [+]는 글자가 없어 본문에 글로 된 입구가
+  //  이것 하나뿐이라, 더 펼칠 수 있어도 [더 보기] 아래에 늘 둔다
+  const plainList = intent === undefined && !search.keyword && !filtered
   const showNext =
-    intent !== undefined && view !== undefined && !empty && !expanding && !expandFailed && progress?.kind !== 'more'
+    view !== undefined &&
+    !empty &&
+    (intent !== undefined ? !expanding && !expandFailed && progress?.kind !== 'more' : plainList)
 
   return (
     <div className={styles.page}>
@@ -323,7 +329,11 @@ export function PostListPage() {
 
         {showNext ? (
           <div className={styles.next}>
-            <PostIntentNext intent={intent} to={createHref(intent.concept)} />
+            {intent ? (
+              <PostIntentNext intent={intent} to={createHref(intent.concept)} />
+            ) : (
+              <PostIntentNext to={createHref()} hrefFor={createHref} />
+            )}
           </div>
         ) : null}
       </section>

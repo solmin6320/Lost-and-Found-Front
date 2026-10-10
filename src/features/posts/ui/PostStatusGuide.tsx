@@ -17,10 +17,11 @@ interface PostStatusGuideProps {
  * 목록의 안내와 같은 문장(`labels.ts`)을 쓰되, 이 글의 유형 하나와 상태 셋을 보여 주고 지금 상태에 표시를 붙인다 —
  * 상태가 게시중 → 연락중 → 완료로 흘러간다는 것을 이 글 앞에서 한 번에 본다.
  * 배지 줄의 오른쪽 끝에 두고 판을 오른쪽에 맞춰 펼친다 — 320 폭에서도 화면 밖으로 나가지 않는다.
+ * **모든 폭에서 아이콘 + 글자**(`showLabel`, QA P-7) — 목록 결과 줄의 이름표 안내와 같은 모양이다
  */
 export function PostStatusGuide({ type, status, className }: PostStatusGuideProps) {
   return (
-    <Toggletip label="이름표 안내" align="end" className={className}>
+    <Toggletip label="이름표 안내" align="end" showLabel className={className}>
       <p className={styles.title}>이 글의 이름표</p>
       <dl className={styles.list}>
         <div className={styles.row}>

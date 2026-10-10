@@ -5,11 +5,12 @@ import styles from './PostWriteGuide.module.css'
 /**
  * 등록 · 수정 화면의 `쓰는 요령` — 온보딩 2층(docs/온보딩설계.md 4장). 제목 줄 끝에서 **누르면** 펼친다.
  * 없는 기능(쪽지 · 알림)을 약속하지 않는다. 연락은 댓글뿐이다.
+ * **모든 폭에서 아이콘 + 글자**(`showLabel`, QA P-7) — 휴대폰에서 회색 (i)만 있으면 터치로는 이름표가 뜨지 않아 무엇인지 모른다
  * 습득 글의 "가린 번호는 주인 확인 질문" 문장은 사진 칸 아래가 아니라 여기 둔다 — 칸 아래는 한 줄로(회의 SE-2 PM 결정)
  */
 export function PostWriteGuide() {
   return (
-    <Toggletip label="쓰는 요령" align="end">
+    <Toggletip label="쓰는 요령" align="end" showLabel>
       <p className={styles.title}>이렇게 쓰면 찾기 쉬워요</p>
       <ul className={styles.list}>
         <li>잃어버렸는지 주웠는지부터 골라요. 분실 글은 주운 사람이, 습득 글은 잃어버린 사람이 찾아봐요.</li>

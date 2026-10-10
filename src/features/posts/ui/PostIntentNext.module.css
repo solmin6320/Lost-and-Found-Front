@@ -54,3 +54,19 @@
 .action {
   flex: none;
 }
+
+/*
+ * 두 종류 버튼(칸을 고르지 않은 목록 끝). 나란히 들어가면 한 줄, 좁으면(휴대폰) 한 줄에 하나씩 폭을 채운다 —
+ * 엄지가 어디를 눌러도 닿고, 두 버튼의 누르는 면 사이는 8px
+ */
+.actions {
+  display: flex;
+  flex: 0 1 auto;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.actions > * {
+  flex: 1 1 auto;
+}
