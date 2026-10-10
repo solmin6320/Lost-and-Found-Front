@@ -97,6 +97,15 @@ export function isPostDetailPath(path: string): boolean {
 const POST_EDIT_PATH = /^\/posts\/\d+\/edit$/
 
 /**
+ * 돌아갈 곳이 글 폼(등록 · 수정)인가. 가입하고 폼으로 가면 짧은 알림(`가입했어요.`)을 띄우지 않는다 —
+ * 폼에서는 짧은 알림이 뜨지 않는다(화면정의서 1.10, 휴대폰 제출 줄과 겹친다). `safeRedirectPath` 를 거친 값만 넣는다
+ */
+export function isPostFormPath(path: string): boolean {
+  const { pathname } = new URL(path, window.location.origin)
+  return pathname === paths.postCreate || POST_EDIT_PATH.test(pathname)
+}
+
+/**
  * 돌아갈 곳을 사람이 읽는 이름으로. 이름을 모르는 곳이면 `null` — 안내 줄을 띄우지 않는다.
  * `safeRedirectPath` 를 거친 값만 넣는다.
  */

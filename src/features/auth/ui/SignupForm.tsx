@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 
 import { NICKNAME_MAX_LENGTH } from '@/features/members'
+import { useDirtyField, type LeaveCopy } from '@/shared/lib/dirtyRegistry'
 import { getErrorMessage, hasErrorCode } from '@/shared/lib/http'
 import { Button } from '@/shared/ui/Button'
 import { FormAlert } from '@/shared/ui/FormAlert'
@@ -24,6 +25,12 @@ interface SignupFormProps {
 
 type Errors = Partial<Record<AuthField | 'form', string>>
 
+/** 쓴 것이 있는데 떠나려 할 때(헤더 · 로고 · 뒤로가기 · 로그인으로 건너가기 · 새로고침). "글"이 아니라 가입 칸이다 */
+const SIGNUP_LEAVE_COPY: LeaveCopy = {
+  title: '가입을 그만두고 나갈까요?',
+  body: '나가면 입력한 내용은 저장되지 않아요.',
+}
+
 /**
  * [3.1] 회원가입 폼 — 이메일 · 비밀번호(8~20자, 보기/숨기기) · 닉네임(20자, 글자 수). 세 칸뿐이다.
  * 비밀번호 확인 칸은 두지 않는다 — 보기 버튼이 같은 일을 하고, 필수 입력을 늘리지 않는다(화면정의서 SCR-06).
@@ -31,6 +38,10 @@ type Errors = Partial<Record<AuthField | 'form', string>>
  * 칸을 벗어날 때 검사하고 오류는 그 칸 아래에 둔다. 제출이 실패하면 첫 번째로 틀린 칸으로 간다.
  *   409 `DUPLICATE_EMAIL` → 이메일 아래 · 409 `DUPLICATE_NICKNAME` → 닉네임 아래 · 400 → 문구가 가리키는 칸 아래
  * 중복은 보내 봐야 안다(실시간 중복 확인 엔드포인트가 없다).
+ *
+ * 칸에 글자가 있으면 쓰던 칸 등록부에 알린다(QA P-5) — 떠나기 전에 한 번 묻는다(설정의 비밀번호 칸과 같다, 글자는 넣지 않는다).
+ * 보내는 중 · 성공한 뒤에는 알리지 않는다 — 가입이 끝나 화면이 스스로 떠나는 이동을 막지 않고, 이미 서버에 닿은 가입을
+ * "저장되지 않아요"라고 말하지 않는다. 실패하면 다시 알린다
  */
 export function SignupForm({ signup, onSignedUpWithoutLogin }: SignupFormProps) {
   const [email, setEmail] = useState('')
@@ -64,6 +75,7 @@ export function SignupForm({ signup, onSignedUpWithoutLogin }: SignupFormProps) 
 
   // 성공한 뒤에도 잠가 둔다 — 화면이 넘어가기 전 한 번 더 눌려 DUPLICATE_EMAIL 을 받지 않게
   const busy = signup.isPending || signup.isSuccess
+  useDirtyField(!busy && (email.length > 0 || password.length > 0 || nickname.length > 0), SIGNUP_LEAVE_COPY)
 
   function clear(field: AuthField) {
     if (errors[field] || errors.form) setErrors((prev) => ({ ...prev, [field]: undefined, form: undefined }))
