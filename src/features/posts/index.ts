@@ -93,6 +93,7 @@ export {
   ANY_INTENT_EMPTY,
   POST_INTENTS,
   SEARCH_RESULTS_HEADING,
+  anyIntentNextTitle,
   intentShowing,
   postListHeading,
 } from './model/postIntent'

@@ -13,6 +13,7 @@ import {
   PostIntentNext,
   PostIntentPicker,
   PostSearchBar,
+  anyIntentNextTitle,
   hasActiveFilters,
   intentShowing,
   postListConditionKey,
@@ -332,7 +333,12 @@ export function PostListPage() {
             {intent ? (
               <PostIntentNext intent={intent} to={createHref(intent.concept)} />
             ) : (
-              <PostIntentNext to={createHref()} hrefFor={createHref} />
+              // 제목만 갈린다 — 더 볼 글이 남았으면 "올릴 물건이 있나요?", 다 봤으면 "찾는 물건이 없나요?"(QA-P-14)
+              <PostIntentNext
+                to={createHref()}
+                hrefFor={createHref}
+                title={anyIntentNextTitle(progress?.kind ?? 'end')}
+              />
             )}
           </div>
         ) : null}

@@ -1,4 +1,5 @@
 import type { PostType } from '../api/types'
+import type { PostListProgress } from './postListSearch'
 
 /**
  * 첫 화면의 두 칸 — `잃어버린 물건`(분실 글) / `주운 물건`(습득 글).
@@ -93,6 +94,19 @@ export const ANY_INTENT_NEXT = {
   description: '잃어버렸거나 주운 물건을 올려 두면 본 사람이 댓글로 알려 줘요.',
   action: '글 올리기',
 } as const
+
+/**
+ * 칸을 고르지 않은 처음 목록 끝 제목. 두 버튼(분실 · 습득 글 올리기)은 같고 제목만 갈린다(본인 결정 2026-10-11, QA-P-14).
+ *   진짜 끝(다 펼쳤다)          → "찾는 물건이 없나요?" — 끝까지 본 사람에게 하는 말이다
+ *   아직 남았다(더 보기 · 96건 상한) → "올릴 물건이 있나요?" — [24건 더 보기] 바로 아래에서 "없나요?"라고 물으면
+ *     아직 보지 않은 글이 남았는데 찾기를 끝낸 것처럼 말한다
+ */
+export function anyIntentNextTitle(progress: PostListProgress['kind']): string {
+  return progress === 'end' ? ANY_INTENT_NEXT.title : ANY_INTENT_NEXT_MORE_TITLE
+}
+
+/** 아직 더 볼 글이 남은 처음 목록 끝의 제목 */
+export const ANY_INTENT_NEXT_MORE_TITLE = '올릴 물건이 있나요?'
 
 /** 칸을 고르지 않았고 아무 조건 없이 글이 없을 때. 기본 목록은 진행 중인 글만이라 "진행 중인"이라고 말한다 */
 export const ANY_INTENT_EMPTY = {
