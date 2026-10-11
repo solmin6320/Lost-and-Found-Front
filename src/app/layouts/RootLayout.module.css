@@ -138,7 +138,7 @@
  *               휴대폰 폭은 전부 [+] 로 둔다
  *   48rem 미만  [글 올리기]는 선만 두른 버튼 — 첫 화면의 두 색 면이 주인공이다. 설정은 아이콘만
  *   48rem 이상  [글 올리기]는 잉크를 채운 주 버튼, 설정은 글자도 둔다
- *               (로그인 · 가입 화면은 선만 두른 그대로 — `data-quiet`, 그 화면의 주 버튼은 폼의 [로그인] · [가입])
+ *               (로그인 · 가입 화면에는 [글 올리기] · [로그인]이 없다 — [홈] · 설정만 오른쪽 끝에, 화면정의서 1.10)
  * 공통 버튼의 같은 무게 선택자와 겨루지 않게 `.actions` 를 앞에 붙인다
  */
 /*
@@ -240,7 +240,7 @@
 }
 
 @media (min-width: 48rem) {
-  .actions .create:not([data-quiet]) {
+  .actions .create {
     border-color: transparent;
     background-color: var(--action);
     color: var(--on-action);
@@ -264,7 +264,7 @@
 }
 
 @media (min-width: 48rem) and (hover: hover) {
-  .actions .create:not([data-here], [data-quiet]):hover {
+  .actions .create:not([data-here]):hover {
     border-color: transparent;
     background-color: var(--action-hover);
   }
@@ -307,11 +307,6 @@
   .login:hover {
     background-color: var(--surface-sunken);
   }
-}
-
-/* 로그인 · 가입 화면 — 숨기되 자리는 남긴다(헤더가 흔들리지 않게). 보이지 않으니 포커스 · 읽기에서도 빠진다 */
-.login[data-away] {
-  visibility: hidden;
 }
 
 .authPending {
