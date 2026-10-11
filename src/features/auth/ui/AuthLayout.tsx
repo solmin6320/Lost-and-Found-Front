@@ -8,14 +8,14 @@ import styles from './AuthLayout.module.css'
 
 interface AuthLayoutProps {
   /**
-   * 머리 — 서비스 꼬리표 + 이름(헤더 로고와 같은 짝, 부른 쪽이 넣는다). 화면 제목(h1)의 보이는 부분이다.
-   * 흔한 큰 `로그인` 글자 대신 "어느 서비스에 들어가는지"를 가장 먼저 보인다(QA 2026-10-11 — 큰 제목만 있는 틀은 AI 티)
+   * 머리의 꼬리표 그림(헤더 로고와 같은 그림, 부른 쪽이 넣는다 — 그림은 app 의 것이다). 장식이라 읽히지 않는다(`aria-hidden`).
+   * 서비스 이름은 여기 두지 않는다 — 아래 안내 문장이 말한다(QA-P-13 · D-11, 2026-10-11)
    */
-  brand: ReactNode
-  /** 화면 이름 — `로그인` · `회원가입`. 제목(h1) 안에서 읽기 전용으로만 둔다(보이는 말은 안내 문장 첫 낱말이 한다) */
+  mark: ReactNode
+  /** 화면 이름 — `로그인` · `회원가입`. 보이는 제목(h1)이고, 읽히는 이름도 이 말 그대로다 */
   title: string
   /**
-   * 이 화면에서 무엇을 하게 되는지 한 줄. 화면 이름으로 시작한다(`로그인하면 …` · `가입하면 …`) — 보이는 화면 이름이 여기 있다.
+   * 이 화면에서 무엇을 하게 되는지 한 줄. 서비스 이름 + 화면 이름으로 시작한다(`분실물 찾기에 로그인하면 …`).
    * 끊기면 안 되는 말 묶음은 `AuthPhrase` 로 감싼다
    */
   lead: ReactNode
@@ -37,22 +37,26 @@ interface AuthLayoutProps {
 /**
  * 로그인 · 가입의 공통 틀(SCR-05 · SCR-06) — 가운데 한 칸(본인 피드백 2026-10-11).
  *
- * 위에서 아래로 한 줄 : 머리(꼬리표 + 서비스 이름) → 한 줄 안내 → 돌아갈 곳 → (확인 문장) → 폼 → (다른 방법) → 전환 링크.
- * 머리가 이 화면의 "이 서비스만의 것" 하나다 — 그림을 새로 그리지 않고 헤더 로고를 크게 쓴다. 제목(h1)은 머리 + 읽기 전용 화면 이름이라
- * 화면 읽기 프로그램은 "분실물 찾기 로그인"으로 읽고, 화면을 옮기면 포커스가 여기로 온다(RouteFocus).
+ * 위에서 아래로 한 줄 : 머리(꼬리표 + 화면 이름) → 한 줄 안내 → 돌아갈 곳 → (확인 문장) → 폼 → (다른 방법) → 전환 링크.
+ * 머리 = 꼬리표 그림 + **보이는 화면 이름**(본인 결정 2026-10-11, QA-P-13 · D-11). 보이는 말과 읽히는 이름이 같다 —
+ * 예전에는 꼬리표 + 서비스 이름을 보이고 화면 이름은 읽기 전용으로 숨겨, 헤더 로고 링크와 같은 모양의 머리가 "누르는 것"처럼 보였다.
+ * 서비스 이름은 안내 문장 첫머리(`분실물 찾기에 로그인하면 …`)로 옮겼다. 화면을 옮기면 포커스가 제목으로 오지만(RouteFocus)
+ * 누를 수 있는 것이 아니라 링을 두르지 않는다(목록 첫 제목과 같다).
  * 옆 칸 안내(글 두 갈래)는 뺐다 — 로그인 화면에서 할 일은 폼 하나라, 눈이 갈 곳을 하나로 둔다.
  * 휴대폰은 여백 안을 꽉 채우고 위에서 시작한다(키보드가 아래를 덮는다).
  * 넓은 화면(48rem~)은 가는 선을 두른 한 장(폼 칸 27rem)을 위에 맞춰 둔다 — 위 여백은 화면 높이로만 정해, 오류 · 안내 줄이 생겨도
  * 제목과 그 위가 움직이지 않는다. 칸 · 버튼 · 이 화면의 짧은 문장(오류 · 안내)은 기본보다 크다(CSS).
  */
-export function AuthLayout({ brand, title, lead, returnNote, notice, children, alternatives, footer }: AuthLayoutProps) {
+export function AuthLayout({ mark, title, lead, returnNote, notice, children, alternatives, footer }: AuthLayoutProps) {
   return (
     <div className={styles.page}>
       <div className={styles.card}>
         <header className={styles.intro}>
-          <h1 className={styles.brand}>
-            {brand}
-            <span className="sr-only"> {title}</span>
+          <h1 className={styles.title}>
+            <span className={styles.mark} aria-hidden="true">
+              {mark}
+            </span>
+            <span className={styles.titleText}>{title}</span>
           </h1>
           <p className={styles.lead}>{lead}</p>
           {returnNote}

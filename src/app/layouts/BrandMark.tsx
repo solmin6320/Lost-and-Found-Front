@@ -1,9 +1,9 @@
-/** 서비스 이름. 헤더 로고 글자와 로그인 · 가입 화면 머리가 같은 말을 쓴다 */
+/** 서비스 이름. 헤더 로고 글자와 로그인 · 가입 화면 안내 문장 첫머리가 같은 말을 쓴다 */
 export const SERVICE_NAME = '분실물 찾기'
 
 /**
  * 꼬리표 두 장. 보관소에서 물건에 다는 이름표다 — 잃어버린 쪽(마리골드)과 주운 쪽(코발트)이 겹친다.
- * 서비스의 표지라 헤더 로고 · 로그인 · 가입 화면 머리(와 파비콘)에만 쓴다. 다른 화면의 장식으로 되풀이하지 않는다.
+ * 서비스의 표지라 헤더 로고 · 로그인 · 가입 화면 머리(화면 이름 앞의 그림, 2026-10-11)와 파비콘에만 쓴다. 다른 화면의 장식으로 되풀이하지 않는다.
  * 크기는 부른 쪽이 `className` 으로 정한다(가로 : 세로 = 30 : 24)
  */
 export function BrandMark({ className }: { className?: string }) {
@@ -20,15 +20,5 @@ export function BrandMark({ className }: { className?: string }) {
         <circle cx="12" cy="7.9" r="1.65" fill="var(--surface)" />
       </g>
     </svg>
-  )
-}
-
-/** 로그인 · 가입 화면 머리 — 꼬리표 + 서비스 이름(헤더 로고와 같은 짝). 크기는 그 화면 틀(`AuthLayout`)이 정한다 */
-export function ServiceBrand() {
-  return (
-    <>
-      <BrandMark />
-      <span>{SERVICE_NAME}</span>
-    </>
   )
 }

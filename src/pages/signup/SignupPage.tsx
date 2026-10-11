@@ -2,7 +2,7 @@ import { useEffect } from 'react'
 import { Navigate, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 
 import { describeReturnTarget, isPostDetailPath, isPostFormPath, loginPath, safeRedirectPath } from '@/app/authRedirect'
-import { ServiceBrand } from '@/app/layouts/BrandMark'
+import { BrandMark, SERVICE_NAME } from '@/app/layouts/BrandMark'
 import { readReturnEntry, type AuthReturnState, type LoginNoticeState } from '@/app/paths'
 import {
   AuthLayout,
@@ -58,15 +58,17 @@ export function SignupPage() {
 
   return (
     <AuthLayout
-      brand={<ServiceBrand />}
+      mark={<BrandMark />}
       title="회원가입"
+      // 서비스 이름 + 화면 이름으로 시작한다(머리 = 꼬리표 + 화면 이름, 본인 결정 2026-10-11).
       // 서비스 낱말을 처음 보는 사람에게 쉬운 말(목록 칸 이름 — 잃어버린 물건 · 주운 물건)과 **목록 카드에 붙는 이름표 그대로**를 함께 보인다
       // (QA P-9 · 2026-10-11 "장식 대신 실제 정보") — 가입한 뒤 목록에서 같은 이름표를 보면 바로 안다.
       // 이름표는 화면에서만 보이고, 화면 읽기 프로그램에는 괄호 말(분실 글 · 습득 글)로 읽힌다. 줄은 묶음 사이에서만 바뀐다
       lead={
         <>
+          <AuthPhrase>{SERVICE_NAME}에 가입하면</AuthPhrase>{' '}
           <AuthPhrase>
-            가입하면 <LeadBadge type="LOST" /> 잃어버린 물건<span className="sr-only">(분실 글)</span>이나
+            <LeadBadge type="LOST" /> 잃어버린 물건<span className="sr-only">(분실 글)</span>이나
           </AuthPhrase>{' '}
           <AuthPhrase>
             <LeadBadge type="FOUND" /> 주운 물건<span className="sr-only">(습득 글)</span>을 올리고,

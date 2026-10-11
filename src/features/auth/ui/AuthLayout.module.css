@@ -38,27 +38,45 @@
 }
 
 /*
- * 머리 — 꼬리표 + 서비스 이름. 헤더 로고와 같은 짝을 크게(휴대폰 26px · 넓은 화면 32px, 꼬리표는 글자보다 한 단계 크게).
- * 예전의 큰 `로그인` 글자(32px)를 대신한다 — 화면 이름은 아래 안내 문장의 첫 낱말이 말한다.
+ * 머리 — 꼬리표 그림 + 보이는 화면 이름(본인 결정 2026-10-11, QA-P-13 · D-11). 휴대폰 26px · 넓은 화면 32px, 꼬리표는 글자보다 한 단계 크게.
+ * 헤더 로고(꼬리표 + 서비스 이름 = 링크)와 짝이 다르다 — 누르는 것처럼 보이지 않게. 서비스 이름은 안내 문장이 말한다.
+ * 줄을 바꿀 수 있다(D-15) — 320 에서 글자를 200% 로 키우면 그림 + 이름이 한 줄에 들어가지 않는다. 그때는 그림 아래로 이름이 내려간다.
  * 이름과 안내 사이는 16px(묶음 사이), 안내와 돌아갈 곳 줄은 12px(한 묶음)
  */
-.brand {
-  display: inline-flex;
+.title {
+  display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: var(--space-2);
+  justify-content: center;
+  gap: var(--space-1) var(--space-2);
+  max-width: 100%;
   margin-bottom: var(--space-1);
   color: var(--text-strong);
   font-size: var(--text-2xl);
   font-weight: var(--weight-extrabold);
   line-height: var(--leading-tight);
   letter-spacing: var(--tracking-tight);
-  white-space: nowrap;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
 }
 
-.brand svg {
+/* 화면을 옮겨 왔을 때 포커스만 받는다(RouteFocus). 누를 수 있는 것이 아니라 링을 두르지 않는다(목록 첫 제목과 같다) */
+.title:focus {
+  outline: none;
+}
+
+.mark {
+  display: block;
   flex: none;
+}
+
+.mark svg {
   width: 2.5rem;
   height: 2rem;
+}
+
+.titleText {
+  min-width: 0;
 }
 
 .lead {
@@ -221,12 +239,13 @@
   /*
    * 한 장은 **위에 맞춘다.** 위 여백은 화면 높이로만 정한다 — 내용 높이로 가운데를 잡으면 오류 · 안내 한 줄이 생길 때마다
    * 장 전체가 위로 뛰고 [로그인]이 누르려던 손 밑에서 움직였다(QA D-1 · P-2, 2026-10-11).
-   * 여백 = (본문 높이 − 기본 로그인 한 장 높이 36rem) / 2, 24 ~ 72px — 기본 로그인 한 장이 화면 높이 가운데쯤에 온다.
+   * 여백 = (본문 높이 − 기본 로그인 한 장 높이 36rem) / 2, **24 ~ 40px**(본인 결정 2026-10-11, QA D-12 — 예전 상한 72px 은 1280×800 에서
+   * 가입 한 장의 [가입하기]를 화면 끝까지 밀어냈다). 보통 높이(713px 이상)에서는 40px 로 두 화면의 머리가 같은 자리다.
    * 오류 줄이 생기면 그 줄 아래만 내려간다. 낮은 화면 · 200% 확대에서는 24px 로 줄고, 긴 내용은 위에서부터 흐른다(잘리지 않는다)
    */
   .page {
     align-content: start;
-    padding-top: clamp(var(--space-6), (100dvh - var(--header-h) - 36rem) / 2, var(--space-18));
+    padding-top: clamp(var(--space-6), (100dvh - var(--header-h) - 36rem) / 2, var(--space-10));
   }
 
   /* 선 한 줄을 두른 놓이는 면. 떠 있는 것이 아니라 그림자는 두지 않는다 */
@@ -241,11 +260,11 @@
     font-size: var(--text-lg);
   }
 
-  .brand {
+  .title {
     font-size: var(--text-3xl);
   }
 
-  .brand svg {
+  .mark svg {
     width: 3.125rem;
     height: 2.5rem;
   }

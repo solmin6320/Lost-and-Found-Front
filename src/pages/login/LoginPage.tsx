@@ -1,9 +1,9 @@
 import { Navigate, useLocation, useSearchParams } from 'react-router-dom'
 
 import { describeReturnTarget, isPostDetailPath, safeRedirectPath, signupPath } from '@/app/authRedirect'
-import { ServiceBrand } from '@/app/layouts/BrandMark'
+import { BrandMark, SERVICE_NAME } from '@/app/layouts/BrandMark'
 import { paths, readReturnEntry, type AuthReturnState, type LoginNoticeState } from '@/app/paths'
-import { AuthLayout, AuthReturnNote, AuthSwitch, LoginForm, AuthTextLink, useAuth } from '@/features/auth'
+import { AuthLayout, AuthPhrase, AuthReturnNote, AuthSwitch, LoginForm, AuthTextLink, useAuth } from '@/features/auth'
 import { useDocumentTitle } from '@/shared/lib/useDocumentTitle'
 
 /**
@@ -35,10 +35,17 @@ export function LoginPage() {
 
   return (
     <AuthLayout
-      brand={<ServiceBrand />}
+      mark={<BrandMark />}
       title="로그인"
-      // 화면 이름으로 시작해 무엇이 되는지 말한다(부탁이 아니라 할 수 있게 되는 일). "연락"이 이 서비스에서 댓글이 하는 일이다
-      lead="로그인하면 글을 올리고 댓글로 연락할 수 있어요."
+      // 서비스 이름 + 화면 이름으로 시작해 무엇이 되는지 말한다(부탁이 아니라 할 수 있게 되는 일). "연락"이 이 서비스에서 댓글이 하는 일이다.
+      // 서비스 이름은 머리가 아니라 여기서 말한다(머리 = 꼬리표 + 화면 이름, 본인 결정 2026-10-11)
+      // 줄은 말 묶음 사이에서만 바뀐다(375 에서 "글을 / 올리고"로 갈리지 않게)
+      lead={
+        <>
+          <AuthPhrase>{SERVICE_NAME}에 로그인하면</AuthPhrase> <AuthPhrase>글을 올리고</AuthPhrase>{' '}
+          <AuthPhrase>댓글로 연락할 수 있어요.</AuthPhrase>
+        </>
+      }
       returnNote={target ? <AuthReturnNote lead="끝나면" {...target} /> : null}
       notice={state?.notice}
       // 추후 OAuth(구글 · 네이버) — alternatives 에 버튼 묶음을 넘긴다. 미구현이라 두지 않는다
