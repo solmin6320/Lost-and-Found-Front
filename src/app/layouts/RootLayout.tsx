@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, type MouseEvent } from 'react'
+import { useEffect, useRef, type MouseEvent } from 'react'
 import { Link, NavLink, Outlet, matchPath, useLocation } from 'react-router-dom'
 
 import { isAuthScreen } from '@/app/authRedirect'
@@ -9,7 +9,6 @@ import { useAuth } from '@/features/auth'
 import { intentShowing, postTypeFromQuery } from '@/features/posts'
 import { cx } from '@/shared/lib/cx'
 import { useDirtyLeaveGuard } from '@/shared/lib/dirtyRegistry'
-import { usePressGuard } from '@/shared/lib/pressGuard'
 import { ButtonLink } from '@/shared/ui/Button'
 import { ConfirmDialog } from '@/shared/ui/ConfirmDialog'
 import { FlashViewport } from '@/shared/ui/Flash'
@@ -35,7 +34,6 @@ import styles from './RootLayout.module.css'
  */
 export function RootLayout() {
   const leave = useDirtyLeaveGuard()
-  const actionsGuard = useAuthScreenPressGuard()
 
   return (
     <div className={styles.shell}>
@@ -50,16 +48,7 @@ export function RootLayout() {
             <span className={styles.wordmarkText}>{SERVICE_NAME}</span>
           </Link>
 
-          {/* [홈]은 [글 올리기] 바로 뒤(본인 피드백 2026-10-08). 그 뒤가 설정 · 로그인 또는 계정 메뉴 */}
-          <div
-            className={styles.actions}
-            onPointerDownCapture={actionsGuard.pointerDown}
-            onClickCapture={actionsGuard.click}
-          >
-            <CreatePostLink />
-            <HomeLink />
-            <HeaderAuth />
-          </div>
+          <HeaderActions />
         </div>
       </header>
 
@@ -90,28 +79,21 @@ export function RootLayout() {
 }
 
 /**
- * 로그인 · 가입 화면에 막 들어온 0.5초 동안 헤더 오른쪽 묶음의 마우스 · 터치 누름을 흘려보낸다(SE-1 과 같은 `pressGuard`).
+ * 헤더 오른쪽 묶음 — [글 올리기] · [홈] · 설정 · [로그인](비로그인) 또는 계정 메뉴(로그인). [홈]은 [글 올리기] 바로 뒤(본인 피드백 2026-10-08).
  *
- * 그 화면에서는 [글 올리기] · [로그인]이 빠져 설정이 [로그인] 자리로 온다. 목록에서 [로그인]을 두 번 누르면(더블클릭 · 두 번 탭)
- * 둘째 누름이 막 그 자리에 온 설정에 떨어져 설정 화면으로 갔다(실측 1280 · 375, 간격 60 ~ 300ms 모두). 키보드 누름(`detail` 0)은 막지 않는다.
- * 모양은 바꾸지 않는다 — 0.5초 뒤의 누름은 그대로 통한다
+ * **로그인 · 가입 화면에서도 자리는 그대로다**(본인 결정 2026-10-11, 화면정의서 1.10). 그 화면에서는 [글 올리기] · [로그인]을
+ * 숨기되 자리를 남긴다(`data-away` — 보이지 않고, 누를 수 없고, 읽히지도 않는다). 그래서 [홈] · 설정이 목록과 **같은 x** 에 선다 —
+ * 목록에서 [로그인]을 두 번 눌러도 둘째 누름은 빈자리에 떨어진다(누르는 것이 옮겨 오지 않으니 막 들어온 0.5초를 막을 까닭도 없다).
+ * 스크롤바가 생기고 없어지는 것(로그인 ↔ 가입)으로 헤더가 밀리지 않게 하는 것은 `reset.css` 의 `scrollbar-gutter` 다
  */
-function useAuthScreenPressGuard() {
-  const location = useLocation()
-  const guard = usePressGuard()
-  const onAuthScreen = isAuthScreen(location.pathname)
-
-  // 그리기 직후(칠하기 전) 건다 — 둘째 누름이 아무리 빨라도 그보다 먼저다
-  useLayoutEffect(() => {
-    if (onAuthScreen) guard.arm()
-  }, [onAuthScreen, location.key, guard])
-
-  return {
-    pointerDown: () => guard.pointerDown(),
-    click: (event: MouseEvent<HTMLDivElement>) => {
-      if (onAuthScreen && !guard.allows(event.nativeEvent)) event.preventDefault()
-    },
-  }
+export function HeaderActions() {
+  return (
+    <div className={styles.actions}>
+      <CreatePostLink />
+      <HomeLink />
+      <HeaderAuth />
+    </div>
+  )
 }
 
 /**
@@ -161,9 +143,10 @@ function HomeLink() {
  * 등록 · 수정 화면에서는 "지금 여기" 옅은 면을 깐다. 등록 화면에서는 `aria-current="page"` 이고 눌러도 무시한다 —
  * 같은 경로라 이탈 확인을 타지 않고 폼은 `?type` 을 처음 한 번만 읽어, 누르면 주소만 바뀌고 아무 일도 없었다(AR2-9)
  *
- * 로그인 · 가입 화면에서는 그리지 않는다([로그인]과 같이, 본인 결정 2026-10-11) — 그 화면에서 할 일은 폼 하나이고,
+ * 로그인 · 가입 화면에서는 **숨기되 자리를 남긴다**([로그인]과 같이, 본인 결정 2026-10-11) — 그 화면에서 할 일은 폼 하나이고,
  * 튀는 것은 폼의 큰 [로그인] · [가입하기] 하나여야 한다(폰 레스토프). 비로그인이 누르면 로그인을 거쳐 오는 입구라 이 화면에선 겉돈다.
- * 빠진 자리는 남기지 않는다 — 남은 [홈] · 설정이 오른쪽 끝에 붙는다(화면정의서 1.10 실측)
+ * 자리는 조건 없는 목록과 같은 이름(`글 올리기`)의 폭이다 — [홈] · 설정이 목록과 같은 x 에 선다(`HeaderActions`).
+ * `inert` + `aria-hidden` + `visibility: hidden`(CSS `data-away`) — 보이지도, 눌리지도, Tab 으로 닿지도, 읽히지도 않는다
  */
 function CreatePostLink() {
   const auth = useAuth()
@@ -177,7 +160,23 @@ function CreatePostLink() {
   const onCreate = location.pathname === paths.postCreate
   const onEdit = matchPath(paths.postEdit(':postId'), location.pathname) !== null
 
-  if (isAuthScreen(location.pathname)) return null
+  if (isAuthScreen(location.pathname)) {
+    return (
+      <ButtonLink
+        to={paths.postCreate}
+        variant="secondary"
+        size="sm"
+        className={styles.create}
+        data-away=""
+        aria-hidden="true"
+        tabIndex={-1}
+        inert
+      >
+        <Plus />
+        <span className={styles.createLabel}>글 올리기</span>
+      </ButtonLink>
+    )
+  }
 
   function handleClick(event: MouseEvent<HTMLAnchorElement>) {
     if (onCreate) event.preventDefault()
@@ -223,8 +222,8 @@ function SettingsLink() {
  * 로그인한 사용자에게 매번 "로그아웃됐나?" 하는 깜빡임이 보인다.
  *
  * 비로그인 : 설정(톱니) + [로그인]. [로그인]은 테두리 없는 글자 버튼(누르는 면 44px) — 선 상자는 [+] 하나만 남는다(회의 UI-6 b).
- *   로그인 · 가입 화면에서는 [로그인]을 그리지 않는다(지금 그 화면이다 — 같은 목적지를 또 두지 않는다). [+ 글 올리기]도 빠지고
- *   [홈] · 설정이 오른쪽 끝에 붙는다 — 빈자리를 남기면 두 버튼이 끝에서 76px 떠 보였다(2026-10-11, 화면정의서 1.10).
+ *   로그인 · 가입 화면에서는 [로그인]을 숨기되 자리를 남긴다(지금 그 화면이다 — 같은 목적지를 또 두지 않는다). [+ 글 올리기]도
+ *   같이 숨긴다 — [홈] · 설정이 목록과 같은 x 에 선다(본인 결정 2026-10-11, 화면정의서 1.10).
  *
  * 계정 메뉴에서 로그아웃하면 메뉴(와 누르던 버튼)가 사라진다. 그 자리에 생긴 [로그인]으로 포커스를 옮긴다 —
  * 그냥 두면 문서 맨 앞으로 빠진다. 로그아웃하며 다른 화면으로 옮겨지면(내가 쓴 글 → 로그인) 새 화면의 제목이 가져간다(RouteFocus)
@@ -247,10 +246,17 @@ function HeaderAuth() {
     await auth.logout()
   }
 
-  // 로그인 · 가입 화면 — 설정만. 세션 복구 중에도 같은 모양으로 바로 그린다(자리 잡기 → 설정으로 바뀌며 [홈]이 밀리지 않게).
-  // 로그인돼 있으면 화면이 곧 돌려보내므로 아래 계정 메뉴로 간다
+  // 로그인 · 가입 화면 — 설정 + [로그인] 빈자리(같은 글자 · 같은 폭이라 목록의 [로그인]과 꼭 같은 칸). 세션 복구 중에도 같은 모양으로
+  // 바로 그린다(자리 잡기 → 설정으로 바뀌며 [홈]이 밀리지 않게). 로그인돼 있으면 화면이 곧 돌려보내므로 아래 계정 메뉴로 간다
   if (isAuthScreen(location.pathname) && auth.status !== 'authenticated') {
-    return <SettingsLink />
+    return (
+      <>
+        <SettingsLink />
+        <span className={styles.login} data-away="" aria-hidden="true">
+          로그인
+        </span>
+      </>
+    )
   }
 
   if (auth.status === 'unknown') {
