@@ -62,3 +62,13 @@
   line-height: var(--leading-snug);
   word-break: keep-all;
 }
+
+/*
+ * 나가는 길(`로그인 없이 목록 보기`) — 글자 링크의 누르는 면(44px)은 글자 줄(23px)보다 위아래로 10px 남짓 넓다.
+ * 바로 윗줄과 8px 만 띄우면 누르는 면이 윗줄에 닿았다(2026-10-11 실측 0.4px 겹침). 12px 을 더 띄워 위 · 아래(면 끝) 모두 약 10px 비운다
+ */
+.lockExit {
+  margin-top: var(--space-3);
+  font-size: var(--text-base);
+  line-height: var(--leading-snug);
+}

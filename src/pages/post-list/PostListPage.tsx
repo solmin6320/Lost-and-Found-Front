@@ -465,11 +465,13 @@ function PostListBody({
   }
 
   if (empty === 'none-yet') {
-    // 회색 판 대신 등록 권유 면 하나. 버튼 색은 올릴 글을 따른다(의도를 안 골랐으면 잉크)
+    // 회색 판 대신 등록 권유 면 하나. 버튼 색은 올릴 글을 따른다. 칸을 안 골랐으면 결과 끝과 같은 두 버튼
+    // ([분실 글 올리기] [습득 글 올리기]) — 잉크 [글 올리기] 하나는 누른 뒤 등록 화면에서 또 골라야 했다(QA 2026-10-11)
     return (
       <PostIntentNext
         intent={intent}
         to={createHref(intent?.concept)}
+        hrefFor={intent ? undefined : createHref}
         title={intent?.empty.title ?? ANY_INTENT_EMPTY.title}
         description={intent?.empty.description ?? ANY_INTENT_EMPTY.description}
       />
