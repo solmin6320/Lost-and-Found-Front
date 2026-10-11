@@ -25,6 +25,13 @@
 }
 
 .form {
+  /*
+   * 쓰는 화면의 칸은 기본(44px · 이름 14px)보다 한 단계 크다 — 48px · 이름 16px(디자인품질기준 5장 "칸 크기").
+   * TextField 가 조상의 변수를 읽고, 고르는 칸(유형 · 종류) · 사진 · 설명의 이름도 같은 변수를 읽는다. 로그인 · 가입(56px)보다는 한 단계 아래
+   */
+  --field-h: var(--form-control-h);
+  --field-label-text: var(--text-base);
+
   display: grid;
   gap: var(--space-8);
   min-width: 0;
@@ -132,13 +139,25 @@
   padding-top: var(--space-5);
 }
 
+/* [취소] · [올리기] — 칸과 같은 48px · 16px. 공통 버튼이 자기 높이 변수를 스스로 정해 두므로 두 클래스로 덮는다(AuthForm 과 같다) */
+.buttons .cancel,
+.buttons .submit {
+  --button-h: var(--form-control-h);
+
+  font-size: var(--text-base);
+}
+
 @media (max-width: 47.99rem) and (min-height: 40rem) {
   .bar {
     position: sticky;
     bottom: 0;
     z-index: 10;
     margin-inline: calc(var(--gutter) * -1);
-    padding: var(--space-3) var(--gutter) max(var(--space-3), env(safe-area-inset-bottom));
+    /*
+     * 위 8 · 아래 12 — 버튼이 48px 로 커진 만큼 위 여백을 줄여 줄 높이 69px(선 1 + 8 + 48 + 12)를 지킨다.
+     * 헤더 57 + 줄 69 = 126px 이 화면 높이 40rem(640px)의 20% 안이라는 총량 규칙의 바탕 값이다(디자인품질기준 8장)
+     */
+    padding: var(--space-2) var(--gutter) max(var(--space-3), env(safe-area-inset-bottom));
     border-top: var(--hairline);
     background-color: var(--surface);
   }
@@ -151,7 +170,8 @@
 
 /*
  * 제출이 막혔을 때 남은 수 — 버튼 바로 위 13px 잉크 글자 한 줄. 색 · 면 없음(줄 높이 증가 20px 이하).
- * 비어 있어도 알림 영역으로 남아 있어야 나타날 때 읽힌다 — 높이 0 으로 접고 줄 간격도 거둔다
+ * 비어 있어도 알림 영역으로 남아 있어야 나타날 때 읽힌다 — 비면 흐름에서 빼 줄 간격도 생기지 않게 한다.
+ * (예전에는 아래 여백을 −12px 로 당겼는데, 격자 칸은 음수 높이가 되지 않아 12px 이 늘 남았다 — 붙는 줄 81px, 2026-10-11 실측)
  */
 .remaining {
   color: var(--text-strong);
@@ -161,7 +181,11 @@
 }
 
 .remaining:empty {
-  margin-bottom: calc(var(--space-3) * -1);
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
 }
 
 .buttons {

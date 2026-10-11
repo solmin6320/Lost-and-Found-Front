@@ -17,7 +17,8 @@
   margin-bottom: var(--space-2);
   padding: 0;
   color: var(--text-strong);
-  font-size: var(--text-sm);
+  /* 글 폼의 다른 칸 이름과 같은 크기(조상 --field-label-text, 16px) */
+  font-size: var(--field-label-text, var(--text-sm));
   font-weight: var(--weight-bold);
   line-height: var(--leading-snug);
 }

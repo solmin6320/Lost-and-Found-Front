@@ -15,7 +15,8 @@
 
 .label {
   color: var(--text-strong);
-  font-size: var(--text-sm);
+  /* 쓰는 화면(글 폼)은 조상의 --field-label-text 로 16px, 없으면 14px(TextField 와 같다) */
+  font-size: var(--field-label-text, var(--text-sm));
   font-weight: var(--weight-bold);
   line-height: var(--leading-snug);
 }

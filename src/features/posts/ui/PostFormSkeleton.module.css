@@ -44,7 +44,7 @@
 }
 
 .input {
-  height: var(--tap-min);
+  height: var(--form-control-h);
   border-radius: var(--radius-sm);
 }
 
