@@ -1,6 +1,7 @@
 import { Navigate, useLocation, useSearchParams } from 'react-router-dom'
 
 import { describeReturnTarget, isPostDetailPath, safeRedirectPath, signupPath } from '@/app/authRedirect'
+import { ServiceBrand } from '@/app/layouts/BrandMark'
 import { paths, readReturnEntry, type AuthReturnState, type LoginNoticeState } from '@/app/paths'
 import { AuthLayout, AuthReturnNote, AuthSwitch, LoginForm, AuthTextLink, useAuth } from '@/features/auth'
 import { useDocumentTitle } from '@/shared/lib/useDocumentTitle'
@@ -34,9 +35,11 @@ export function LoginPage() {
 
   return (
     <AuthLayout
+      brand={<ServiceBrand />}
       title="로그인"
-      lead="글을 올리거나 댓글을 남기려면 로그인해 주세요."
-      returnNote={target ? <AuthReturnNote lead="로그인하면" {...target} /> : null}
+      // 화면 이름으로 시작해 무엇이 되는지 말한다(부탁이 아니라 할 수 있게 되는 일). "연락"이 이 서비스에서 댓글이 하는 일이다
+      lead="로그인하면 글을 올리고 댓글로 연락할 수 있어요."
+      returnNote={target ? <AuthReturnNote lead="끝나면" {...target} /> : null}
       notice={state?.notice}
       // 추후 OAuth(구글 · 네이버) — alternatives 에 버튼 묶음을 넘긴다. 미구현이라 두지 않는다
       footer={

@@ -16,6 +16,7 @@ import { Gear, House, Plus } from '@/shared/ui/icons'
 import tip from '@/shared/ui/Tooltip.module.css'
 
 import { AccountMenu } from './AccountMenu'
+import { BrandMark, SERVICE_NAME } from './BrandMark'
 import styles from './RootLayout.module.css'
 
 /**
@@ -43,8 +44,8 @@ export function RootLayout() {
       <header className={styles.header}>
         <div className={styles.headerInner}>
           <Link className={styles.wordmark} to={paths.postList}>
-            <BrandMark />
-            <span className={styles.wordmarkText}>분실물 찾기</span>
+            <BrandMark className={styles.mark} />
+            <span className={styles.wordmarkText}>{SERVICE_NAME}</span>
           </Link>
 
           {/* [홈]은 [글 올리기] 바로 뒤(본인 피드백 2026-10-08). 그 뒤가 설정 · 로그인 또는 계정 메뉴 */}
@@ -234,25 +235,4 @@ function HeaderAuth() {
 
   // 화면을 옮기면 펼친 메뉴를 닫는다
   return <AccountMenu key={location.pathname} me={auth.me} onLogout={logout} />
-}
-
-/**
- * 꼬리표 두 장. 보관소에서 물건에 다는 이름표다 — 잃어버린 쪽(마리골드)과 주운 쪽(코발트)이 겹친다.
- * 서비스의 표지라 이 자리(와 파비콘)에만 쓴다. 다른 화면의 장식으로 되풀이하지 않는다.
- */
-function BrandMark() {
-  const tag =
-    'M12 1.8 17.3 6.3a1.6 1.6 0 0 1 .6 1.23V20.4a1.6 1.6 0 0 1-1.6 1.6H7.7a1.6 1.6 0 0 1-1.6-1.6V7.53a1.6 1.6 0 0 1 .6-1.23Z'
-  return (
-    <svg className={styles.mark} viewBox="0 0 30 24" aria-hidden="true" focusable="false">
-      <g transform="translate(7.5 0.4) rotate(14 12 12)">
-        <path d={tag} fill="var(--found-face)" />
-        <circle cx="12" cy="7.9" r="1.65" fill="var(--surface)" />
-      </g>
-      <g transform="translate(-0.5 0.6) rotate(-12 12 12)">
-        <path d={tag} fill="var(--lost-face)" stroke="var(--surface)" strokeWidth="1.6" strokeLinejoin="round" />
-        <circle cx="12" cy="7.9" r="1.65" fill="var(--surface)" />
-      </g>
-    </svg>
-  )
 }

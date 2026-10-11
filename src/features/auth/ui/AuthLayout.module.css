@@ -29,7 +29,7 @@
   margin-inline: auto;
 }
 
-/* 제목 · 안내는 가운데 — 한 장의 머리다. 폼의 이름 · 칸은 왼쪽 정렬 그대로(읽는 시작점이 같게) */
+/* 머리 · 안내는 가운데 — 한 장의 머리다. 폼의 이름 · 칸은 왼쪽 정렬 그대로(읽는 시작점이 같게) */
 .intro {
   display: grid;
   gap: var(--space-3);
@@ -37,12 +37,28 @@
   text-align: center;
 }
 
-.title {
-  font-size: var(--text-3xl);
+/*
+ * 머리 — 꼬리표 + 서비스 이름. 헤더 로고와 같은 짝을 크게(휴대폰 26px · 넓은 화면 32px, 꼬리표는 글자보다 한 단계 크게).
+ * 예전의 큰 `로그인` 글자(32px)를 대신한다 — 화면 이름은 아래 안내 문장의 첫 낱말이 말한다.
+ * 이름과 안내 사이는 16px(묶음 사이), 안내와 돌아갈 곳 줄은 12px(한 묶음)
+ */
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-1);
+  color: var(--text-strong);
+  font-size: var(--text-2xl);
   font-weight: var(--weight-extrabold);
   line-height: var(--leading-tight);
   letter-spacing: var(--tracking-tight);
-  text-wrap: balance;
+  white-space: nowrap;
+}
+
+.brand svg {
+  flex: none;
+  width: 2.5rem;
+  height: 2rem;
 }
 
 .lead {
@@ -223,5 +239,14 @@
 
   .lead {
     font-size: var(--text-lg);
+  }
+
+  .brand {
+    font-size: var(--text-3xl);
+  }
+
+  .brand svg {
+    width: 3.125rem;
+    height: 2.5rem;
   }
 }

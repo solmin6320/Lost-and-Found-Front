@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { Navigate, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 
 import { describeReturnTarget, isPostDetailPath, isPostFormPath, loginPath, safeRedirectPath } from '@/app/authRedirect'
+import { ServiceBrand } from '@/app/layouts/BrandMark'
 import { readReturnEntry, type AuthReturnState, type LoginNoticeState } from '@/app/paths'
 import {
   AuthLayout,
@@ -13,6 +14,7 @@ import {
   useAuth,
   useSignup,
 } from '@/features/auth'
+import { TypeBadge } from '@/features/posts'
 import { showFlash } from '@/shared/lib/flash'
 import { useDocumentTitle } from '@/shared/lib/useDocumentTitle'
 
@@ -56,16 +58,23 @@ export function SignupPage() {
 
   return (
     <AuthLayout
+      brand={<ServiceBrand />}
       title="회원가입"
-      // 서비스 낱말(분실 글 · 습득 글)을 처음 보는 사람에게 쉬운 말을 먼저(QA P-9) — 목록 칸 이름(잃어버린 물건 · 주운 물건)과 같은 말이다.
-      // 줄은 묶음 사이에서만 바뀐다 — "물건 / (습득 글)"로 갈리면 괄호가 무엇을 가리키는지 흐려진다
+      // 서비스 낱말을 처음 보는 사람에게 쉬운 말(목록 칸 이름 — 잃어버린 물건 · 주운 물건)과 **목록 카드에 붙는 이름표 그대로**를 함께 보인다
+      // (QA P-9 · 2026-10-11 "장식 대신 실제 정보") — 가입한 뒤 목록에서 같은 이름표를 보면 바로 안다.
+      // 이름표는 화면에서만 보이고, 화면 읽기 프로그램에는 괄호 말(분실 글 · 습득 글)로 읽힌다. 줄은 묶음 사이에서만 바뀐다
       lead={
         <>
-          <AuthPhrase>잃어버린 물건(분실 글)이나</AuthPhrase> <AuthPhrase>주운 물건(습득 글)을 올리고,</AuthPhrase>{' '}
+          <AuthPhrase>
+            가입하면 <LeadBadge type="LOST" /> 잃어버린 물건<span className="sr-only">(분실 글)</span>이나
+          </AuthPhrase>{' '}
+          <AuthPhrase>
+            <LeadBadge type="FOUND" /> 주운 물건<span className="sr-only">(습득 글)</span>을 올리고,
+          </AuthPhrase>{' '}
           <AuthPhrase>댓글로 연락할 수 있어요.</AuthPhrase>
         </>
       }
-      returnNote={target ? <AuthReturnNote lead="가입하면" {...target} /> : null}
+      returnNote={target ? <AuthReturnNote lead="끝나면" {...target} /> : null}
       // 추후 OAuth(구글 · 네이버) — alternatives 에 버튼 묶음을 넘긴다. 미구현이라 두지 않는다
       footer={
         <AuthSwitch prompt="이미 계정이 있나요?">
@@ -83,5 +92,14 @@ export function SignupPage() {
         }}
       />
     </AuthLayout>
+  )
+}
+
+/** 안내 문장 속 이름표 — 목록 카드와 같은 `TypeBadge`. 뜻은 옆의 읽기 전용 괄호 말이 전하므로 화면에서만 보인다 */
+function LeadBadge({ type }: { type: 'LOST' | 'FOUND' }) {
+  return (
+    <span aria-hidden="true">
+      <TypeBadge type={type} />
+    </span>
   )
 }
