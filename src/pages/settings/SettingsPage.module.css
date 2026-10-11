@@ -7,6 +7,8 @@
   /* 쓰는 화면 — 칸 48px · 이름 16px(글 폼과 같은 단계, 디자인품질기준 5장 "칸 크기"). 자리표시(SettingsSkeleton)도 이 틀을 쓴다 */
   --field-h: var(--form-control-h);
   --field-label-text: var(--text-base);
+  /* 칸 오류도 16px — 글 폼과 같다(본인 결정 2026-10-11, QA D-13). 도움말은 14px 그대로 */
+  --field-error-text: var(--text-base);
 
   display: grid;
   gap: var(--space-8);

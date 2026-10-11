@@ -3,7 +3,7 @@
  * 입력 높이 44px(터치 최소) · 글자 16px(iOS 입력 확대를 막는 하한).
  * 한 화면이 칸을 통째로 키울 때는 조상에 변수를 둔다(로그인 · 가입 — `AuthLayout`). 두지 않으면 위 기본값이다 —
  *   `--field-h` 입력 높이 · `--field-text` 입력 글자 · `--field-label-text` 이름 글자 · `--field-pad` 입력 안 좌우 여백 ·
- *   `--field-error-text` 오류 글자(기본 14px)
+ *   `--field-error-text` 오류 글자(기본 14px — 쓰는 화면인 로그인 · 가입 · 글 폼 · 설정은 16px)
  */
 
 .field {

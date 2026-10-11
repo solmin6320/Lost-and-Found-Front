@@ -172,7 +172,8 @@
   gap: var(--space-1);
   margin-top: var(--space-1);
   color: var(--error-text);
-  font-size: var(--text-sm);
+  /* 쓰는 화면(글 폼)은 조상의 --field-error-text 로 16px, 없으면 14px(TextField 와 같다 — 디자인품질기준 5장) */
+  font-size: var(--field-error-text, var(--text-sm));
   font-weight: var(--weight-semibold);
   line-height: var(--leading-snug);
   animation: error-in var(--duration-base) var(--ease-out);
@@ -182,7 +183,8 @@
   flex: none;
   width: var(--icon-sm);
   height: var(--icon-sm);
-  margin-top: var(--space-0-5);
+  /* 첫 줄 가운데에 — 글자 크기(14 · 16px)가 바뀌어도 맞게 줄 높이(1lh)로 잰다 */
+  margin-top: calc((1lh - var(--icon-sm)) / 2);
 }
 
 .note {
