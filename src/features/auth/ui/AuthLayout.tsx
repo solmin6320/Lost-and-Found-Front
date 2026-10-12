@@ -49,7 +49,8 @@ interface AuthLayoutProps {
  */
 export function AuthLayout({ mark, title, lead, returnNote, notice, children, alternatives, footer }: AuthLayoutProps) {
   return (
-    <div className={styles.page}>
+    // 돌아갈 곳 줄이 있으면 넓은 화면 위 여백을 24px 로(QA D-20). 로그인 · 가입이 같은 조건이라 두 화면 머리는 여전히 같은 자리다
+    <div className={styles.page} data-return={returnNote ? '' : undefined}>
       <div className={styles.card}>
         <header className={styles.intro}>
           <h1 className={styles.title}>
