@@ -110,5 +110,7 @@ describe('헤더 오른쪽 묶음 — 로그인 · 가입 화면에서도 자리
     const css = readCss('../../shared/styles/reset.css')
     const html = /(?:^|\n)html\s*\{([^}]*)\}/.exec(css)
     expect(html?.[1]).toMatch(/scrollbar-gutter:\s*stable;/)
+    // 짧은 화면에도 빈 스크롤바를 세운다 — 헤더 아래 선이 빈 띠 앞에서 끊기지 않고 긴 화면처럼 막대 앞에서 끝난다(QA D-17)
+    expect(html?.[1]).toMatch(/overflow-y:\s*scroll;/)
   })
 })
