@@ -36,6 +36,13 @@
   gap: var(--space-1-5);
 }
 
+/* 글자를 키워 그릇(`RootLayout` .shell)이 16rem 보다 좁으면 두 칸씩(3칸이면 그림이 칸 밖으로 나간다) */
+@container shell (width < 16rem) {
+  .choices {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 
 .choices[data-type='LOST'] {
   --art-body: var(--lost-art-body);

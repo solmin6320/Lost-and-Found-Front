@@ -149,3 +149,17 @@
     color: var(--text-strong);
   }
 }
+
+/*
+ * 글자를 키워 그릇(`RootLayout` .shell)이 16rem 보다 좁으면 버튼 글자도 줄을 바꾼다 — 한 줄로 묶어 두면 버튼이
+ * 화면 밖으로 나간다(QA 3차, 320 · 200%). 높이는 최소값이라 두 줄이면 버튼이 자란다. 글자 100%의 휴대폰(320 = 20rem)은 그대로 한 줄
+ */
+@container shell (width < 16rem) {
+  .button {
+    white-space: normal;
+    word-break: keep-all;
+    overflow-wrap: break-word;
+    text-align: center;
+    padding-block: var(--space-1);
+  }
+}

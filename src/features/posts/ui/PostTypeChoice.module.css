@@ -35,6 +35,13 @@
   }
 }
 
+/* 글자를 키워 그릇(`RootLayout` .shell)이 16rem 보다 좁으면 두 칸을 위아래로 쌓는다(목록 의도 칸과 같은 규칙). 나란히 두면 칸 글자가 칸 밖으로 나간다 */
+@container shell (width < 16rem) {
+  .choices {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 .choice[data-concept='LOST'] {
   --choice-face: var(--lost-face-wide);
   --choice-face-hover: var(--lost-face-wide-hover);

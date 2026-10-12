@@ -99,8 +99,12 @@
   }
 }
 
-/* 넓은 화면에서는 검색과 칩을 한 줄에. 둘 다 높이 44 — 줄 가운데에 맞춘다(UI-12). 칩 줄은 그 옆 칸 안에서 줄을 바꾼다 */
-@media (min-width: 64rem) {
+/*
+ * 넓은 화면에서는 검색과 칩을 한 줄에. 둘 다 높이 44 — 줄 가운데에 맞춘다(UI-12). 칩 줄은 그 옆 칸 안에서 줄을 바꾼다.
+ * 폭은 헤더와 같은 그릇(`RootLayout` .shell)을 rem 으로 잰다 — 글자를 키우면(1024 · 200%) 검색칸 30rem 이 칸을 다 먹어 칩이
+ * 화면 밖으로 나갔다. 63rem 은 1024 데스크톱 창의 그릇(스크롤바를 뺀 1009px)도 넓은 배치로 두는 값이다
+ */
+@container shell (width >= 63rem) {
   .page {
     grid-template-columns: minmax(0, 30rem) minmax(0, 1fr);
     grid-template-areas:
@@ -247,6 +251,13 @@
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--space-6) var(--space-3);
   transition: opacity var(--duration-base) var(--ease-out);
+}
+
+/* 글자를 키워 그릇(`RootLayout` .shell)이 16rem 보다 좁으면 한 줄에 한 장 — 두 장이면 카드 한 장이 이름표 하나보다 좁아진다(QA 3차, 320 · 200%) */
+@container shell (width < 16rem) {
+  .grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 /* [더 보기] 뒤 새 첫 카드 · Tab 으로 옮긴 카드가 화면 아래 끝에 딱 붙지 않게 — 카드가 거기서 끝난다는 것이 보이는 여유 */

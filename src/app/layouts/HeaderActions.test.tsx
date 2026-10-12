@@ -86,6 +86,26 @@ describe('헤더 오른쪽 묶음 — 로그인 · 가입 화면에서도 자리
     expect(rule?.[1]).not.toMatch(/display:\s*none/)
   })
 
+  it('CSS : 헤더 폭 갈림은 그릇(.shell) 폭을 rem 으로 재는 컨테이너 질의다 — 글자를 키우면 같은 화면도 좁은 헤더가 된다', () => {
+    const css = readCss('./RootLayout.module.css')
+    expect(css).toMatch(/\.shell\s*\{[^}]*container:\s*shell\s*\/\s*inline-size;/)
+    // 미디어 질의의 rem 은 루트 글자를 따르지 않는다(QA 3차 — 375 · 200%에서 헤더가 560px 로 넘쳤다)
+    expect(css).not.toMatch(/@media\s*\(min-width/)
+    expect(readCss('./AccountMenu.module.css')).not.toMatch(/@media\s*\(min-width/)
+  })
+
+  it('CSS : 더 좁으면 모든 화면이 같은 두 단계 — ① [홈] 글자 숨김 ② 고정을 풀고 오른쪽 묶음을 둘째 줄로', () => {
+    const css = readCss('./RootLayout.module.css')
+    const first = /@container shell \(width < 19rem\)\s*\{([\s\S]*?)\n\}/.exec(css)
+    expect(first?.[1]).toMatch(/\.home span\s*\{[^}]*clip-path:\s*inset\(50%\)/)
+    const second = /@container shell \(width < 18\.5rem\)\s*\{([\s\S]*?)\n\}/.exec(css)
+    expect(second?.[1]).toMatch(/\.header\s*\{[^}]*position:\s*static;/)
+    expect(second?.[1]).toMatch(/\.headerInner\s*\{[^}]*flex-wrap:\s*wrap;/)
+    // 빈자리는 폭을 남긴다(높이만 접는다) — 목록과 같은 자리에서 줄이 바뀌어 [홈] · 설정의 x 가 같다
+    expect(second?.[1]).toMatch(/\.actions \[data-away\]\s*\{[^}]*height:\s*0;/)
+    expect(second?.[1]).not.toMatch(/display:\s*none/)
+  })
+
   it('CSS : 스크롤바 자리를 늘 비워 둔다 — 로그인(짧음) ↔ 가입(김)에서 헤더가 밀리지 않게', () => {
     const css = readCss('../../shared/styles/reset.css')
     const html = /(?:^|\n)html\s*\{([^}]*)\}/.exec(css)
