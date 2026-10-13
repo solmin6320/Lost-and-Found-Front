@@ -253,8 +253,12 @@
   transition: opacity var(--duration-base) var(--ease-out);
 }
 
-/* 글자를 키워 그릇(`RootLayout` .shell)이 16rem 보다 좁으면 한 줄에 한 장 — 두 장이면 카드 한 장이 이름표 하나보다 좁아진다(QA 3차, 320 · 200%) */
-@container shell (width < 16rem) {
+/*
+ * 글자를 키워 그릇(`RootLayout` .shell)이 18rem 보다 좁으면 한 줄에 한 장 — 두 장이면 카드 한 장이 이름표 하나보다 좁아지고(QA 3차, 320 · 200%),
+ * 390 ~ 430 폰 × 글자 150%(16.25 ~ 17.9rem)에서는 장소가 다섯 글자만 보였다(375 · 150%는 한 장이라 아홉 글자 — 넓은 폰이 덜 봤다, QA-P-21).
+ * 글자 100%의 휴대폰(320 = 20rem)은 그대로 두 장이다
+ */
+@container shell (width < 18rem) {
   .grid {
     grid-template-columns: minmax(0, 1fr);
   }

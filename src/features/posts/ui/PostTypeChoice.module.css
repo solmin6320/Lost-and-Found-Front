@@ -35,8 +35,12 @@
   }
 }
 
-/* 글자를 키워 그릇(`RootLayout` .shell)이 16rem 보다 좁으면 두 칸을 위아래로 쌓는다(목록 의도 칸과 같은 규칙). 나란히 두면 칸 글자가 칸 밖으로 나간다 */
-@container shell (width < 16rem) {
+/*
+ * 글자를 키워 그릇(`RootLayout` .shell)이 18rem 보다 좁으면 두 칸을 위아래로 쌓는다(목록 카드와 같은 기준). 나란히 두면 칸 글자가 칸 밖으로
+ * 나가거나(16rem 미만) 낱말 가운데서 끊겼다 — 390 · 414 폰 × 글자 150%(16.25 ~ 17.25rem)에서 한 칸이 "올라가요"보다 좁았다(QA-P-21).
+ * 글자 100%의 휴대폰(320 = 20rem)은 그대로 나란히다
+ */
+@container shell (width < 18rem) {
   .choices {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -127,6 +131,8 @@
 }
 
 .posts {
+  /* 낱말 가운데서 끊지 않는다("올라/가요") — 좁으면 낱말 사이에서 줄을 바꾼다 */
+  word-break: keep-all;
   font-size: var(--text-xs);
   font-weight: var(--weight-semibold);
   line-height: var(--leading-snug);
