@@ -51,8 +51,14 @@
   line-height: var(--leading-snug);
 }
 
+/*
+ * 버튼 하나(칸을 고른 목록 끝). 글자 100%에서는 글자 폭 그대로 한 줄이다. 칸보다 넓어지면(320 · 글자 200%) 칸 폭까지 줄고
+ * 글자가 줄을 바꾼다(버튼의 줄바꿈은 `ConceptButtonLink` · `Button` 의 shell 규칙). `flex: none` 이면 줄지 못해 칸 밖으로 20px 나갔다(QA-P-20)
+ */
 .action {
-  flex: none;
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 100%;
 }
 
 /*
