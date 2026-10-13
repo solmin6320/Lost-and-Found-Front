@@ -32,7 +32,7 @@ export function PostCategoryChoice({ value, onChange, type, readOnly = false, er
 
   return (
     <fieldset className={styles.group} aria-describedby={[error ? errorId : null, hintId].filter(Boolean).join(' ')}>
-      <legend className={styles.legend}>종류</legend>
+      <legend className={styles.legend}>물건 종류</legend>
       <div className={styles.choices} data-type={type ?? undefined}>
         {POST_CATEGORIES.map((category) => {
           const checked = value === category

@@ -25,7 +25,7 @@ function render(withReturn: boolean): string {
       <AuthLayout
         mark={null}
         title="회원가입"
-        lead="분실물 찾기에 가입하면 …"
+        lead="분실물 찾기 계정으로 …"
         returnNote={withReturn ? <AuthReturnNote lead="끝나면" label="분실 글 올리기" concept="LOST" /> : null}
         footer={null}
       >

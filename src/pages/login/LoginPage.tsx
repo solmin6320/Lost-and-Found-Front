@@ -37,20 +37,21 @@ export function LoginPage() {
     <AuthLayout
       mark={<BrandMark />}
       title="로그인"
-      // 서비스 이름 + 화면 이름으로 시작해 무엇이 되는지 말한다(부탁이 아니라 할 수 있게 되는 일). "연락"이 이 서비스에서 댓글이 하는 일이다.
-      // 서비스 이름은 머리가 아니라 여기서 말한다(머리 = 꼬리표 + 화면 이름, 본인 결정 2026-10-11)
+      // 서비스 이름으로 시작해 이 계정으로 무엇을 하는지 말한다(부탁이 아니라 하게 되는 일). "연락"이 이 서비스에서 댓글이 하는 일이다.
+      // 서비스 이름은 머리가 아니라 여기서 말한다(머리 = 꼬리표 + 화면 이름, 본인 결정 2026-10-11). 문구는 본인 결정 2026-10-13(QA-P-18) —
+      // "로그인하면"은 화면 이름(로그인)을 되풀이하고, 계정이 무엇의 계정인지(분실물 찾기)는 말하지 않았다
       // 줄은 말 묶음 사이에서만 바뀐다(375 에서 "글을 / 올리고"로 갈리지 않게)
       lead={
         <>
-          <AuthPhrase>{SERVICE_NAME}에 로그인하면</AuthPhrase> <AuthPhrase>글을 올리고</AuthPhrase>{' '}
-          <AuthPhrase>댓글로 연락할 수 있어요.</AuthPhrase>
+          <AuthPhrase>{SERVICE_NAME} 계정으로</AuthPhrase> <AuthPhrase>글을 올리고</AuthPhrase>{' '}
+          <AuthPhrase>댓글로 연락해요.</AuthPhrase>
         </>
       }
       returnNote={target ? <AuthReturnNote lead="끝나면" {...target} /> : null}
       notice={state?.notice}
       // 추후 OAuth(구글 · 네이버) — alternatives 에 버튼 묶음을 넘긴다. 미구현이라 두지 않는다
       footer={
-        <AuthSwitch prompt="처음이세요?">
+        <AuthSwitch prompt="계정이 없으면">
           <AuthTextLink to={signupPath(redirect)} replace state={carry}>
             회원가입
           </AuthTextLink>
