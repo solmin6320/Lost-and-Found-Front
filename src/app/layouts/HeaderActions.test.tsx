@@ -89,9 +89,20 @@ describe('헤더 오른쪽 묶음 — 로그인 · 가입 화면에서도 자리
   it('CSS : 헤더 폭 갈림은 그릇(.shell) 폭을 rem 으로 재는 컨테이너 질의다 — 글자를 키우면 같은 화면도 좁은 헤더가 된다', () => {
     const css = readCss('./RootLayout.module.css')
     expect(css).toMatch(/\.shell\s*\{[^}]*container:\s*shell\s*\/\s*inline-size;/)
-    // 미디어 질의의 rem 은 루트 글자를 따르지 않는다(QA 3차 — 375 · 200%에서 헤더가 560px 로 넘쳤다)
-    expect(css).not.toMatch(/@media\s*\(min-width/)
+    // 화면 폭 미디어 질의만으로 헤더를 넓히지 않는다(QA 3차 — 루트 글자를 키운 375 · 200%에서 헤더가 560px 로 넘쳤다).
+    // 화면 폭 질의는 그릇 질의를 감쌀 때만 쓴다(아래 넓은 헤더)
+    const media = [...css.matchAll(/@media[^{]*\(min-width[^{]*\{\s*(\S+)/g)].map((m) => m[1])
+    expect(media.length).toBeGreaterThan(0)
+    expect(media.every((first) => first === '@container')).toBe(true)
     expect(readCss('./AccountMenu.module.css')).not.toMatch(/@media\s*\(min-width/)
+  })
+
+  it('CSS : 넓은 헤더는 화면 48rem 그리고 그릇 47rem — 스크롤바가 겹쳐 뜨는 752 ~ 767 창에서 본문과 엇갈리지 않게(QA-D-22)', () => {
+    const css = readCss('./RootLayout.module.css')
+    expect(css).toMatch(/@media \(min-width: 48rem\) \{\s*@container shell \(width >= 47rem\) \{\s*\.actions \.create \{/)
+    expect(css).toMatch(/@media \(hover: hover\) and \(min-width: 48rem\) \{\s*@container shell \(width >= 47rem\)/)
+    // 넓은 헤더 규칙이 화면 폭 조건 없이 따로 서 있지 않다
+    expect(css).not.toMatch(/(?:^|\n)@container shell \(width >= 47rem\)/)
   })
 
   it('CSS : 더 좁으면 모든 화면이 같은 한 단계 — 고정을 풀고 로고 줄 오른쪽부터 채운 뒤 남는 버튼만 다음 줄로(두 줄)', () => {
