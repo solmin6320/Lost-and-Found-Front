@@ -33,7 +33,7 @@
 
 .item {
   position: relative;
-  container-type: inline-size;
+  container: intent-item / inline-size;
 }
 
 /* ── 색 : 개념(concept) × 상태(state) ── */
@@ -132,7 +132,7 @@
   opacity: 0.25;
 }
 
-@container (min-width: 17rem) {
+@container intent-item (width >= 17rem) {
   .label {
     display: block;
   }
@@ -175,7 +175,7 @@
   height: var(--icon-sm);
 }
 
-@container (min-width: 17rem) {
+@container intent-item (width >= 17rem) {
   .reset {
     top: var(--space-4);
     right: var(--space-4);
@@ -190,7 +190,7 @@
  * 고른 면의 [×]는 오른쪽 문구 뒤(세로 가운데)로 온다. 휴대폰 · 200% 확대(칸이 30rem 미만)는 두 줄 그대로다.
  * 되돌리려면 이 블록만 지운다(본인 확인 전후 비교 — b2_ui3_before/after_1440.png).
  */
-@container (min-width: 30rem) {
+@container intent-item (width >= 30rem) {
   .choice {
     flex-direction: row;
     align-items: center;

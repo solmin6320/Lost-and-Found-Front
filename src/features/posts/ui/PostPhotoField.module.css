@@ -10,7 +10,7 @@
   display: grid;
   gap: var(--space-2);
   min-width: 0;
-  container-type: inline-size;
+  container: photo-field / inline-size;
 }
 
 /* 파일을 끌고 들어왔다(넓은 화면) — 영역 전체에 잉크 테 */
@@ -115,7 +115,7 @@
   gap: var(--space-2);
 }
 
-@container (min-width: 30rem) {
+@container photo-field (width >= 30rem) {
   .grid {
     grid-template-columns: repeat(5, minmax(0, 1fr));
   }

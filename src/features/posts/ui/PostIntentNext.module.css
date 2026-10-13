@@ -8,7 +8,7 @@
   gap: var(--space-4) var(--space-6);
   padding: var(--space-5);
   border-radius: var(--radius-md);
-  container-type: inline-size;
+  container: intent-next / inline-size;
 }
 
 .next[data-concept='LOST'] {

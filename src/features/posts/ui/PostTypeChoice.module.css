@@ -84,7 +84,8 @@
   box-shadow: inset 0 0 0 1px var(--choice-line);
   color: var(--choice-ink);
   cursor: pointer;
-  container-type: inline-size;
+  /* 이름이 있는 그릇 — 질의는 늘 이름으로 잰다(이름 없는 질의는 가장 가까운 그릇을 잡아 엉뚱한 칸을 잴 수 있다, containers.test.ts) */
+  container: type-choice / inline-size;
   transition:
     background-color var(--duration-base) var(--ease-out),
     color var(--duration-base) var(--ease-out),
@@ -131,11 +132,12 @@
   line-height: var(--leading-snug);
 }
 
-@container (min-width: 15rem) {
-  .choice {
-    padding: var(--space-5);
-  }
-
+/*
+ * 칸 자신(.choice)의 여백은 여기서 바꾸지 않는다 — 그릇 질의는 자기 자신을 재지 못해 바깥 그릇을 잰다.
+ * 예전 `.choice { padding: 20px }` 은 바깥 그릇이 없어 꺼져 있다가, 헤더 그릇(.shell)이 생기자 글자 100%에서도 켜져
+ * 칸이 100 → 107px 로 커졌다(QA-D-21). 여백은 늘 16px 이다
+ */
+@container type-choice (width >= 15rem) {
   .label {
     display: block;
   }

@@ -22,7 +22,7 @@
   position: relative;
   display: grid;
   gap: var(--space-2);
-  container-type: inline-size;
+  container: theme-option / inline-size;
   padding: var(--space-2);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-md);
@@ -84,7 +84,7 @@
 
 /* 좁은 칸(390 폭의 두 칸)에서 `기기 설정` 이름표가 붙으면 이름이 두 줄로 꺾인다 — 해 · 달 그림을 거둔다(미리보기가 같은 말을 한다).
    두 칸이 같은 폭이라 둘 다 같이 거둔다 */
-@container (max-width: 11.5rem) {
+@container theme-option (width <= 11.5rem) {
   .captionIcon {
     display: none;
   }
@@ -182,7 +182,7 @@
 
 .preview {
   display: block;
-  container-type: inline-size;
+  container: theme-preview / inline-size;
   border-radius: var(--radius-sm);
   overflow: hidden;
   box-shadow: inset 0 0 0 1px var(--border-subtle);

@@ -126,7 +126,7 @@
 .results {
   grid-area: results;
   min-width: 0;
-  container-type: inline-size;
+  container: list-results / inline-size;
 }
 
 /* 제목 · 건수 · 이름표 안내가 한 묶음. 안내는 설명하는 대상(건수) 바로 뒤 8px 에 붙는다(UI-8) */
@@ -265,14 +265,14 @@
   scroll-margin-bottom: var(--space-4);
 }
 
-@container (min-width: 34rem) {
+@container list-results (width >= 34rem) {
   .grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
     column-gap: var(--space-4);
   }
 }
 
-@container (min-width: 54rem) {
+@container list-results (width >= 54rem) {
   .grid {
     grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: var(--space-8) var(--space-5);
