@@ -94,16 +94,19 @@ describe('헤더 오른쪽 묶음 — 로그인 · 가입 화면에서도 자리
     expect(readCss('./AccountMenu.module.css')).not.toMatch(/@media\s*\(min-width/)
   })
 
-  it('CSS : 더 좁으면 모든 화면이 같은 두 단계 — ① [홈] 글자 숨김 ② 고정을 풀고 오른쪽 묶음을 둘째 줄로', () => {
+  it('CSS : 더 좁으면 모든 화면이 같은 한 단계 — 고정을 풀고 로고 줄 오른쪽부터 채운 뒤 남는 버튼만 다음 줄로(두 줄)', () => {
     const css = readCss('./RootLayout.module.css')
-    const first = /@container shell \(width < 19rem\)\s*\{([\s\S]*?)\n\}/.exec(css)
-    expect(first?.[1]).toMatch(/\.home span\s*\{[^}]*clip-path:\s*inset\(50%\)/)
-    const second = /@container shell \(width < 18\.5rem\)\s*\{([\s\S]*?)\n\}/.exec(css)
-    expect(second?.[1]).toMatch(/\.header\s*\{[^}]*position:\s*static;/)
-    expect(second?.[1]).toMatch(/\.headerInner\s*\{[^}]*flex-wrap:\s*wrap;/)
+    // [홈] 글자는 어느 폭에서도 숨기지 않는다(QA-D-25 — 두 줄 배치에서는 글자를 남겨도 헤더 높이가 늘지 않았다)
+    expect(css).not.toMatch(/\.home span\s*\{[^}]*clip-path/)
+    const narrow = /@container shell \(width < 18\.5rem\)\s*\{([\s\S]*?)\n\}/.exec(css)
+    expect(narrow?.[1]).toMatch(/\.header\s*\{[^}]*position:\s*static;/)
+    expect(narrow?.[1]).toMatch(/\.headerInner\s*\{[^}]*flex-wrap:\s*wrap;[^}]*justify-content:\s*flex-end;/)
+    // 오른쪽 묶음을 풀어 버튼이 로고와 같은 줄에서 흐른다 — 묶음째 둘째 줄로 보내면 로고 혼자 한 줄이 된다(QA-D-23)
+    expect(narrow?.[1]).toMatch(/\.actions\s*\{[^}]*display:\s*contents;/)
+    expect(narrow?.[1]).toMatch(/\.wordmark\s*\{[^}]*margin-right:\s*auto;/)
     // 빈자리는 폭을 남긴다(높이만 접는다) — 목록과 같은 자리에서 줄이 바뀌어 [홈] · 설정의 x 가 같다
-    expect(second?.[1]).toMatch(/\.actions \[data-away\]\s*\{[^}]*height:\s*0;/)
-    expect(second?.[1]).not.toMatch(/display:\s*none/)
+    expect(narrow?.[1]).toMatch(/\.actions \[data-away\]\s*\{[^}]*height:\s*0;/)
+    expect(narrow?.[1]).not.toMatch(/display:\s*none/)
   })
 
   it('CSS : 스크롤바 자리를 늘 비워 둔다 — 로그인(짧음) ↔ 가입(김)에서 헤더가 밀리지 않게', () => {
