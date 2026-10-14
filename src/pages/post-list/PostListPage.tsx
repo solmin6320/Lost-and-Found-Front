@@ -144,6 +144,14 @@ export function PostListPage() {
     apply(next)
   }
 
+  /** 처음 목록으로 — 주소는 링크가 `/` 로 바꾼다. 검색칸은 다시 그려 치다 만 글자까지 비우고, 맨 위로 올린다 */
+  const [resetCount, setResetCount] = useState(0)
+  function resetToStart() {
+    setResetCount((count) => count + 1)
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    window.scrollTo({ top: 0, left: 0, behavior: reduce ? 'instant' : 'smooth' })
+  }
+
   const clearFilters = () => applyThenFocusResults(withoutFilters(search))
   const clearKeyword = () => applyThenFocusResults({ ...search, keyword: '' })
 
@@ -227,19 +235,17 @@ export function PostListPage() {
         <PostIntentPicker
           selected={search.type}
           hrefFor={(type) => hrefWith({ type })}
+          resetTo={paths.postList}
           showCounts={!search.keyword && !filtered}
-          // 같은 의도를 다시 눌렀다. 링크가 첫 묶음으로 이동한다 — 이미 첫 묶음이면 주소가 그대로라 바로 옮긴다
-          onReselect={() => {
-            if (search.page === 1) focusResults()
-            else refocusResults.current = true
-          }}
+          // 고른 칸 · [×] → 처음 목록(본인 피드백 2026-10-14). 링크가 주소를 `/` 로 바꾼다 — 치다 만 검색칸 글자도 비우고 맨 위로
+          onReset={resetToStart}
         />
       </section>
 
       {/* 검색은 위에 붙지 않는다(입력칸은 한 벌 — 두 벌이면 치던 글자가 갈린다). 넓은 화면은 칩 줄과 한 줄에 선다 */}
       <div className={styles.search}>
         <PostSearchBar
-          key={search.keyword}
+          key={`${search.keyword}#${resetCount}`}
           keyword={search.keyword}
           // 새 검색어는 분실 · 습득을 함께 찾는다(골라 둔 칸을 푼다). 한쪽만 보려면 위의 칸을 누른다 — 검색어는 남는다
           onSearch={(keyword) => applyThenFocusResults(withKeyword(search, keyword))}

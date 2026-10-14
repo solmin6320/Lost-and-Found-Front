@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { useEffect, useRef, type MouseEvent } from 'react'
+import { useEffect, useId, useRef, type MouseEvent } from 'react'
 import { Link, type To } from 'react-router-dom'
 
 import { isPlainClick } from '@/shared/lib/events'
@@ -14,15 +14,20 @@ import styles from './PostIntentPicker.module.css'
 interface PostIntentPickerProps {
   /** 지금 목록에 걸린 유형. 칸 이름이 곧 이 유형이다(분실 글 · 습득 글) */
   selected: PostType | undefined
-  /** 유형 → 주소. `undefined` 는 전체. 검색어 · 필터는 그대로 두고 1쪽으로 간다 */
-  hrefFor: (type: PostType | undefined) => To
+  /** 유형 → 주소. 검색어 · 필터는 그대로 두고 1쪽으로 간다 */
+  hrefFor: (type: PostType) => To
+  /**
+   * 처음 목록(`/` — 칸 · 검색어 · 필터를 모두 푼 첫 화면). 고른 칸을 다시 누르거나 [×]를 누르면 여기로 간다
+   * (본인 피드백 2026-10-14 "카테고리 상관없이 모든 게시글 보여 주던 화면으로")
+   */
+  resetTo: To
   /**
    * 선택지에 건수를 붙이나. 검색어 · 필터가 걸려 있으면 `false` —
    * 건수는 유형 전체라 결과 제목 옆의 수(조건이 걸린 수)와 어긋난다. 수는 한 곳에서만 말한다
    */
   showCounts: boolean
-  /** 이미 고른 선택지를 다시 눌렀다. 목록은 그대로이니 결과로 데려간다 */
-  onReselect?: () => void
+  /** 고른 칸 · [×]로 처음 목록으로 돌아간다(같은 탭에서 연 누름만). 연 쪽이 검색칸을 비우고 맨 위로 올린다 */
+  onReset?: () => void
 }
 
 /**
@@ -32,12 +37,17 @@ interface PostIntentPickerProps {
  * 분실/습득은 필터 하나가 아니라 이 서비스의 구조라 맨 위에 큰 색 면으로 둔다.
  * 면에는 글자만 둔다. 귀퉁이 장식(흐린 꼬리표)은 뺐다 — 뜻 없이 로고 모양을 되풀이하는 워터마크였다.
  *
- * 둘 다 링크다(새 탭 열기 · 주소 공유). 고른 쪽은 `aria-current` 로 알리고, 옆의 [×] 로 전체로 돌아간다.
- * 다른 쪽을 누르면 바로 갈아탄다. 고른 쪽을 다시 눌러도 같은 주소라 기록이 쌓이지 않는다.
- * 검색어와 함께 쓴다 — 검색은 두 종류를 함께 찾고, 이 칸을 누르면 검색어는 그대로 둔 채 한쪽만 남긴다.
+ * 둘 다 링크다(새 탭 열기 · 주소 공유). 고른 쪽은 `aria-current` 로 알린다. 다른 쪽을 누르면 바로 갈아탄다.
+ * **고른 칸(면 어디든)이나 옆의 [×]를 누르면 처음 목록으로 돌아간다**(본인 피드백 2026-10-14) — 칸뿐 아니라 검색어 · 카테고리 ·
+ * 상태 · 장소 · 기간도 풀린 `/`, 맨 위. 예전엔 [×]만 칸을 풀고 검색어 · 필터는 남겼고, 고른 칸을 다시 누르면 결과로 데려갔다.
+ * 칸 바깥(배경 · 빈 곳)을 누르는 것은 아무 일도 하지 않는다 — 링크 두 개가 받는 누름만 처음으로 돌린다.
+ * 고른 칸은 같은 자리의 링크 그대로다(토글 버튼으로 바꾸지 않는다 — 주소가 바뀌는 이동이고 새 탭 열기가 된다).
+ * 무엇을 하는지는 보이는 이름 뒤 설명(`aria-describedby`)이 말한다.
+ * 칸을 고르면 검색어와 함께 쓴다 — 검색은 두 종류를 함께 찾고, 칸을 누르면 검색어는 그대로 둔 채 한쪽만 남긴다.
  */
-export function PostIntentPicker({ selected, hrefFor, showCounts, onReselect }: PostIntentPickerProps) {
+export function PostIntentPicker({ selected, hrefFor, resetTo, showCounts, onReset }: PostIntentPickerProps) {
   const listRef = useRef<HTMLUListElement>(null)
+  const resetHintId = useId()
   /** [×] 는 누르면 사라진다. 전체로 돌아간 뒤 방금 풀린 선택지로 포커스를 옮긴다 */
   const refocus = useRef<PostType | null>(null)
 
@@ -61,10 +71,11 @@ export function PostIntentPicker({ selected, hrefFor, showCounts, onReselect }: 
           >
             <Link
               className={styles.choice}
-              to={hrefFor(intent.concept)}
+              to={on ? resetTo : hrefFor(intent.concept)}
               aria-current={on ? 'true' : undefined}
+              aria-describedby={on ? resetHintId : undefined}
               onClick={(event: MouseEvent) => {
-                if (on && isPlainClick(event)) onReselect?.()
+                if (on && isPlainClick(event)) onReset?.()
               }}
             >
               <span className={styles.label}>
@@ -75,15 +86,22 @@ export function PostIntentPicker({ selected, hrefFor, showCounts, onReselect }: 
             {on ? (
               <Link
                 className={styles.reset}
-                to={hrefFor(undefined)}
-                aria-label="선택 풀고 분실 글과 습득 글 모두 보기"
+                to={resetTo}
+                aria-label="선택 풀고 처음 목록 보기"
                 onClick={(event: MouseEvent) => {
                   // 새 탭으로 여는 클릭은 이 화면을 바꾸지 않는다. 포커스 이동을 예약하면 나중에 엉뚱할 때 튄다
-                  if (isPlainClick(event)) refocus.current = intent.concept
+                  if (!isPlainClick(event)) return
+                  refocus.current = intent.concept
+                  onReset?.()
                 }}
               >
                 <X />
               </Link>
+            ) : null}
+            {on ? (
+              <span id={resetHintId} hidden>
+                누르면 선택을 풀고 처음 목록으로 돌아가요
+              </span>
             ) : null}
           </li>
         )
