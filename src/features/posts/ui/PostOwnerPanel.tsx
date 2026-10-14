@@ -14,6 +14,7 @@ import {
   WarningCircle,
   type Icon,
 } from '@/shared/ui/icons'
+import { LoadingDots } from '@/shared/ui/LoadingDots'
 import { SafetyNote } from '@/shared/ui/SafetyNote'
 
 import type { PostDetailResponse, PostStatus, PostType } from '../api/types'
@@ -208,7 +209,15 @@ export function PostOwnerPanel({ post, editHref, onDeleted }: PostOwnerPanelProp
           </p>
         ) : (
           <p id={hintId} className={styles.hint}>
-            {changeStatus.isPending && !confirm ? '바꾸는 중…' : '게시중과 연락중은 언제든 서로 바꿀 수 있어요.'}
+            {changeStatus.isPending && !confirm ? (
+              // 바꾸는 동안 — 0.3초가 넘으면 이 줄 끝에 점 셋(버튼과 같은 기다림 표시). 읽기는 아래 알림 줄이 맡는다
+              <>
+                바꾸는 중
+                <LoadingDots variant="inline" announce={false} className={styles.hintDots} />
+              </>
+            ) : (
+              '게시중과 연락중은 언제든 서로 바꿀 수 있어요.'
+            )}
           </p>
         )}
 
@@ -238,7 +247,7 @@ export function PostOwnerPanel({ post, editHref, onDeleted }: PostOwnerPanelProp
         open={confirm === 'done'}
         title="완료로 바꿀까요?"
         confirmLabel="완료로 바꾸기"
-        pendingLabel="바꾸는 중…"
+        pendingLabel="바꾸는 중"
         pending={changeStatus.isPending}
         error={confirm === 'done' ? dialogError : null}
         onConfirm={() => submitStatus('DONE')}
@@ -255,7 +264,7 @@ export function PostOwnerPanel({ post, editHref, onDeleted }: PostOwnerPanelProp
         title="이 글을 삭제할까요?"
         tone="danger"
         confirmLabel="삭제하기"
-        pendingLabel="삭제하는 중…"
+        pendingLabel="삭제하는 중"
         pending={deletePost.isPending}
         error={confirm === 'delete' ? dialogError : null}
         onConfirm={submitDelete}
