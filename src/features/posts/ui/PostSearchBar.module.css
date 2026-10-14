@@ -225,6 +225,17 @@
   color: var(--text-muted);
 }
 
+/* 기다리는 중의 점 셋 — 첫 응답이면 혼자, 앞 결과가 있으면 그 아래에 작게(결과는 지우지 않는다) */
+.pending {
+  display: flex;
+  padding: var(--space-2) var(--space-3);
+}
+
+.pending[data-under] {
+  justify-content: flex-end;
+  padding-block: var(--space-1);
+}
+
 .note {
   padding: var(--space-3);
   color: var(--text-muted);

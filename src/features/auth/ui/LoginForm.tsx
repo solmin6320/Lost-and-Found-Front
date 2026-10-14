@@ -175,17 +175,18 @@ export function LoginForm({ initialEmail = '', lockedExit }: LoginFormProps) {
         }}
       />
 
-      {/* 잠그지 않고 누름만 무시한다(disabled 는 누르던 버튼에서 포커스를 뺀다). 잠김은 흐리게, 확인 중은 글자로 알린다 */}
+      {/* 잠그지 않고 누름만 무시한다(disabled 는 누르던 버튼에서 포커스를 뺀다). 잠김은 흐리게, 확인 중은 글자 자리의 점 셋 · 이름 "확인 중" */}
       <Button
         type="submit"
         variant="primary"
         block
         className={styles.submit}
         unavailable={locked}
-        aria-disabled={busy || undefined}
+        pending={busy}
+        pendingLabel="확인 중"
         aria-describedby={locked ? lockId : undefined}
       >
-        {busy ? '확인 중…' : '로그인'}
+        로그인
       </Button>
     </form>
   )

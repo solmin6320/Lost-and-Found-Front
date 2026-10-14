@@ -135,10 +135,11 @@ function NicknameForm({ current }: { current: string }) {
           variant="primary"
           className={styles.submit}
           unavailable={!changed && !mutation.isPending}
-          aria-disabled={mutation.isPending || undefined}
+          pending={mutation.isPending}
+          pendingLabel="저장하는 중"
           aria-describedby={`${inputId}-note`}
         >
-          {mutation.isPending ? '저장하는 중…' : '닉네임 저장'}
+          닉네임 저장
         </Button>
         <p className={styles.saved} role="status">
           {saved ? (

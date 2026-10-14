@@ -19,6 +19,7 @@ import { usePersonalInfoCheck } from '@/shared/lib/usePersonalInfoCheck'
 import { Button, ButtonLink } from '@/shared/ui/Button'
 import { ConfirmDialog } from '@/shared/ui/ConfirmDialog'
 import { FormAlert } from '@/shared/ui/FormAlert'
+import { LoadingDots } from '@/shared/ui/LoadingDots'
 import { Check, ClockCounterClockwise, LockSimple } from '@/shared/ui/icons'
 import { SafetyNote } from '@/shared/ui/SafetyNote'
 import { TextArea } from '@/shared/ui/TextArea'
@@ -105,7 +106,7 @@ const LEAVE_COPY: Record<'create' | 'edit', LeaveCopy> = {
 const COPY = {
   create: {
     submit: '올리기',
-    submitting: '올리는 중…',
+    submitting: '올리는 중',
     cancel: '작성 취소',
     cancelTitle: '작성을 취소할까요?',
     cancelBody: '쓰던 내용이 사라져요.',
@@ -113,7 +114,7 @@ const COPY = {
   },
   edit: {
     submit: '저장하기',
-    submitting: '저장하는 중…',
+    submitting: '저장하는 중',
     cancel: '수정 취소',
     cancelTitle: '수정을 취소할까요?',
     cancelBody: '고친 내용이 사라져요. 글은 고치기 전 그대로 남아요.',
@@ -617,10 +618,11 @@ export function PostForm({
               type="submit"
               variant="primary"
               className={styles.submit}
-              aria-disabled={pending || undefined}
+              pending={pending}
+              pendingLabel={copy.submitting}
               unavailable={stranded}
             >
-              {pending ? copy.submitting : copy.submit}
+              {copy.submit}
             </Button>
           </div>
         </div>
@@ -766,6 +768,8 @@ function SubmitSteps({ phase, withPhotos }: { phase: PostSubmitPhase; withPhotos
           <li key={step.phase} className={styles.step} data-state={state}>
             {state === 'done' ? <Check /> : <span className={styles.stepMark} aria-hidden="true" />}
             {step.label}
+            {/* 지금 단계가 0.3초를 넘기면 이름 뒤에 점 셋 — 멈춘 것이 아니라 이어지는 중이다. 읽기는 위 목록(aria-live)이 맡는다 */}
+            {state === 'now' ? <LoadingDots variant="inline" announce={false} className={styles.stepDots} /> : null}
             {state === 'done' ? <span className="sr-only"> 끝</span> : null}
           </li>
         )

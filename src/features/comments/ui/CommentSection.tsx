@@ -234,16 +234,15 @@ export function CommentSection({
         {thread.hasNextPage && remaining > 0 ? (
           <div className={styles.more}>
             <Button
-              aria-disabled={thread.isFetchingNextPage || undefined}
+              pending={thread.isFetchingNextPage}
+              pendingLabel="댓글을 불러오는 중"
               onClick={() => void loadMore()}
               className={styles.moreButton}
             >
-              {thread.isFetchingNextPage ? '불러오는 중…' : `댓글 더 보기`}
-              {thread.isFetchingNextPage ? null : (
-                <span className={styles.moreCount} data-numeric>
-                  {remaining.toLocaleString('ko-KR')}개
-                </span>
-              )}
+              댓글 더 보기
+              <span className={styles.moreCount} data-numeric>
+                {remaining.toLocaleString('ko-KR')}개
+              </span>
             </Button>
             {thread.isFetchNextPageError ? (
               <p className={styles.error} role="alert">
@@ -499,8 +498,8 @@ function CommentComposer({
       {stranded ? null : (
         <div className={styles.composerActions}>
           <PersonalInfoNotice id={noticeId} notice={personal.notice} />
-          <Button type="submit" variant="primary" aria-disabled={create.isPending || undefined} className={styles.submit}>
-            {create.isPending ? '남기는 중…' : '댓글 남기기'}
+          <Button type="submit" variant="primary" pending={create.isPending} pendingLabel="남기는 중" className={styles.submit}>
+            댓글 남기기
           </Button>
         </div>
       )}

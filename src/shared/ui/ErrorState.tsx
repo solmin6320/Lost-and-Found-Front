@@ -41,14 +41,9 @@ export function ErrorState({
       </div>
       {onRetry ? (
         <div className={styles.action}>
-          <Button
-            aria-disabled={retrying || undefined}
-            onClick={() => {
-              if (!retrying) onRetry()
-            }}
-          >
+          <Button pending={retrying} pendingLabel="다시 불러오는 중" onClick={onRetry}>
             <ArrowClockwise />
-            {retrying ? '다시 불러오는 중…' : '다시 시도'}
+            다시 시도
           </Button>
         </div>
       ) : null}

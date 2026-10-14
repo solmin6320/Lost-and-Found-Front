@@ -12,7 +12,9 @@ import {
   type RefObject,
 } from 'react'
 
+import { useLateFlag } from '@/shared/lib/useLateFlag'
 import { MagnifyingGlass, X } from '@/shared/ui/icons'
+import { LoadingDots } from '@/shared/ui/LoadingDots'
 
 import type { PostListParams, PostListResponse } from '../api/types'
 import { KEYWORD_MAX_LENGTH } from '../model/postListSearch'
@@ -48,8 +50,6 @@ interface PostSearchBarProps {
   onOpenPost: (postId: number) => void
 }
 
-/** 첫 응답이 이보다 늦으면 "찾는 중…"을 보인다. 빠른 응답에는 아무것도 깜빡이지 않는다 */
-const LOADING_SHOW_MS = 400
 /** 휴대폰 키보드 위로 남은 높이가 이보다 작으면 검색칸을 위로 올려 추천 칸이 키보드에 묻히지 않게 한다 */
 const ROOM_MIN_PX = 200
 
@@ -66,7 +66,8 @@ const ROOM_MIN_PX = 200
  *   - 조합 중인 끝 글자("직" · "지가")로 찾은 0건은 곧 뒤집히므로 앞 결과를 그대로 둔다. 손이 0.6초 멈추면 그때 "없어요"(`isSyllableInFlux`)
  *   - 빈칸 · 공백뿐이면 띄우지 않는다
  *   - 앞 요청은 새 말이 오면 버린다(쿼리 키에 말이 들어 있다 — 안 쓰게 된 요청은 TanStack Query 가 취소한다)
- *   - 새 결과를 받는 동안 앞 결과를 그대로 둔다 — 칸이 비었다 찼다 깜빡이지 않는다. 첫 응답이 늦을 때만 "찾는 중…"
+ *   - 새 결과를 받는 동안 앞 결과를 그대로 둔다 — 칸이 비었다 찼다 깜빡이지 않는다. 0.3초를 넘기면 그때만 점 셋
+ *     (첫 응답이면 점 셋만, 앞 결과가 있으면 그 아래 작게 — 2026-10-14)
  *   - 제목에서 **맞는 조각만** 강조한다(`<mark>`, React 노드 — HTML 문자열로 만들지 않는다)
  *   - ↑ ↓ 로 가리키고 Enter 로 연다. 가리킨 칸이 없으면 Enter 는 보통 검색이다
  *   - **Esc · 칸 바깥 누름은 추천 칸만 닫는다 — 친 글자는 남는다**(본인 피드백 2026-10-14). 칸을 다시 누르면 다시 펼친다
@@ -146,13 +147,17 @@ export function PostSearchBar({ keyword, onSearch, suggestionParams, onOpenPost 
   const expanded = showing && items.length > 0
   // 0건은 지금 친 말의 결과가 확정됐을 때만 말한다(치는 도중에 "없어요"가 깜빡이지 않게)
   const empty = showing && items.length === 0 && shown.data !== null && shown.term === term && term === typed
-  const loading = useLate(showing && query.isFetching && !query.data, LOADING_SHOW_MS)
+  const loading = useLateFlag(showing && query.isFetching && !query.data)
+  /** 앞 결과를 보이는 채로 새 말의 결과를 기다린 지 0.3초가 넘었다 — 결과 아래에 점 셋 */
+  const refreshing = useLateFlag(expanded && (query.isFetching || term !== typed))
 
   const announcement = expanded
     ? `추천 글 ${items.length}개가 있어요. 위아래 화살표로 고를 수 있어요.`
     : empty
       ? '맞는 글이 없어요.'
-      : ''
+      : loading
+        ? '찾는 중이에요.'
+        : ''
 
   const popup = expanded || empty || loading
   const room = useRoomBelow(formRef, popup)
@@ -336,7 +341,12 @@ export function PostSearchBar({ keyword, onSearch, suggestionParams, onOpenPost 
           })}
         </ul>
         {empty ? <p className={styles.note}>맞는 글이 없어요.</p> : null}
-        {loading && !expanded && !empty ? <p className={styles.note}>찾는 중…</p> : null}
+        {/* 기다림이 0.3초를 넘었다 — 점 셋. 읽기는 아래 알림 줄 하나가 맡는다(같은 말을 두 번 읽지 않게) */}
+        {(loading && !expanded && !empty) || refreshing ? (
+          <div className={styles.pending} data-under={refreshing || undefined}>
+            <LoadingDots announce={false} delay={0} />
+          </div>
+        ) : null}
       </div>
 
       <p className="sr-only" aria-live="polite" aria-atomic="true">
@@ -365,20 +375,6 @@ function useOutsidePress(ref: RefObject<HTMLElement | null>, active: boolean, on
     document.addEventListener('pointerdown', handle, true)
     return () => document.removeEventListener('pointerdown', handle, true)
   }, [ref, active])
-}
-
-/** `flag` 가 `ms` 넘게 이어졌는가. 짧게 켜졌다 꺼지면 끝까지 `false` — 빠른 응답에 "찾는 중…"이 깜빡이지 않는다 */
-function useLate(flag: boolean, ms: number): boolean {
-  const [late, setLate] = useState(false)
-  useEffect(() => {
-    if (!flag) return
-    const timer = setTimeout(() => setLate(true), ms)
-    return () => {
-      clearTimeout(timer)
-      setLate(false)
-    }
-  }, [flag, ms])
-  return flag && late
 }
 
 /**

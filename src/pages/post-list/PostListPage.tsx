@@ -40,6 +40,7 @@ import { Button } from '@/shared/ui/Button'
 import { EmptyState } from '@/shared/ui/EmptyState'
 import { ErrorState } from '@/shared/ui/ErrorState'
 import { ArrowClockwise, MagnifyingGlass, Plus, WarningCircle } from '@/shared/ui/icons'
+import { LoadingDots } from '@/shared/ui/LoadingDots'
 import { Skeleton } from '@/shared/ui/Skeleton'
 
 import styles from './PostListPage.module.css'
@@ -286,6 +287,11 @@ export function PostListPage() {
           </p>
           {/* 카드의 이름표가 무엇인지 — 건수 바로 뒤. 누르면 펼친다(온보딩 2층). 알림 영역(건수) 밖 형제로 둔다 */}
           <BadgeGuide className={styles.badgeGuide} />
+          {/*
+            조건을 바꿔 다시 받는 중 — 직전 목록은 흐리게 그대로 두고, 이 줄 오른쪽 끝에 점 셋(0.3초 넘을 때만).
+            줄 위에 떠 있어(absolute) 나타나도 이름표 안내 · 카드가 밀리지 않는다
+          */}
+          <LoadingDots active={stale} label="새 조건으로 불러오는 중" className={styles.refreshing} />
         </div>
 
         {/* 의도를 고른 순간의 글쓰기 입구. 떠 있는 버튼 대신 흐름 안 한 줄 — 결심하는 순간 바로 아래에 있다 */}
@@ -549,13 +555,7 @@ function PostListMore({
           <WarningCircle />
           {failed}
         </p>
-        <Button
-          className={styles.moreButton}
-          aria-disabled={retrying || undefined}
-          onClick={() => {
-            if (!retrying) onRetry()
-          }}
-        >
+        <Button className={styles.moreButton} pending={retrying} pendingLabel="다시 불러오는 중" onClick={onRetry}>
           <ArrowClockwise />
           다시 시도
         </Button>
@@ -569,11 +569,12 @@ function PostListMore({
       <div className={styles.more}>
         <Button
           className={styles.moreButton}
-          aria-disabled={expanding || undefined}
+          pending={expanding}
+          pendingLabel="더 불러오는 중"
           aria-describedby="post-list-seen"
           onClick={onExpand}
         >
-          {expanding ? '불러오는 중…' : `${next.toLocaleString('ko-KR')}건 더 보기`}
+          {`${next.toLocaleString('ko-KR')}건 더 보기`}
         </Button>
         <p id="post-list-seen" className={styles.seen}>
           {seen}

@@ -174,8 +174,15 @@ export function PasswordChangeForm({ email, onChanged }: PasswordChangeFormProps
 
       <div>
         {/* 잠그지 않고 누름만 무시한다 — 누르던 버튼에서 포커스가 빠지지 않게 */}
-        <Button type="submit" variant="primary" className={styles.submit} aria-disabled={mutation.isPending || undefined} aria-describedby={noticeId}>
-          {mutation.isPending ? '바꾸는 중…' : '비밀번호 바꾸기'}
+        <Button
+          type="submit"
+          variant="primary"
+          className={styles.submit}
+          pending={mutation.isPending}
+          pendingLabel="바꾸는 중"
+          aria-describedby={noticeId}
+        >
+          비밀번호 바꾸기
         </Button>
       </div>
     </form>

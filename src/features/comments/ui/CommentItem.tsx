@@ -208,8 +208,8 @@ export function CommentItem({ postId, comment, mine, byPostAuthor, fresh, onUpda
               {stranded ? '닫기' : '취소'}
             </Button>
             {stranded ? null : (
-              <Button type="submit" size="sm" variant="primary" aria-disabled={update.isPending || undefined}>
-                {update.isPending ? '저장하는 중…' : '저장'}
+              <Button type="submit" size="sm" variant="primary" pending={update.isPending} pendingLabel="저장하는 중">
+                저장
               </Button>
             )}
           </div>
@@ -242,8 +242,15 @@ export function CommentItem({ postId, comment, mine, byPostAuthor, fresh, onUpda
             <Button ref={cancelDeleteRef} size="sm" aria-disabled={busy || undefined} onClick={cancelDelete}>
               취소
             </Button>
-            <Button size="sm" variant="danger" aria-disabled={busy || undefined} onClick={confirmDelete}>
-              {remove.isPending ? '삭제하는 중…' : '삭제하기'}
+            <Button
+              size="sm"
+              variant="danger"
+              aria-disabled={busy || undefined}
+              pending={remove.isPending}
+              pendingLabel="삭제하는 중"
+              onClick={confirmDelete}
+            >
+              삭제하기
             </Button>
           </div>
         </div>

@@ -26,6 +26,7 @@ import { ButtonLink } from '@/shared/ui/Button'
 import { EmptyState } from '@/shared/ui/EmptyState'
 import { ErrorState } from '@/shared/ui/ErrorState'
 import { Archive, MagnifyingGlass } from '@/shared/ui/icons'
+import { LoadingDots } from '@/shared/ui/LoadingDots'
 import { Pagination } from '@/shared/ui/Pagination'
 
 import styles from './MyPage.module.css'
@@ -141,6 +142,12 @@ function MyPosts({ enabled }: { enabled: boolean }) {
         </p>
 
         <div className={styles.body}>
+          {/* 탭 · 쪽을 바꿔 다시 받는 중 — 직전 글은 흐리게 두고 그 위 가운데에 점 셋(0.3초 넘을 때만) */}
+          <LoadingDots
+            active={query.isPlaceholderData && (query.data?.content.length ?? 0) > 0}
+            label="글을 불러오는 중"
+            className={styles.refreshing}
+          />
           <MyPostsBody
             query={query}
             search={search}

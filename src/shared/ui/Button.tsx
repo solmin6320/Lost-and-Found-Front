@@ -1,9 +1,11 @@
-import type { ButtonHTMLAttributes, Ref } from 'react'
+import type { ButtonHTMLAttributes, MouseEvent, Ref } from 'react'
 import { Link, type LinkProps } from 'react-router-dom'
 
 import { cx } from '@/shared/lib/cx'
+import { useLateFlag } from '@/shared/lib/useLateFlag'
 
 import styles from './Button.module.css'
+import { LoadingDots } from './LoadingDots'
 
 /** `danger` · `dangerQuiet` 는 되돌릴 수 없는 삭제에만. 빨강은 이 자리 전용이다 */
 type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'dangerQuiet'
@@ -32,7 +34,17 @@ export type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> &
      * 요청 중("…하는 중")에는 이것 대신 `aria-disabled` 만 준다. 흐리지 않고 누름은 부른 쪽이 무시한다
      */
     unavailable?: boolean
+    /**
+     * 요청 중(본인 피드백 2026-10-14). 누름 · 제출을 무시하고(`aria-disabled` · `aria-busy`), 0.3초가 지나면 **버튼 글자 자리에 점 셋**을 둔다 —
+     * 글자는 자리만 남겨(보이지 않게) 버튼 크기가 그대로다. 그 전에 끝나면 아무것도 바뀌지 않는다(깜빡임 없음).
+     * 스크린리더는 처음부터 `pendingLabel`("가입하는 중")을 버튼 이름으로 읽는다
+     */
+    pending?: boolean
+    /** 요청 중 버튼 이름. 없으면 원래 글자 */
+    pendingLabel?: string
   }
+
+const ignore = (event: MouseEvent) => event.preventDefault()
 
 /** `type` 기본값은 `button` 이다. 폼 안에서 의도치 않게 제출되지 않게 한다 */
 export function Button({
@@ -42,18 +54,39 @@ export function Button({
   className,
   type = 'button',
   unavailable = false,
+  pending = false,
+  pendingLabel,
   onClick,
+  children,
   ...rest
 }: ButtonProps) {
+  const dots = useLateFlag(pending)
   return (
     <button
       type={type}
       className={buttonClassName({ variant, size, block }, cx(unavailable && styles.unavailable, className))}
       {...rest}
-      aria-disabled={unavailable || rest['aria-disabled']}
-      // 제출 버튼이면 누름을 막는 것으로 제출도 막힌다(입력칸에서 Enter 를 쳐도 같다)
-      onClick={unavailable ? (event) => event.preventDefault() : onClick}
-    />
+      aria-disabled={unavailable || pending || rest['aria-disabled']}
+      aria-busy={pending || undefined}
+      // 제출 버튼이면 누름을 막는 것으로 제출도 막힌다(입력칸에서 Enter 를 쳐도 같다). 요청 중의 두 번째 누름도 여기서 끝난다
+      onClick={unavailable || pending ? ignore : onClick}
+    >
+      {pending ? (
+        <>
+          <span className={styles.pendingLabel} data-hidden={dots || undefined} aria-hidden="true">
+            {children}
+          </span>
+          {dots ? (
+            <span className={styles.pendingDots} aria-hidden="true">
+              <LoadingDots variant="inline" announce={false} delay={0} />
+            </span>
+          ) : null}
+          <span className="sr-only">{pendingLabel ?? children}</span>
+        </>
+      ) : (
+        children
+      )}
+    </button>
   )
 }
 

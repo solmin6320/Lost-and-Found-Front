@@ -45,6 +45,27 @@
   cursor: progress;
 }
 
+/*
+ * 요청 중(`pending`) — 0.3초 뒤 글자 자리에 점 셋. 글자는 자리만 남겨 버튼 폭 · 높이가 그대로다(옆 버튼이 밀리지 않는다).
+ * 점은 버튼 글자색을 따른다(잉크 채움 위에서는 흰 점)
+ */
+.pendingLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: inherit;
+}
+
+.pendingLabel[data-hidden] {
+  visibility: hidden;
+}
+
+.pendingDots {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+}
+
 /* 지금은 할 수 없음(`unavailable`) — 포커스는 남기고 모양은 `disabled` 와 같다. 아래 변형마다 흐린 색을 입힌다 */
 .button.unavailable {
   cursor: not-allowed;
