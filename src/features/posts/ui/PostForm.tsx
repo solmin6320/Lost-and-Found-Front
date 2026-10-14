@@ -19,7 +19,6 @@ import { usePersonalInfoCheck } from '@/shared/lib/usePersonalInfoCheck'
 import { Button, ButtonLink } from '@/shared/ui/Button'
 import { ConfirmDialog } from '@/shared/ui/ConfirmDialog'
 import { FormAlert } from '@/shared/ui/FormAlert'
-import { LoadingDots } from '@/shared/ui/LoadingDots'
 import { Check, ClockCounterClockwise, LockSimple } from '@/shared/ui/icons'
 import { SafetyNote } from '@/shared/ui/SafetyNote'
 import { TextArea } from '@/shared/ui/TextArea'
@@ -122,11 +121,16 @@ const COPY = {
   },
 } as const
 
-/** 보내는 동안 보이는 단계. 사진이 없으면 "올리는 중" 하나 */
-const STEPS: { phase: Exclude<PostSubmitPhase, 'idle'>; label: string }[] = [
-  { phase: 'preparing', label: '사진 줄이는 중' },
-  { phase: 'uploading', label: '올리는 중' },
-]
+/**
+ * 보내는 동안 보이는 단계. 사진이 없으면 보내는 단계 하나. 보내는 단계의 이름은 버튼의 요청 중 이름과 같다
+ * (등록 `올리는 중` · 수정 `저장하는 중` — QA-D-8, 수정 화면에서 단계 줄은 "올리는 중"인데 버튼은 "저장하는 중"이었다)
+ */
+function submitSteps(sendingLabel: string): { phase: Exclude<PostSubmitPhase, 'idle'>; label: string }[] {
+  return [
+    { phase: 'preparing', label: '사진 줄이는 중' },
+    { phase: 'uploading', label: sendingLabel },
+  ]
+}
 
 /**
  * 게시글 등록 · 수정 폼(SCR-02 · SCR-04). 입력 순서 : 유형 → 사진 → 제목 → 종류 → 장소 → 날짜 → 설명.
@@ -600,7 +604,7 @@ export function PostForm({
           {formError ? (
             <FormAlert ref={alertRef} message={formError} />
           ) : null}
-          {pending ? <SubmitSteps phase={phase} withPhotos={change === 'replace'} /> : null}
+          {pending ? <SubmitSteps phase={phase} withPhotos={change === 'replace'} sendingLabel={copy.submitting} /> : null}
           {/* 제출이 막혔을 때 남은 수 — 이 화면의 유일한 알림(칸 오류는 포커스가 간 칸이 읽는다). 비어 있어도 자리를 두어야 읽힌다 */}
           <p className={styles.remaining} role="status">
             {remaining}
@@ -754,8 +758,17 @@ function QuickDates({
 }
 
 /** 보내는 동안 — "사진 줄이는 중 → 올리는 중". 진행률(%)은 없다(`PostSubmitPhase`) */
-function SubmitSteps({ phase, withPhotos }: { phase: PostSubmitPhase; withPhotos: boolean }) {
-  const steps = withPhotos ? STEPS : STEPS.slice(1)
+function SubmitSteps({
+  phase,
+  withPhotos,
+  sendingLabel,
+}: {
+  phase: PostSubmitPhase
+  withPhotos: boolean
+  sendingLabel: string
+}) {
+  const all = submitSteps(sendingLabel)
+  const steps = withPhotos ? all : all.slice(1)
   const currentIndex = Math.max(
     0,
     steps.findIndex((step) => step.phase === phase),
@@ -768,8 +781,6 @@ function SubmitSteps({ phase, withPhotos }: { phase: PostSubmitPhase; withPhotos
           <li key={step.phase} className={styles.step} data-state={state}>
             {state === 'done' ? <Check /> : <span className={styles.stepMark} aria-hidden="true" />}
             {step.label}
-            {/* 지금 단계가 0.3초를 넘기면 이름 뒤에 점 셋 — 멈춘 것이 아니라 이어지는 중이다. 읽기는 위 목록(aria-live)이 맡는다 */}
-            {state === 'now' ? <LoadingDots variant="inline" announce={false} className={styles.stepDots} /> : null}
             {state === 'done' ? <span className="sr-only"> 끝</span> : null}
           </li>
         )

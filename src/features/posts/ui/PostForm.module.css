@@ -269,11 +269,6 @@
   background-color: currentColor;
 }
 
-/* 지금 단계 이름 뒤의 점 셋 — 글자보다 작게(14px 글자 옆 4px 점) */
-.stepDots {
-  --loading-dot: 0.25rem;
-}
-
 /* ── 다른 창에서 로그아웃(SE2-10) — 이어서 쓰기와 같은 옅은 면. 빨강이 아니다(상태 알림) ── */
 .stranded {
   composes: appear from '../../../shared/styles/motion.module.css';
