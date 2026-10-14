@@ -38,7 +38,7 @@
 .poster {
   position: relative;
   overflow: hidden;
-  container-type: inline-size;
+  container: poster / inline-size;
 }
 
 .poster[data-type='LOST'] {
@@ -84,20 +84,20 @@
   white-space: nowrap;
 }
 
-@container (min-width: 13rem) {
+@container poster (width >= 13rem) {
   .label {
     font-size: var(--text-base);
   }
 }
 
-@container (min-width: 17rem) {
+@container poster (width >= 17rem) {
   .label {
     font-size: var(--text-lg);
   }
 }
 
 /* 상세처럼 포스터가 크게 놓일 때(26rem 이상) — 물건 이름도 그 크기에 맞춘다 */
-@container (min-width: 26rem) {
+@container poster (width >= 26rem) {
   .label {
     font-size: var(--text-2xl);
   }

@@ -2,7 +2,6 @@ import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 
-import { OnboardingTour, usePostListGuide } from '@/app/onboarding'
 import { POST_DETAIL_FROM_LIST, paths } from '@/app/paths'
 import { useAuth } from '@/features/auth'
 import {
@@ -14,6 +13,7 @@ import {
   PostIntentNext,
   PostIntentPicker,
   PostSearchBar,
+  anyIntentNextTitle,
   hasActiveFilters,
   intentShowing,
   postListConditionKey,
@@ -90,12 +90,10 @@ export function PostListPage() {
   const heading = postListHeading(search.type, search.keyword)
   useDocumentTitle(heading)
 
-  const titleRef = useRef<HTMLHeadingElement>(null)
   const summaryRef = useRef<HTMLDivElement>(null)
   const headingRef = useRef<HTMLHeadingElement>(null)
   const chipsRef = useRef<HTMLDivElement>(null)
   const gridRef = useRef<HTMLUListElement>(null)
-  const guide = usePostListGuide()
   const stuck = useStuck(chipsRef)
 
   const searchKey = postListSearchKey(search)
@@ -209,31 +207,33 @@ export function PostListPage() {
   // 확정된 데이터로만 판정한다. 조건을 바꾸는 동안의 앞 목록 숫자로 판정하면 입구가 한 번 떴다 사라진다
   const confirmedTotal = view && (!query.isPlaceholderData || expanding) ? view.page.totalElements : undefined
   const progress = view && !empty ? postListProgress(search, view.content.length, view.page.totalElements) : null
-  // 의도를 골랐으면 목록 끝에 "내 글을 올려 두기" 를 둔다. 더 펼칠 수 있으면 아직 끝이 아니다
+  // 목록 끝의 "내 글을 올려 두기".
+  //  칸을 골랐으면 그 종류 하나. 더 펼칠 수 있으면 아직 끝이 아니다 — 결과 제목 아래 한 줄이 이미 입구다(5건 이상)
+  //  칸 · 검색어 · 필터가 없는 처음 목록이면 두 종류를 나란히(QA P-1). 휴대폰 헤더의 [+]는 글자가 없어 본문에 글로 된 입구가
+  //  이것 하나뿐이라, 더 펼칠 수 있어도 [더 보기] 아래에 늘 둔다
+  const plainList = intent === undefined && !search.keyword && !filtered
   const showNext =
-    intent !== undefined && view !== undefined && !empty && !expanding && !expandFailed && progress?.kind !== 'more'
+    view !== undefined &&
+    !empty &&
+    (intent !== undefined ? !expanding && !expandFailed && progress?.kind !== 'more' : plainList)
 
   return (
     <div className={styles.page}>
       {/* 읽는 순서 = Tab 순서 : 의도 → 검색 → 필터 → 결과. 가장 먼저 할 일이 가장 위에 있다 */}
       <section className={styles.hero} aria-labelledby="post-list-title">
-        {/* 가입 직후 안내를 닫으면 포커스가 여기로 온다(누른 가입 버튼은 이미 사라졌다) */}
-        <h1 id="post-list-title" ref={titleRef} tabIndex={-1} className={styles.title}>
+        <h1 id="post-list-title" tabIndex={-1} className={styles.title}>
           잃어버렸나요, 주웠나요?
         </h1>
-        {/* 온보딩 1단계가 가리키는 자리 */}
-        <div data-guide="intent">
-          <PostIntentPicker
-            selected={search.type}
-            hrefFor={(type) => hrefWith({ type })}
-            showCounts={!search.keyword && !filtered}
-            // 같은 의도를 다시 눌렀다. 링크가 첫 묶음으로 이동한다 — 이미 첫 묶음이면 주소가 그대로라 바로 옮긴다
-            onReselect={() => {
-              if (search.page === 1) focusResults()
-              else refocusResults.current = true
-            }}
-          />
-        </div>
+        <PostIntentPicker
+          selected={search.type}
+          hrefFor={(type) => hrefWith({ type })}
+          showCounts={!search.keyword && !filtered}
+          // 같은 의도를 다시 눌렀다. 링크가 첫 묶음으로 이동한다 — 이미 첫 묶음이면 주소가 그대로라 바로 옮긴다
+          onReselect={() => {
+            if (search.page === 1) focusResults()
+            else refocusResults.current = true
+          }}
+        />
       </section>
 
       {/* 검색은 위에 붙지 않는다(입력칸은 한 벌 — 두 벌이면 치던 글자가 갈린다). 넓은 화면은 칩 줄과 한 줄에 선다 */}
@@ -257,9 +257,6 @@ export function PostListPage() {
         {/* [전체 해제]는 두지 않는다(본인 피드백 2026-10-07) — 걸린 칩마다 [×], 0건이면 빈 상태의 [필터 모두 지우기] */}
         <PostFilterBar search={search} onApply={apply} onRemove={(field) => apply(withoutFilter(search, field))} />
       </div>
-
-      {/* 온보딩 2단계가 가리키는 자리 — 검색창 + 칩 줄을 함께 감싸는 틀(칩 줄이 붙기 위해 둘은 형제다) */}
-      <div className={styles.guideFrame} data-guide="finder" aria-hidden="true" />
 
       <section className={styles.results} aria-labelledby="post-list-heading">
         <div ref={summaryRef} className={styles.summary}>
@@ -333,12 +330,19 @@ export function PostListPage() {
 
         {showNext ? (
           <div className={styles.next}>
-            <PostIntentNext intent={intent} to={createHref(intent.concept)} />
+            {intent ? (
+              <PostIntentNext intent={intent} to={createHref(intent.concept)} />
+            ) : (
+              // 제목만 갈린다 — 더 볼 글이 남았으면 "올릴 물건이 있나요?", 다 봤으면 "찾는 물건이 없나요?"(QA-P-14)
+              <PostIntentNext
+                to={createHref()}
+                hrefFor={createHref}
+                title={anyIntentNextTitle(progress?.kind ?? 'end')}
+              />
+            )}
           </div>
         ) : null}
       </section>
-
-      <OnboardingTour open={guide.open} onClose={guide.close} fallbackFocus={() => titleRef.current} />
     </div>
   )
 }
@@ -467,11 +471,13 @@ function PostListBody({
   }
 
   if (empty === 'none-yet') {
-    // 회색 판 대신 등록 권유 면 하나. 버튼 색은 올릴 글을 따른다(의도를 안 골랐으면 잉크)
+    // 회색 판 대신 등록 권유 면 하나. 버튼 색은 올릴 글을 따른다. 칸을 안 골랐으면 결과 끝과 같은 두 버튼
+    // ([분실 글 올리기] [습득 글 올리기]) — 잉크 [글 올리기] 하나는 누른 뒤 등록 화면에서 또 골라야 했다(QA 2026-10-11)
     return (
       <PostIntentNext
         intent={intent}
         to={createHref(intent?.concept)}
+        hrefFor={intent ? undefined : createHref}
         title={intent?.empty.title ?? ANY_INTENT_EMPTY.title}
         description={intent?.empty.description ?? ANY_INTENT_EMPTY.description}
       />

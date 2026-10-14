@@ -21,7 +21,7 @@
   /* 같은 줄의 카드는 같은 높이 — 제목이 한 줄인 카드도 윤곽 아래 끝이 옆 카드와 맞는다 */
   height: 100%;
   flex-direction: column;
-  container-type: inline-size;
+  container: post-card / inline-size;
   border: var(--outline-width) solid var(--card-outline);
   border-radius: var(--radius-md);
   background-color: var(--surface);
@@ -95,7 +95,7 @@
   pointer-events: none;
 }
 
-@container (min-width: 13rem) {
+@container post-card (width >= 13rem) {
   .flags {
     top: var(--space-3);
     left: var(--space-3);
@@ -103,7 +103,7 @@
 }
 
 /* 넓은 칸에서는 사진이 커진 만큼 배지도 한 단계 */
-@container (min-width: 15rem) {
+@container post-card (width >= 15rem) {
   .flags > span[data-surface] {
     height: 1.75rem;
     font-size: var(--text-sm);
@@ -122,7 +122,7 @@
   padding: var(--space-2) var(--space-2) var(--space-3);
 }
 
-@container (min-width: 13rem) {
+@container post-card (width >= 13rem) {
   .body {
     padding: var(--space-3) var(--space-3) var(--space-4);
   }
@@ -151,7 +151,7 @@
   overflow-wrap: anywhere;
 }
 
-@container (min-width: 15rem) {
+@container post-card (width >= 15rem) {
   .title,
   .skeletonTitle {
     font-size: var(--text-lg);

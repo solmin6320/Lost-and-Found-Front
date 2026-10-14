@@ -47,7 +47,7 @@ export function PostTypeChoice({ value, onChange, readOnly = false, error }: Pos
       aria-invalid={error ? true : undefined}
       aria-describedby={[error ? errorId : null, noteId].filter(Boolean).join(' ')}
     >
-      <legend className={styles.legend}>어떤 글인가요?</legend>
+      <legend className={styles.legend}>글 종류</legend>
       <div className={styles.choices}>
         {POST_TYPES.map((type) => {
           const choice = CHOICES[type]

@@ -37,7 +37,7 @@
   letter-spacing: var(--tracking-tight);
 }
 
-/* 안내를 닫은 뒤 포커스만 받는다. 제목에 링을 두르지 않는다(누른 적 없는 사람에게 링이 뜬금없다) */
+/* 화면을 옮겨 왔을 때 포커스만 받는다(RouteFocus). 제목에 링을 두르지 않는다(누른 적 없는 사람에게 링이 뜬금없다) */
 .title:focus {
   outline: none;
 }
@@ -62,14 +62,6 @@
   grid-area: chips;
   min-width: 0;
   margin-bottom: var(--space-5);
-}
-
-/* 온보딩 2단계의 틀 — 검색과 칩 줄 두 칸을 겹쳐 덮는 빈 칸. 아래 여백은 칩 줄과 같게 둬 칩 줄 끝에서 멈춘다 */
-.guideFrame {
-  grid-row: search-start / chips-end;
-  grid-column: 1 / -1;
-  margin-bottom: var(--space-5);
-  pointer-events: none;
 }
 
 /*
@@ -107,8 +99,12 @@
   }
 }
 
-/* 넓은 화면에서는 검색과 칩을 한 줄에. 둘 다 높이 44 — 줄 가운데에 맞춘다(UI-12). 칩 줄은 그 옆 칸 안에서 줄을 바꾼다 */
-@media (min-width: 64rem) {
+/*
+ * 넓은 화면에서는 검색과 칩을 한 줄에. 둘 다 높이 44 — 줄 가운데에 맞춘다(UI-12). 칩 줄은 그 옆 칸 안에서 줄을 바꾼다.
+ * 폭은 헤더와 같은 그릇(`RootLayout` .shell)을 rem 으로 잰다 — 글자를 키우면(1024 · 200%) 검색칸 30rem 이 칸을 다 먹어 칩이
+ * 화면 밖으로 나갔다. 63rem 은 1024 데스크톱 창의 그릇(스크롤바를 뺀 1009px)도 넓은 배치로 두는 값이다
+ */
+@container shell (width >= 63rem) {
   .page {
     grid-template-columns: minmax(0, 30rem) minmax(0, 1fr);
     grid-template-areas:
@@ -119,14 +115,9 @@
   }
 
   .search,
-  .chips,
-  .guideFrame {
+  .chips {
     align-self: center;
     margin-bottom: var(--space-8);
-  }
-
-  .guideFrame {
-    align-self: stretch;
   }
 }
 
@@ -135,7 +126,7 @@
 .results {
   grid-area: results;
   min-width: 0;
-  container-type: inline-size;
+  container: list-results / inline-size;
 }
 
 /* 제목 · 건수 · 이름표 안내가 한 묶음. 안내는 설명하는 대상(건수) 바로 뒤 8px 에 붙는다(UI-8) */
@@ -262,19 +253,30 @@
   transition: opacity var(--duration-base) var(--ease-out);
 }
 
+/*
+ * 글자를 키워 그릇(`RootLayout` .shell)이 18rem 보다 좁으면 한 줄에 한 장 — 두 장이면 카드 한 장이 이름표 하나보다 좁아지고(QA 3차, 320 · 200%),
+ * 390 ~ 430 폰 × 글자 150%(16.25 ~ 17.9rem)에서는 장소가 다섯 글자만 보였다(375 · 150%는 한 장이라 아홉 글자 — 넓은 폰이 덜 봤다, QA-P-21).
+ * 글자 100%의 휴대폰(320 = 20rem)은 그대로 두 장이다
+ */
+@container shell (width < 18rem) {
+  .grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 /* [더 보기] 뒤 새 첫 카드 · Tab 으로 옮긴 카드가 화면 아래 끝에 딱 붙지 않게 — 카드가 거기서 끝난다는 것이 보이는 여유 */
 .grid > li {
   scroll-margin-bottom: var(--space-4);
 }
 
-@container (min-width: 34rem) {
+@container list-results (width >= 34rem) {
   .grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
     column-gap: var(--space-4);
   }
 }
 
-@container (min-width: 54rem) {
+@container list-results (width >= 54rem) {
   .grid {
     grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: var(--space-8) var(--space-5);

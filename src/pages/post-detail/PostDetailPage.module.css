@@ -111,6 +111,8 @@
 .head {
   grid-area: head;
   display: grid;
+  /* 칸 하나를 읽는 열 폭에 묶는다 — `auto` 열은 안에서 가장 넓은 줄(글자를 키운 이름표 줄)만큼 늘어 화면 밖으로 밀렸다(QA 3차, 375 · 200% 429px) */
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-3);
   min-width: 0;
 }
@@ -169,10 +171,17 @@
   font-size: var(--text-xs);
 }
 
-/* 오른쪽 묶음 — [댓글 쓰기 N] + 이름표 안내(i). 안내 버튼은 누르는 면(44px) 안에 여백이 있어 사이 간격 없이 붙인다 */
+/*
+ * 오른쪽 묶음 — [댓글 쓰기 N] + 이름표 안내(i). 안내 버튼은 누르는 면(44px) 안에 여백이 있어 사이 간격 없이 붙인다.
+ * 글자를 키워 한 줄에 둘이 들지 않으면 안내가 다음 줄 오른쪽으로 내려간다(순서 · 오른쪽 맞춤 그대로, 누르는 면 사이 8px)
+ */
 .tools {
   display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
   align-items: center;
+  row-gap: var(--space-2);
+  min-width: 0;
   margin-left: auto;
 }
 

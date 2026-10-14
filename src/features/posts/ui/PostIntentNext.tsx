@@ -3,7 +3,8 @@ import { useId } from 'react'
 import { ButtonLink } from '@/shared/ui/Button'
 import { Plus } from '@/shared/ui/icons'
 
-import { ANY_INTENT_NEXT, type PostIntent } from '../model/postIntent'
+import type { PostType } from '../api/types'
+import { ANY_INTENT_NEXT, POST_INTENTS, type PostIntent } from '../model/postIntent'
 import { ConceptButtonLink } from './ConceptButtonLink'
 import styles from './PostIntentNext.module.css'
 
@@ -12,6 +13,11 @@ interface PostIntentNextProps {
   intent?: PostIntent
   /** 등록 화면 주소. 비로그인이면 로그인을 거친다 — 경로는 app 이 정한다 */
   to: string
+  /**
+   * 칸을 고르지 않았을 때 버튼을 둘로 — `[분실 글 올리기]` `[습득 글 올리기]`(개념 색, 분실이 앞). 유형마다 주소를 준다.
+   * 주지 않으면 잉크 `[글 올리기]` 하나(`to`). 칸을 골랐으면(`intent`) 쓰지 않는다
+   */
+  hrefFor?: (type: PostType) => string
   /** 제목 · 설명을 바꿀 때(빈 결과). 주지 않으면 결과 끝의 문구 */
   title?: string
   description?: string
@@ -22,8 +28,10 @@ interface PostIntentNextProps {
  * 보던 칸과 같은 종류의 글을 올려 두게 한다 — 분실 글 목록 끝에는 분실 글 올리기, 습득 글 목록 끝에는 습득 글 올리기.
  * 색은 칸 · 이름표 · 올릴 글이 모두 같다(본인 결정 2026-10-07).
  * 한 자리에 면은 이것 하나다. 버튼 이름은 헤더 · 결과 제목 아래 입구와 같은 말(`분실 글 올리기`)이다.
+ * 칸을 고르지 않은 목록 끝(`hrefFor`)은 두 종류를 나란히 둔다 — 휴대폰 헤더의 `[+]`는 글자가 없어,
+ * 본문에 글로 된 글쓰기 입구가 하나도 없었다(QA P-1, 2026-10-11). 고르지 않은 사람에게 둘 중 하나를 바로 고르게 한다.
  */
-export function PostIntentNext({ intent, to, title, description }: PostIntentNextProps) {
+export function PostIntentNext({ intent, to, hrefFor, title, description }: PostIntentNextProps) {
   const titleId = useId()
   const copy = intent?.next ?? ANY_INTENT_NEXT
 
@@ -39,6 +47,14 @@ export function PostIntentNext({ intent, to, title, description }: PostIntentNex
         <ConceptButtonLink concept={intent.concept} to={to} className={styles.action}>
           {copy.action}
         </ConceptButtonLink>
+      ) : hrefFor ? (
+        <div className={styles.actions}>
+          {POST_INTENTS.map((choice) => (
+            <ConceptButtonLink key={choice.concept} concept={choice.concept} to={hrefFor(choice.concept)}>
+              {choice.next.action}
+            </ConceptButtonLink>
+          ))}
+        </div>
       ) : (
         <ButtonLink to={to} variant="primary" className={styles.action}>
           <Plus />

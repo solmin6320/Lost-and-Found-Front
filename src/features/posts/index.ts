@@ -93,6 +93,7 @@ export {
   ANY_INTENT_EMPTY,
   POST_INTENTS,
   SEARCH_RESULTS_HEADING,
+  anyIntentNextTitle,
   intentShowing,
   postListHeading,
 } from './model/postIntent'
@@ -119,7 +120,6 @@ export { PostIntentNext } from './ui/PostIntentNext'
 export { PostIntentPicker } from './ui/PostIntentPicker'
 export { PostSearchBar } from './ui/PostSearchBar'
 export { PostThumbnail } from './ui/PostThumbnail'
-export { PostTypeGuide } from './ui/PostTypeGuide'
 export { StatusBadge } from './ui/StatusBadge'
 export { TypeBadge } from './ui/TypeBadge'
 export {

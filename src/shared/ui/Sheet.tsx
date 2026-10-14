@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, type MouseEvent, type PointerEvent, type ReactNode } from 'react'
 
 import { trapTab } from '@/shared/lib/focusTrap'
+import { coverPaint, lockPageScroll, unlockPageScroll } from '@/shared/lib/pageScrollLock'
 
 import { X } from './icons'
 import styles from './Sheet.module.css'
@@ -43,11 +44,13 @@ export function Sheet({ open, onClose, title, children, footer, initialFocus }: 
       returnFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
       dialog.showModal()
       initialFocus?.()?.focus()
-      // 시트 뒤의 목록이 같이 스크롤되지 않게
-      document.documentElement.style.overflow = 'hidden'
     } else if (!open && dialog.open) {
       dialog.close()
     }
+    // 시트 뒤의 목록이 같이 스크롤되지 않게. 비어 있는 스크롤바 자리는 덮개(스크림)를 겹친 색으로(QA-D-24).
+    // 열려 있는 동안은 늘 잠가 둔다 — 열린 채로 처음 그려지는 시트(목록 필터)는 개발 모드(StrictMode)가 효과를 두 번 돌리며
+    // 아래 정리가 잠금을 풀었고, 다시 돌 때는 이미 열려 있어 잠그지 않았다(잠금은 몇 번 불러도 처음 값 하나만 적어 둔다)
+    if (open && dialog.open) lockPageScroll(coverPaint(dialog, '::backdrop'))
   }, [open, initialFocus])
 
   useEffect(() => {
@@ -56,7 +59,7 @@ export function Sheet({ open, onClose, title, children, footer, initialFocus }: 
       return
     }
     function handleClose() {
-      document.documentElement.style.overflow = ''
+      unlockPageScroll()
       returnFocusRef.current?.focus()
       returnFocusRef.current = null
       onCloseRef.current()
@@ -65,7 +68,7 @@ export function Sheet({ open, onClose, title, children, footer, initialFocus }: 
     return () => {
       dialog.removeEventListener('close', handleClose)
       // 열린 채로 사라지면(다른 화면으로 이동 등) 잠근 스크롤을 풀어 둔다
-      document.documentElement.style.overflow = ''
+      unlockPageScroll()
     }
   }, [])
 

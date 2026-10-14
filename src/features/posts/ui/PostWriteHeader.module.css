@@ -3,11 +3,13 @@
   gap: var(--space-1);
 }
 
+/* 글자를 키워 제목과 `쓰는 요령`이 한 줄에 들지 않으면 요령이 다음 줄 오른쪽으로 내려간다 */
 .row {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-3);
+  gap: var(--space-1) var(--space-3);
 }
 
 .title {
@@ -24,6 +26,7 @@
 
 .guide {
   flex: none;
+  margin-left: auto;
 }
 
 .lead {

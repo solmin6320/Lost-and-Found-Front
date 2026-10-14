@@ -53,7 +53,7 @@ export function ProfileSectionSkeleton() {
       </div>
       <div className={styles.skeletonField}>
         <Skeleton shape="text" width="3rem" />
-        <Skeleton height="2.75rem" />
+        <Skeleton height="var(--field-h, var(--tap-min))" />
       </div>
     </div>
   )
@@ -133,6 +133,7 @@ function NicknameForm({ current }: { current: string }) {
         <Button
           type="submit"
           variant="primary"
+          className={styles.submit}
           unavailable={!changed && !mutation.isPending}
           aria-disabled={mutation.isPending || undefined}
           aria-describedby={`${inputId}-note`}

@@ -9,6 +9,13 @@
   border-bottom: var(--hairline);
 }
 
+/* 글자를 키워 그릇(`RootLayout` .shell)이 16rem 보다 좁으면 넷이 한 줄에 들지 않는다 — 넘기지 않고 다음 줄로(숨은 탭이 없게) */
+@container shell (width < 16rem) {
+  .list {
+    flex-wrap: wrap;
+  }
+}
+
 .tab {
   position: relative;
   display: inline-flex;

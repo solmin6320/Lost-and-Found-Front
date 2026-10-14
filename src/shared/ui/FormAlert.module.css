@@ -1,6 +1,7 @@
 /*
  * 폼 전체 문제 한 줄(어느 칸인지 모름 · 연결 실패 · 자격 증명 불일치). 로그인 · 가입 · 글 쓰기 · 비밀번호 변경이 같이 쓴다.
- * 옅은 면 + 아이콘 + 굵은 글자. 빨강은 아이콘과 글자에만(`--error-text`, 회의 ⑤) — 면은 칠하지 않는다
+ * 옅은 면 + 아이콘 + 굵은 글자. 빨강은 아이콘과 글자에만(`--error-text`, 회의 ⑤) — 면은 칠하지 않는다.
+ * 글자는 기본 14px. 조상이 `--form-alert-text` 를 두면 그 크기다(로그인 · 가입은 16px — `AuthLayout`)
  */
 .alert {
   composes: appear from '../styles/motion.module.css';
@@ -12,16 +13,18 @@
   border-radius: var(--radius-md);
   background-color: var(--surface-sunken);
   color: var(--error-text);
-  font-size: var(--text-sm);
+  font-size: var(--form-alert-text, var(--text-sm));
   font-weight: var(--weight-semibold);
   line-height: var(--leading-snug);
   word-break: keep-all;
 }
 
+/* 아이콘은 첫 줄 가운데에 — 글자 크기가 바뀌어도 맞게 줄 높이(1lh)로 잰다 */
 .alert svg {
   flex: none;
   width: var(--icon-md);
   height: var(--icon-md);
+  margin-top: calc((1lh - var(--icon-md)) / 2);
 }
 
 /* 실패하면 포커스가 이리 온다. 면에 붙은 링은 답답해 한 칸 띄운다 */

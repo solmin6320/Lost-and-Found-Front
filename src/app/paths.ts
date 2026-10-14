@@ -66,14 +66,6 @@ export interface AuthReturnState {
 }
 
 /**
- * 가입 직후 목록으로 갈 때 붙인다. 목록이 온보딩 1층(docs/온보딩설계.md 3장)을 한 번 띄우는 신호다.
- * 목록(`app/onboarding` 의 `usePostListGuide`)이 읽자마자 기록에서 지운다
- */
-export interface PostListEntryState {
-  justSignedUp: true
-}
-
-/**
  * 목록 카드로 상세에 들어갈 때 붙인다. 상세의 [목록으로]가 이것이 있으면 **뒤로 가기**를 한다 —
  * 새로 목록을 여는 것과 달리 보던 필터 · 페이지 · 스크롤 위치가 그대로 돌아온다.
  * 공유 링크처럼 바로 들어왔으면 없다. 그때는 목록 첫 화면으로 간다

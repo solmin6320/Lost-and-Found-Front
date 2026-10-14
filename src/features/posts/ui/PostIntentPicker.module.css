@@ -20,9 +20,20 @@
   }
 }
 
+/*
+ * 글자를 키워 그릇(`RootLayout` .shell)이 16rem 보다 좁으면(375 · 글자 200%, 320 · 150%) 두 칸을 위아래로 쌓는다.
+ * 나란히 두면 한 칸이 "잃어버린" 한 낱말보다 좁아져 글자가 칸 밖으로 나갔다(QA 3차). 글자를 줄여 맞추지 않는다 — 사용자가 키운 글자다.
+ * 헤더가 접히는 것과 같은 규칙(rem 으로 잰 그릇 폭)이라 글자 100%의 휴대폰(320 = 20rem)은 그대로 나란히다
+ */
+@container shell (width < 16rem) {
+  .intents {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 .item {
   position: relative;
-  container-type: inline-size;
+  container: intent-item / inline-size;
 }
 
 /* ── 색 : 개념(concept) × 상태(state) ── */
@@ -121,7 +132,7 @@
   opacity: 0.25;
 }
 
-@container (min-width: 17rem) {
+@container intent-item (width >= 17rem) {
   .label {
     display: block;
   }
@@ -164,7 +175,7 @@
   height: var(--icon-sm);
 }
 
-@container (min-width: 17rem) {
+@container intent-item (width >= 17rem) {
   .reset {
     top: var(--space-4);
     right: var(--space-4);
@@ -179,7 +190,7 @@
  * 고른 면의 [×]는 오른쪽 문구 뒤(세로 가운데)로 온다. 휴대폰 · 200% 확대(칸이 30rem 미만)는 두 줄 그대로다.
  * 되돌리려면 이 블록만 지운다(본인 확인 전후 비교 — b2_ui3_before/after_1440.png).
  */
-@container (min-width: 30rem) {
+@container intent-item (width >= 30rem) {
   .choice {
     flex-direction: row;
     align-items: center;

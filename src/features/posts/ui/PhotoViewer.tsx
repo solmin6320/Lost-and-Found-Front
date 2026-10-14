@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, type KeyboardEvent } from 'react'
 
 import { trapTab } from '@/shared/lib/focusTrap'
+import { coverPaint, lockPageScroll, unlockPageScroll } from '@/shared/lib/pageScrollLock'
 import { useSnapTrack } from '@/shared/lib/useSnapTrack'
 import { CaretLeft, CaretRight, X } from '@/shared/ui/icons'
 
@@ -46,7 +47,8 @@ export function PhotoViewer({ open, images, title, index, onIndexChange, onClose
       dialog.showModal()
       scrollToIndex(indexRef.current, false)
       closeRef.current?.focus()
-      document.documentElement.style.overflow = 'hidden'
+      // 뒤 화면 스크롤을 잠그고, 비어 있는 스크롤바 자리도 보기 바탕색으로(밝게 화면의 흰 띠 15px, QA-D-24)
+      lockPageScroll(coverPaint(dialog))
     } else if (!open && dialog.open) {
       dialog.close()
     }
@@ -56,13 +58,13 @@ export function PhotoViewer({ open, images, title, index, onIndexChange, onClose
     const dialog = dialogRef.current
     if (!dialog) return
     function handleClose() {
-      document.documentElement.style.overflow = ''
+      unlockPageScroll()
       onCloseRef.current()
     }
     dialog.addEventListener('close', handleClose)
     return () => {
       dialog.removeEventListener('close', handleClose)
-      document.documentElement.style.overflow = ''
+      unlockPageScroll()
     }
   }, [])
 

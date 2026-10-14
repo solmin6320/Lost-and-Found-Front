@@ -3,7 +3,6 @@ import { useEffect, useRef, useState, type MouseEvent } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 
 import { loginPath } from '@/app/authRedirect'
-import { usePageGuide } from '@/app/onboarding'
 import {
   paths,
   POST_COMMENTS_HASH,
@@ -127,8 +126,6 @@ function PostDetail({ post, claimTitleFocus = false }: PostDetailProps) {
   const auth = useAuth()
   const location = useLocation()
   const navigate = useNavigate()
-  const [guideOpen, setGuideOpen] = useState(false)
-  const guideRef = useRef<HTMLDivElement>(null)
   const titleRef = useRef<HTMLHeadingElement>(null)
   const entryRef = useRef<CommentEntryHandle>(null)
   const [flowEntry, setFlowEntry] = useState<HTMLButtonElement | null>(null)
@@ -154,16 +151,6 @@ function PostDetail({ post, claimTitleFocus = false }: PostDetailProps) {
     })
     return () => cancelAnimationFrame(frame)
   }, [claimTitleFocus, location.hash])
-
-  // 헤더 `서비스 안내`를 여기서 누르면 목록으로 떠나지 않고 이 글의 이름표 안내를 연다
-  usePageGuide(() => {
-    const root = guideRef.current
-    if (!root) return
-    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    root.scrollIntoView({ block: 'center', behavior: reduce ? 'instant' : 'smooth' })
-    root.querySelector<HTMLButtonElement>('button')?.focus({ preventScroll: true })
-    setGuideOpen(true)
-  })
 
   // 로그인 권유 칸에서 로그인하고 돌아왔다(`#comments`, 문자열 비교) — "댓글" 제목으로 데려가 거기에 포커스를 둔다.
   // 입력칸이 아니다 : 사용자 동작이 아니라 키보드가 갑자기 화면을 덮을 이유가 없다. 쓰던 댓글을 이어 쓸지 묻는 칸이 먼저 데려갔으면 그쪽이 우선.
@@ -222,9 +209,7 @@ function PostDetail({ post, claimTitleFocus = false }: PostDetailProps) {
               이름표 안내와 한 묶음이라 좁으면 둘이 같이 다음 줄 오른쪽으로 내려간다 */}
           <div className={styles.tools}>
             <CommentEntryButton ref={setFlowEntry} count={commentTotal} onClick={() => entryRef.current?.open()} />
-            <div ref={guideRef}>
-              <PostStatusGuide type={post.type} status={post.status} open={guideOpen} onOpenChange={setGuideOpen} />
-            </div>
+            <PostStatusGuide type={post.type} status={post.status} />
           </div>
         </div>
         {/* 끝난 글 — 링크로 들어온 사람에게 가장 먼저 알린다(UI-11). 글쓴이에게는 바로 아래 내 글 관리가 같은 말을 한 번 한다 */}

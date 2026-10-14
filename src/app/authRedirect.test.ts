@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, it, vi } from 'vitest'
 
-import { safeRedirectPath } from './authRedirect'
+import { isAuthScreen, isPostFormPath, safeRedirectPath } from './authRedirect'
 
 // 순수 함수 테스트라 jsdom 을 쓰지 않는다. `window.location.origin` 만 흉내 낸다
 beforeAll(() => {
@@ -95,6 +95,32 @@ describe('safeRedirectPath — 열린 리다이렉트 방지', () => {
     '점 구간을 거쳐 // 가 되는 %s 는 목록으로 보낸다',
     (raw) => {
       expect(safeRedirectPath(raw)).toBe('/')
+    },
+  )
+})
+
+describe('isAuthScreen — 헤더 [글 올리기]를 거두는 화면', () => {
+  it.each([['/login'], ['/signup'], ['/LOGIN'], ['/signup/'], ['/%6Cogin']])('%s 는 로그인 · 가입 화면이다', (path) => {
+    expect(isAuthScreen(path)).toBe(true)
+  })
+
+  it.each([['/'], ['/posts/new'], ['/settings'], ['/me'], ['/posts/12'], ['/login-help']])(
+    '%s 는 아니다 — 헤더가 그대로다',
+    (path) => {
+      expect(isAuthScreen(path)).toBe(false)
+    },
+  )
+})
+
+describe('isPostFormPath — 가입 뒤 짧은 알림을 띄우지 않는 곳', () => {
+  it.each([['/posts/new'], ['/posts/new?type=LOST'], ['/posts/12/edit']])('%s 는 글 폼이다', (path) => {
+    expect(isPostFormPath(path)).toBe(true)
+  })
+
+  it.each([['/'], ['/?type=FOUND'], ['/posts/12'], ['/posts/12#comments'], ['/settings'], ['/me']])(
+    '%s 는 글 폼이 아니다 — 가입했어요 알림이 뜬다',
+    (path) => {
+      expect(isPostFormPath(path)).toBe(false)
     },
   )
 })

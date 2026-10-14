@@ -122,7 +122,7 @@ export function LoginForm({ initialEmail = '', lockedExit }: LoginFormProps) {
           <div className={styles.lockBody}>
             <p className={styles.lockMessage}>{lock.message}</p>
             <p className={styles.lockHint}>다른 계정은 이메일을 바꿔 로그인할 수 있어요.</p>
-            {lockedExit}
+            {lockedExit ? <p className={styles.lockExit}>{lockedExit}</p> : null}
           </div>
         </div>
       ) : errors.form ? (

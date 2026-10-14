@@ -36,6 +36,14 @@ export function safeRedirectPath(raw: string | null | undefined): string {
 const AUTH_SCREENS: ReadonlySet<string> = new Set([paths.login, paths.signup])
 
 /**
+ * 지금 로그인 · 가입 화면인가. 라우터가 같은 화면으로 읽는 값(`/LOGIN` · `/signup/`)까지 같게 본다.
+ * 헤더가 읽는다 — 이 두 화면에서는 [로그인]을 숨기고 [글 올리기]의 잉크 채움을 거둔다(주 동작은 폼의 큰 버튼 하나)
+ */
+export function isAuthScreen(pathname: string): boolean {
+  return AUTH_SCREENS.has(routeKey(pathname))
+}
+
+/**
  * React Router 가 경로를 맞춰 보는 방식대로 다듬은 값. 되돌아오는 고리 검사를 **라우터가 보는 값**으로 하려는 것이다.
  *
  * 라우터(v7 `matchRoutes`)는 대소문자를 가리지 않고(`caseSensitive` 기본 거짓), 끝의 `/` 를 몇 개든 무시하고,
@@ -87,6 +95,15 @@ export function isPostDetailPath(path: string): boolean {
   return POST_PATH.test(new URL(path, window.location.origin).pathname)
 }
 const POST_EDIT_PATH = /^\/posts\/\d+\/edit$/
+
+/**
+ * 돌아갈 곳이 글 폼(등록 · 수정)인가. 가입하고 폼으로 가면 짧은 알림(`가입했어요.`)을 띄우지 않는다 —
+ * 폼에서는 짧은 알림이 뜨지 않는다(화면정의서 1.10, 휴대폰 제출 줄과 겹친다). `safeRedirectPath` 를 거친 값만 넣는다
+ */
+export function isPostFormPath(path: string): boolean {
+  const { pathname } = new URL(path, window.location.origin)
+  return pathname === paths.postCreate || POST_EDIT_PATH.test(pathname)
+}
 
 /**
  * 돌아갈 곳을 사람이 읽는 이름으로. 이름을 모르는 곳이면 `null` — 안내 줄을 띄우지 않는다.

@@ -39,6 +39,13 @@
   max-width: 28rem;
 }
 
+/* [저장] — 칸과 같은 높이 · 16px(조상 --field-h, 설정 화면 48px). 공통 버튼보다 무겁게 두 클래스로 */
+.form .submit {
+  --button-h: var(--field-h, var(--tap-min));
+
+  font-size: var(--text-base);
+}
+
 .actions {
   display: flex;
   flex-wrap: wrap;

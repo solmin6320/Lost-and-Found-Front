@@ -7,17 +7,20 @@ import { ArrowUUpLeft, CheckCircle } from '@/shared/ui/icons'
 import styles from './AuthLayout.module.css'
 
 interface AuthLayoutProps {
-  /** 화면 제목(h1) — `로그인` · `회원가입` */
+  /**
+   * 머리의 꼬리표 그림(헤더 로고와 같은 그림, 부른 쪽이 넣는다 — 그림은 app 의 것이다). 장식이라 읽히지 않는다(`aria-hidden`).
+   * 서비스 이름은 여기 두지 않는다 — 아래 안내 문장이 말한다(QA-P-13 · D-11, 2026-10-11)
+   */
+  mark: ReactNode
+  /** 화면 이름 — `로그인` · `회원가입`. 보이는 제목(h1)이고, 읽히는 이름도 이 말 그대로다 */
   title: string
-  /** 이 화면에서 무엇을 하게 되는지 한 줄 */
-  lead: string
+  /**
+   * 이 화면에서 무엇을 하게 되는지 한 줄. 서비스 이름으로 시작한다(`분실물 찾기 계정으로 …`).
+   * 끊기면 안 되는 말 묶음은 `AuthPhrase` 로 감싼다
+   */
+  lead: ReactNode
   /** 돌아갈 곳 안내(`AuthReturnNote`). 제목 아래에 둔다 — "왜 여기 왔는지"에 붙는 정보다 */
   returnNote?: ReactNode
-  /**
-   * 보조 안내(글 두 갈래). 휴대폰에서는 두지 않는다(폼이 먼저) · 태블릿은 폼 아래 · 넓은 화면은 제목 칸 아래.
-   * 문서 순서는 늘 폼 뒤다 — 키보드 · 스크린리더가 폼을 먼저 만난다
-   */
-  aside?: ReactNode
   /** 폼 위 안내 한 줄(비밀번호를 바꾼 뒤 · 가입 직후). 서버 오류가 아니라 확인 문장이다 */
   notice?: string | null
   /** 이메일 · 비밀번호 폼 */
@@ -32,48 +35,68 @@ interface AuthLayoutProps {
 }
 
 /**
- * 로그인 · 가입의 공통 틀(SCR-05 · SCR-06).
+ * 로그인 · 가입의 공통 틀(SCR-05 · SCR-06) — 가운데 한 칸(본인 피드백 2026-10-11).
  *
- * 좁은 화면 : 제목 → 돌아갈 곳 → 안내 → 폼 → (다른 방법) → 전환 링크, 한 줄로 쌓는다. 태블릿은 그 아래 글 두 갈래 안내.
- * 넓은 화면(60rem~) : 왼쪽에 제목 · 돌아갈 곳 · 글 두 갈래 안내, 오른쪽에 폼. 가운데 좁은 칸만 덩그러니 남지 않게
- * 두 칸으로 벌리고 화면 높이 가운데에 둔다. 폼은 읽기 좋은 폭(26rem)을 지킨다. 장식 도형은 두지 않는다.
+ * 위에서 아래로 한 줄 : 머리(꼬리표 + 화면 이름) → 한 줄 안내 → 돌아갈 곳 → (확인 문장) → 폼 → (다른 방법) → 전환 링크.
+ * 머리 = 꼬리표 그림 + **보이는 화면 이름**(본인 결정 2026-10-11, QA-P-13 · D-11). 보이는 말과 읽히는 이름이 같다 —
+ * 예전에는 꼬리표 + 서비스 이름을 보이고 화면 이름은 읽기 전용으로 숨겨, 헤더 로고 링크와 같은 모양의 머리가 "누르는 것"처럼 보였다.
+ * 서비스 이름은 안내 문장 첫머리(`분실물 찾기 계정으로 …`)로 옮겼다. 화면을 옮기면 포커스가 제목으로 오지만(RouteFocus)
+ * 누를 수 있는 것이 아니라 링을 두르지 않는다(목록 첫 제목과 같다).
+ * 옆 칸 안내(글 두 갈래)는 뺐다 — 로그인 화면에서 할 일은 폼 하나라, 눈이 갈 곳을 하나로 둔다.
+ * 휴대폰은 여백 안을 꽉 채우고 위에서 시작한다(키보드가 아래를 덮는다).
+ * 넓은 화면(48rem~)은 가는 선을 두른 한 장(폼 칸 27rem)을 위에 맞춰 둔다 — 위 여백은 화면 높이로만 정해, 오류 · 안내 줄이 생겨도
+ * 제목과 그 위가 움직이지 않는다. 칸 · 버튼 · 이 화면의 짧은 문장(오류 · 안내)은 기본보다 크다(CSS).
  */
-export function AuthLayout({ title, lead, returnNote, aside, notice, children, alternatives, footer }: AuthLayoutProps) {
+export function AuthLayout({ mark, title, lead, returnNote, notice, children, alternatives, footer }: AuthLayoutProps) {
   return (
-    <div className={styles.page}>
-      <header className={styles.intro}>
-        <h1 className={styles.title}>{title}</h1>
-        <p className={styles.lead}>{lead}</p>
-        {returnNote}
-      </header>
+    // 돌아갈 곳 줄이 있으면 넓은 화면 위 여백을 24px 로(QA D-20). 로그인 · 가입이 같은 조건이라 두 화면 머리는 여전히 같은 자리다
+    <div className={styles.page} data-return={returnNote ? '' : undefined}>
+      <div className={styles.card}>
+        <header className={styles.intro}>
+          <h1 className={styles.title}>
+            <span className={styles.mark} aria-hidden="true">
+              {mark}
+            </span>
+            <span className={styles.titleText}>{title}</span>
+          </h1>
+          <p className={styles.lead}>{lead}</p>
+          {returnNote}
+        </header>
 
-      <div className={styles.panel}>
-        {notice ? (
-          <p className={styles.notice} role="status">
-            <CheckCircle />
-            {notice}
-          </p>
-        ) : null}
+        <div className={styles.panel}>
+          {notice ? (
+            <p className={styles.notice} role="status">
+              <CheckCircle />
+              {notice}
+            </p>
+          ) : null}
 
-        {children}
+          {children}
 
-        {alternatives ? (
-          <div className={styles.alternatives}>
-            <p className={styles.or}>또는</p>
-            {alternatives}
-          </div>
-        ) : null}
+          {alternatives ? (
+            <div className={styles.alternatives}>
+              <p className={styles.or}>또는</p>
+              {alternatives}
+            </div>
+          ) : null}
 
-        <div className={styles.footer}>{footer}</div>
+          <div className={styles.footer}>{footer}</div>
+        </div>
       </div>
-
-      {aside ? <div className={styles.aside}>{aside}</div> : null}
     </div>
   )
 }
 
+/**
+ * 안내 한 줄 안에서 줄이 갈리지 않는 말 묶음 — "주운 물건(습득 글)을"이 "주운 물건 / (습득 글)을"로 갈리지 않게.
+ * 줄은 묶음 사이(띄어쓰기)에서만 바뀐다. 묶음이 한 줄보다 길면(크게 확대) 묶음 안에서도 접힌다 — 화면 밖으로 넘치지 않는다
+ */
+export function AuthPhrase({ children }: { children: ReactNode }) {
+  return <span className={styles.phrase}>{children}</span>
+}
+
 interface AuthReturnNoteProps {
-  /** `로그인하면` · `가입하면` */
+  /** 문장 앞머리 — 지금은 두 화면 모두 `끝나면`(로그인 · 가입이 끝나면). 화면 이름을 다시 쓰지 않는다 — 바로 위에 보인다 */
   lead: string
   /** 돌아갈 화면 이름 */
   label: string
@@ -81,7 +104,7 @@ interface AuthReturnNoteProps {
   concept?: 'LOST' | 'FOUND'
 }
 
-/** "로그인하면 분실 글 올리기로 돌아가요" — 로그인이 끝난 뒤 어디로 가는지 누르기 전에 알린다 */
+/** "끝나면 분실 글 올리기로 돌아가요" — 로그인 · 가입이 끝난 뒤 어디로 가는지 누르기 전에 알린다 */
 export function AuthReturnNote({ lead, label, concept }: AuthReturnNoteProps) {
   return (
     <p className={styles.returnNote} data-concept={concept}>
@@ -99,7 +122,7 @@ interface AuthSwitchProps {
   children: ReactNode
 }
 
-/** "처음이세요? [회원가입]" — 링크는 부른 쪽이 넣는다(경로는 app 이 정한다) */
+/** "계정이 없으면 [회원가입]" · "계정이 있으면 [로그인]" — 링크는 부른 쪽이 넣는다(경로는 app 이 정한다) */
 export function AuthSwitch({ prompt, children }: AuthSwitchProps) {
   return (
     <p className={styles.switch}>

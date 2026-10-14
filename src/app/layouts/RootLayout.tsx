@@ -1,7 +1,7 @@
 import { useEffect, useRef, type MouseEvent } from 'react'
-import { Link, NavLink, Outlet, matchPath, useLocation, useNavigate } from 'react-router-dom'
+import { Link, NavLink, Outlet, matchPath, useLocation } from 'react-router-dom'
 
-import { openPageGuide, requestGuide } from '@/app/onboarding'
+import { isAuthScreen } from '@/app/authRedirect'
 import { paths } from '@/app/paths'
 import { RouteFocus } from '@/app/RouteFocus'
 import { ScrollMemory } from '@/app/ScrollMemory'
@@ -12,20 +12,21 @@ import { useDirtyLeaveGuard } from '@/shared/lib/dirtyRegistry'
 import { ButtonLink } from '@/shared/ui/Button'
 import { ConfirmDialog } from '@/shared/ui/ConfirmDialog'
 import { FlashViewport } from '@/shared/ui/Flash'
-import { Gear, House, Plus, Question } from '@/shared/ui/icons'
+import { Gear, House, Plus } from '@/shared/ui/icons'
 import tip from '@/shared/ui/Tooltip.module.css'
 
 import { AccountMenu } from './AccountMenu'
+import { BrandMark, SERVICE_NAME } from './BrandMark'
 import styles from './RootLayout.module.css'
 
 /**
  * 모든 화면이 공유하는 껍데기. 헤더 · 본문 · 이탈 확인 하나. 푸터는 두지 않는다(2026-10-07).
  *
- * 헤더 — 로고(목록으로), 오른쪽에 [글 올리기] · [홈](처음 목록으로) · 서비스 안내(물음표), 그리고
+ * 헤더 — 로고(목록으로), 오른쪽에 [글 올리기] · [홈](처음 목록으로), 그리고
  *   비로그인 : 설정(톱니) · [로그인](글자 버튼). 화면 모드는 누구나 바꾼다(SCR-08)
  *   로그인   : 계정 메뉴 하나. 설정은 메뉴의 "설정"으로만 간다 — 같은 목적지가 두 곳이면 목표가 넷이 된다(회의 UI-6 c)
- * 누르는 면 사이는 8px(회의 UI-6 a). 휴대폰 폭은 로고 글자를 접어 [홈]에 자리를 내주고,
- * 360 미만은 로고 그림까지 접어 한 줄을 지킨다(아래 CSS).
+ * 누르는 면 사이는 8px(회의 UI-6 a). 휴대폰 폭은 로고 글자를 접어 [홈]에 자리를 내준다(아래 CSS).
+ * 서비스 안내(물음표 · 가입 직후 안내)는 2026-10-11 뺐다(본인 결정) — 그 자리는 관리자 권한이 생긴 뒤 공지사항(관리자만 작성)이 받는다.
  * [글 올리기]는 비로그인에게도 보인다. 수정·삭제와 달리 서비스로 들어오는 동선이다(SCR-01).
  *
  * 이탈 확인은 **여기 하나**다(쓰던 칸 등록부). 화면의 칸들은 "쓰던 글자 있음"만 알린다 — `useBlocker` 는 한 번에 하나라
@@ -43,17 +44,11 @@ export function RootLayout() {
       <header className={styles.header}>
         <div className={styles.headerInner}>
           <Link className={styles.wordmark} to={paths.postList}>
-            <BrandMark />
-            <span className={styles.wordmarkText}>분실물 찾기</span>
+            <BrandMark className={styles.mark} />
+            <span className={styles.wordmarkText}>{SERVICE_NAME}</span>
           </Link>
 
-          {/* [홈]은 [글 올리기]와 서비스 안내 사이(본인 피드백 2026-10-08) */}
-          <div className={styles.actions}>
-            <CreatePostLink />
-            <HomeLink />
-            <GuideButton />
-            <HeaderAuth />
-          </div>
+          <HeaderActions />
         </div>
       </header>
 
@@ -66,7 +61,7 @@ export function RootLayout() {
       <RouteFocus />
       <FlashViewport />
 
-      {/* 쓰던 글자를 두고 다른 화면으로 — 로고 · 메뉴 · 뒤로가기 · 서비스 안내 모든 출구를 한 번에 막는다. 기본 포커스는 [계속 쓰기] */}
+      {/* 쓰던 글자를 두고 다른 화면으로 — 로고 · [홈] · 메뉴 · 뒤로가기 모든 출구를 한 번에 막는다. 기본 포커스는 [계속 쓰기] */}
       <ConfirmDialog
         open={leave.blocker.state === 'blocked'}
         title={leave.copy.title}
@@ -84,11 +79,29 @@ export function RootLayout() {
 }
 
 /**
+ * 헤더 오른쪽 묶음 — [글 올리기] · [홈] · 설정 · [로그인](비로그인) 또는 계정 메뉴(로그인). [홈]은 [글 올리기] 바로 뒤(본인 피드백 2026-10-08).
+ *
+ * **로그인 · 가입 화면에서도 자리는 그대로다**(본인 결정 2026-10-11, 화면정의서 1.10). 그 화면에서는 [글 올리기] · [로그인]을
+ * 숨기되 자리를 남긴다(`data-away` — 보이지 않고, 누를 수 없고, 읽히지도 않는다). 그래서 [홈] · 설정이 목록과 **같은 x** 에 선다 —
+ * 목록에서 [로그인]을 두 번 눌러도 둘째 누름은 빈자리에 떨어진다(누르는 것이 옮겨 오지 않으니 막 들어온 0.5초를 막을 까닭도 없다).
+ * 스크롤바가 생기고 없어지는 것(로그인 ↔ 가입)으로 헤더가 밀리지 않게 하는 것은 `reset.css` 의 `scrollbar-gutter` 다
+ */
+export function HeaderActions() {
+  return (
+    <div className={styles.actions}>
+      <CreatePostLink />
+      <HomeLink />
+      <HeaderAuth />
+    </div>
+  )
+}
+
+/**
  * 홈 — 조건 없는 처음 목록(`/`)으로. 로고도 같은 곳으로 가지만, 로고가 눌리는 줄 모르면 처음으로 돌아갈 길이 없다
  * (본인 피드백 2026-10-07 "로고를 눌러야만 홈으로 간다").
  *
- * 로고 바로 오른쪽에 둔다 — 같은 곳으로 가는 둘을 붙여 한 묶음으로 읽힌다(근접성). 오른쪽 묶음은 할 일 · 계정이다.
- * 집 아이콘 + `홈` 글자를 **모든 폭에서** 둔다. 아이콘만이면 터치에서 이름표가 뜨지 않아 무엇인지 모른다.
+ * 오른쪽 묶음의 [글 올리기] 바로 뒤에 둔다(본인 피드백 2026-10-08 — 처음엔 로고 바로 오른쪽이었다).
+ * 집 아이콘 + `홈` 글자를 **모든 폭에서** 둔다 — 글자를 키워 헤더가 두 줄로 접힐 때도(QA-D-25, 남겨도 헤더 높이가 늘지 않았다). 아이콘만이면 터치에서 이름표가 뜨지 않아 무엇인지 모른다.
  * 목록 화면이면(조건이 걸려 있어도) `aria-current="page"` + "지금 여기" 옅은 면 — 설정 톱니의 현재 표시와 같은 말투.
  *
  * 목록에서 누르면 맨 위로 올린다(모션 줄이기면 즉시). 조건 없는 목록이면 주소를 다시 쓰지 않는다 —
@@ -129,6 +142,11 @@ function HomeLink() {
  *
  * 등록 · 수정 화면에서는 "지금 여기" 옅은 면을 깐다. 등록 화면에서는 `aria-current="page"` 이고 눌러도 무시한다 —
  * 같은 경로라 이탈 확인을 타지 않고 폼은 `?type` 을 처음 한 번만 읽어, 누르면 주소만 바뀌고 아무 일도 없었다(AR2-9)
+ *
+ * 로그인 · 가입 화면에서는 **숨기되 자리를 남긴다**([로그인]과 같이, 본인 결정 2026-10-11) — 그 화면에서 할 일은 폼 하나이고,
+ * 튀는 것은 폼의 큰 [로그인] · [가입하기] 하나여야 한다(폰 레스토프). 비로그인이 누르면 로그인을 거쳐 오는 입구라 이 화면에선 겉돈다.
+ * 자리는 조건 없는 목록과 같은 이름(`글 올리기`)의 폭이다 — [홈] · 설정이 목록과 같은 x 에 선다(`HeaderActions`).
+ * `inert` + `aria-hidden` + `visibility: hidden`(CSS `data-away`) — 보이지도, 눌리지도, Tab 으로 닿지도, 읽히지도 않는다
  */
 function CreatePostLink() {
   const auth = useAuth()
@@ -141,6 +159,24 @@ function CreatePostLink() {
 
   const onCreate = location.pathname === paths.postCreate
   const onEdit = matchPath(paths.postEdit(':postId'), location.pathname) !== null
+
+  if (isAuthScreen(location.pathname)) {
+    return (
+      <ButtonLink
+        to={paths.postCreate}
+        variant="secondary"
+        size="sm"
+        className={styles.create}
+        data-away=""
+        aria-hidden="true"
+        tabIndex={-1}
+        inert
+      >
+        <Plus />
+        <span className={styles.createLabel}>글 올리기</span>
+      </ButtonLink>
+    )
+  }
 
   function handleClick(event: MouseEvent<HTMLAnchorElement>) {
     if (onCreate) event.preventDefault()
@@ -155,8 +191,6 @@ function CreatePostLink() {
       data-here={onCreate || onEdit ? '' : undefined}
       aria-current={onCreate ? 'page' : undefined}
       onClick={handleClick}
-      // 온보딩 3단계가 가리키는 자리
-      data-guide="create"
     >
       <Plus />
       <span className={styles.createLabel}>{label}</span>
@@ -164,33 +198,6 @@ function CreatePostLink() {
         {label}
       </span>
     </ButtonLink>
-  )
-}
-
-/**
- * 서비스 안내 — 온보딩 1층을 언제든 다시 연다(docs/온보딩설계.md 2장). 안내는 목록 위에 뜬다 —
- * 다른 화면이면 목록으로 가면서 요청을 남기고, 목록이 요청을 가져가며 연다. 닫으면 이 버튼으로 포커스가 돌아온다.
- * 그 화면에 자기 안내가 있으면(상세의 `이름표 안내`) 목록으로 떠나지 않고 그것을 연다 — 보던 글을 잃지 않는다.
- * 모양은 설정과 같다 — 휴대폰 폭에서는 물음표만(이름은 aria-label, 마우스 · 키보드에는 이름표), 48rem 이상은 글자도.
- */
-function GuideButton() {
-  const location = useLocation()
-  const navigate = useNavigate()
-
-  function handleClick() {
-    if (location.pathname !== paths.postList && openPageGuide()) return
-    requestGuide()
-    if (location.pathname !== paths.postList) navigate(paths.postList)
-  }
-
-  return (
-    <button type="button" className={cx(styles.settings, tip.host)} aria-label="서비스 안내" onClick={handleClick}>
-      <Question />
-      <span className={styles.settingsLabel}>서비스 안내</span>
-      <span className={cx(tip.tip, styles.settingsTip)} aria-hidden="true">
-        서비스 안내
-      </span>
-    </button>
   )
 }
 
@@ -215,7 +222,8 @@ function SettingsLink() {
  * 로그인한 사용자에게 매번 "로그아웃됐나?" 하는 깜빡임이 보인다.
  *
  * 비로그인 : 설정(톱니) + [로그인]. [로그인]은 테두리 없는 글자 버튼(누르는 면 44px) — 선 상자는 [+] 하나만 남는다(회의 UI-6 b).
- *   로그인 · 가입 화면에서는 [로그인]을 숨기되 자리는 남긴다(지금 그 화면이다 — 같은 목적지를 또 두지 않는다, 헤더가 흔들리지 않게).
+ *   로그인 · 가입 화면에서는 [로그인]을 숨기되 자리를 남긴다(지금 그 화면이다 — 같은 목적지를 또 두지 않는다). [+ 글 올리기]도
+ *   같이 숨긴다 — [홈] · 설정이 목록과 같은 x 에 선다(본인 결정 2026-10-11, 화면정의서 1.10).
  *
  * 계정 메뉴에서 로그아웃하면 메뉴(와 누르던 버튼)가 사라진다. 그 자리에 생긴 [로그인]으로 포커스를 옮긴다 —
  * 그냥 두면 문서 맨 앞으로 빠진다. 로그아웃하며 다른 화면으로 옮겨지면(내가 쓴 글 → 로그인) 새 화면의 제목이 가져간다(RouteFocus)
@@ -238,19 +246,31 @@ function HeaderAuth() {
     await auth.logout()
   }
 
+  // 로그인 · 가입 화면 — 설정 + [로그인] 빈자리(같은 글자 · 같은 폭이라 목록의 [로그인]과 꼭 같은 칸). 세션 복구 중에도 같은 모양으로
+  // 바로 그린다(자리 잡기 → 설정으로 바뀌며 [홈]이 밀리지 않게). 로그인돼 있으면 화면이 곧 돌려보내므로 아래 계정 메뉴로 간다
+  if (isAuthScreen(location.pathname) && auth.status !== 'authenticated') {
+    return (
+      <>
+        <SettingsLink />
+        <span className={styles.login} data-away="" aria-hidden="true">
+          로그인
+        </span>
+      </>
+    )
+  }
+
   if (auth.status === 'unknown') {
     return <span className={styles.authPending} aria-hidden="true" />
   }
 
   if (auth.status === 'anonymous') {
     const here = `${location.pathname}${location.search}`
-    const onAuthScreen = location.pathname === paths.login || location.pathname === paths.signup
-    const to = here === paths.postList || onAuthScreen ? paths.login : paths.loginThenReturn(here)
+    const to = here === paths.postList ? paths.login : paths.loginThenReturn(here)
 
     return (
       <>
         <SettingsLink />
-        <Link ref={loginRef} to={to} className={styles.login} data-away={onAuthScreen ? '' : undefined}>
+        <Link ref={loginRef} to={to} className={styles.login}>
           로그인
         </Link>
       </>
@@ -259,25 +279,4 @@ function HeaderAuth() {
 
   // 화면을 옮기면 펼친 메뉴를 닫는다
   return <AccountMenu key={location.pathname} me={auth.me} onLogout={logout} />
-}
-
-/**
- * 꼬리표 두 장. 보관소에서 물건에 다는 이름표다 — 잃어버린 쪽(마리골드)과 주운 쪽(코발트)이 겹친다.
- * 서비스의 표지라 이 자리(와 파비콘)에만 쓴다. 다른 화면의 장식으로 되풀이하지 않는다.
- */
-function BrandMark() {
-  const tag =
-    'M12 1.8 17.3 6.3a1.6 1.6 0 0 1 .6 1.23V20.4a1.6 1.6 0 0 1-1.6 1.6H7.7a1.6 1.6 0 0 1-1.6-1.6V7.53a1.6 1.6 0 0 1 .6-1.23Z'
-  return (
-    <svg className={styles.mark} viewBox="0 0 30 24" aria-hidden="true" focusable="false">
-      <g transform="translate(7.5 0.4) rotate(14 12 12)">
-        <path d={tag} fill="var(--found-face)" />
-        <circle cx="12" cy="7.9" r="1.65" fill="var(--surface)" />
-      </g>
-      <g transform="translate(-0.5 0.6) rotate(-12 12 12)">
-        <path d={tag} fill="var(--lost-face)" stroke="var(--surface)" strokeWidth="1.6" strokeLinejoin="round" />
-        <circle cx="12" cy="7.9" r="1.65" fill="var(--surface)" />
-      </g>
-    </svg>
-  )
 }

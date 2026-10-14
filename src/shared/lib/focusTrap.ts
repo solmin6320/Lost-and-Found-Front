@@ -4,7 +4,7 @@ const FOCUSABLE = 'button:not(:disabled), a[href], textarea:not(:disabled), inpu
 
 /**
  * 모달 안에서 Tab 을 돌린다. 네이티브 `showModal()` 은 바깥을 inert 로 만들지만,
- * 마지막 조작에서 Tab 을 누르면 주소창으로 빠진다. 첫 ↔ 마지막을 이어 준다(온보딩 카드와 같은 방식).
+ * 마지막 조작에서 Tab 을 누르면 주소창으로 빠진다. 첫 ↔ 마지막을 이어 준다.
  *
  * `<dialog onKeyDown={(e) => trapTab(e, e.currentTarget)}>`
  */
