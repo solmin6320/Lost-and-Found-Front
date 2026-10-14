@@ -45,6 +45,9 @@ export function PostCategoryChoice({ value, onChange, type, readOnly = false, er
                 value={category}
                 checked={checked}
                 aria-disabled={readOnly || undefined}
+                // 오류는 칸(라디오)에도 잇는다 — 묶음 설명을 읽지 않는 낭독기에서도 포커스가 오면 바로 읽힌다(접근성 점검 2026-10-14)
+                aria-invalid={error ? true : undefined}
+                aria-describedby={error ? errorId : undefined}
                 onChange={() => {
                   if (!readOnly) onChange(category)
                 }}

@@ -67,6 +67,10 @@ export function PostTypeChoice({ value, onChange, readOnly = false, error }: Pos
                 checked={checked}
                 // 읽기 전용 라디오는 없다. 바꾸는 것만 무시한다(disabled 는 포커스가 빠진다)
                 aria-disabled={readOnly || undefined}
+                // 오류는 칸(라디오)에도 잇는다 — 묶음(fieldset)의 설명은 포커스가 라디오로 들어올 때 읽지 않는 낭독기가 있다
+                // (iOS VoiceOver 등). 제출이 막혀 이 칸으로 포커스가 오면 오류 문장이 바로 읽힌다(접근성 점검 2026-10-14)
+                aria-invalid={error ? true : undefined}
+                aria-describedby={error ? errorId : undefined}
                 onChange={() => {
                   if (!readOnly) onChange(type)
                 }}
