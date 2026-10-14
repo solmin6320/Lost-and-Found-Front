@@ -1,4 +1,4 @@
-import { keepPreviousData, useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   Fragment,
   useEffect,
@@ -13,21 +13,23 @@ import {
 } from 'react'
 
 import { useLateFlag } from '@/shared/lib/useLateFlag'
+import type { PagedModel } from '@/shared/types/api'
 import { MagnifyingGlass, X } from '@/shared/ui/icons'
 import { LoadingDots } from '@/shared/ui/LoadingDots'
 
 import type { PostListParams, PostListResponse } from '../api/types'
 import { KEYWORD_MAX_LENGTH } from '../model/postListSearch'
-import { postListQueryOptions } from '../model/postQueries'
+import { postSuggestionQueryOptions } from '../model/postQueries'
 import {
   SUGGESTION_DEBOUNCE_MS,
   foldLead,
   SUGGESTION_HOLD_EMPTY_MS,
-  isSyllableInFlux,
   highlightParts,
+  resolveSuggestions,
   suggestTerm,
   suggestionKeyAction,
   titleMatches,
+  type SuggestionView,
 } from '../model/searchSuggest'
 import styles from './PostSearchBar.module.css'
 import { StatusBadge } from './StatusBadge'
@@ -63,11 +65,14 @@ const ROOM_MIN_PX = 200
  * **추천** — WAI-ARIA 콤보박스(목록 자동완성, 고르기는 직접). 포커스는 늘 입력칸에 있고 가리키는 칸은
  * `aria-activedescendant` 로 알린다. 치는 대로(0.12초 멈추면) 맞는 글 다섯 개를 칸 아래에 띄운다(본인 피드백 2026-10-14 — 바로바로).
  *   - **한글 조합 중에도** 지금 보이는 글자로 찾는다("지" → "직" → "지가" → "지갑"). 끝에 매달린 낱자모("지ㄱ")로는 찾지 않는다
- *   - 조합 중인 끝 글자("직" · "지가")로 찾은 0건은 곧 뒤집히므로 앞 결과를 그대로 둔다. 손이 0.6초 멈추면 그때 "없어요"(`isSyllableInFlux`)
+ *   - **치는 순간(0ms) 앞 결과를 지금 친 말로 걸러 먼저 보이고**, 서버 응답이 오면 바꾼다. 늦게 온 앞 말의 응답도 지금 말의
+ *     앞부분이면 걸러 쓴다(`resolveSuggestions`, QA-D-1 · P-1). 음절을 확정할 때마다 칸이 닫혔다 열리지 않는다
+ *   - "맞는 글이 없어요"는 **서버가 지금 말로 0건을 확정했을 때만**. 조합 중인 끝 글자("직" · "지가")의 0건은 손이 0.6초 멈춘 뒤
  *   - 빈칸 · 공백뿐이면 띄우지 않는다
- *   - 앞 요청은 새 말이 오면 버린다(쿼리 키에 말이 들어 있다 — 안 쓰게 된 요청은 TanStack Query 가 취소한다)
- *   - 새 결과를 받는 동안 앞 결과를 그대로 둔다 — 칸이 비었다 찼다 깜빡이지 않는다. 0.3초를 넘기면 그때만 점 셋
- *     (첫 응답이면 점 셋만, 앞 결과가 있으면 그 아래 작게 — 2026-10-14)
+ *   - 앞 요청은 끊지 않는다 — 늦게 온 앞 말의 응답은 캐시에 남아 지금 말의 앞부분이면 걸러 쓰인다. 지금 보이는 것을 덮지는 않는다
+ *     (그리는 것은 늘 지금 친 말로 고른다 — `resolveSuggestions`)
+ *   - 요청이 0.3초를 넘기면 그때만 **검색칸 안 지우기 [X] 왼쪽에 점 셋**(찾는 말이 바뀌면 0.3초를 새로 센다, QA-D-4 · P-2).
+ *     추천 칸 높이는 바뀌지 않는다
  *   - 제목에서 **맞는 조각만** 강조한다(`<mark>`, React 노드 — HTML 문자열로 만들지 않는다)
  *   - ↑ ↓ 로 가리키고 Enter 로 연다. 가리킨 칸이 없으면 Enter 는 보통 검색이다
  *   - **Esc · 칸 바깥 누름은 추천 칸만 닫는다 — 친 글자는 남는다**(본인 피드백 2026-10-14). 칸을 다시 누르면 다시 펼친다
@@ -112,54 +117,66 @@ export function PostSearchBar({ keyword, onSearch, suggestionParams, onOpenPost 
   }
 
   const query = useQuery({
-    ...postListQueryOptions(suggestionParams(term)),
+    ...postSuggestionQueryOptions(suggestionParams(term)),
     enabled: term !== '',
-    placeholderData: keepPreviousData,
     // 거드는 기능이다 — 실패를 되풀이해 묻지 않는다. 사용자는 이미 다음 글자를 치고 있다
     retry: false,
   })
 
-  /**
-   * 지금 보이는 결과와 그 말 — 강조는 그 말로 한다. 새 결과를 받는 동안 앞 결과를 그대로 그린다(쿼리 키가 말마다 달라
-   * 늦게 온 옛 응답은 지금 말의 결과를 덮지 못한다). 조합 중인 끝 글자에서 0건이면 손이 멈출 때까지 앞 결과를 둔다
-   */
-  const [shown, setShown] = useState<{ term: string; data: PostListResponse[] | null }>({ term: '', data: null })
-  const settled = term !== '' && query.data && !query.isPlaceholderData && !query.isError ? query.data.content : null
-  const hold =
-    settled !== null &&
-    settled.length === 0 &&
-    isSyllableInFlux(term, composing) &&
-    restedOn !== typed &&
-    (shown.data?.length ?? 0) > 0
-  if (settled && !hold && (shown.term !== term || shown.data !== settled)) {
-    setShown({ term, data: settled })
-  }
-  if (term === '' && shown.data !== null) {
-    setShown({ term: '', data: null })
-  }
-  const shownTerm = shown.term
+  // 서버가 어떤 말이든 답을 주면 다시 그린다 — 늦게 온 앞 말의 응답도 지금 말의 앞부분이면 걸러 쓴다
+  const queryClient = useQueryClient()
+  const [, setCacheTick] = useState(0)
+  useEffect(
+    () =>
+      queryClient.getQueryCache().subscribe((event) => {
+        if (event.type === 'updated' && event.action.type === 'success') setCacheTick((tick) => tick + 1)
+      }),
+    [queryClient],
+  )
+  const lookup = (word: string) =>
+    queryClient.getQueryData<PagedModel<PostListResponse>>(postSuggestionQueryOptions(suggestionParams(word)).queryKey)?.content
 
-  const items: PostListResponse[] = term !== '' && !query.isError && shown.data ? shown.data : []
+  /** 직전에 그린 결과 — 새 말의 결과를 아직 모를 때 그대로 둔다(칸이 닫혔다 열리지 않게) */
+  const [last, setLast] = useState<{ key: string; view: SuggestionView<PostListResponse> } | null>(null)
+  const view = resolveSuggestions({
+    typed,
+    composing,
+    rested: restedOn === typed,
+    lookup,
+    last: last?.view ?? null,
+  })
+  const viewKey = view && view.items.length > 0 ? `${view.term}|${view.items.map((post) => post.id).join(',')}` : null
+  if (viewKey && view && last?.key !== viewKey) setLast({ key: viewKey, view })
+  if (typed === '' && last !== null) setLast(null)
+
+  const items: readonly PostListResponse[] = view?.items ?? []
+  const shownTerm = view?.term ?? ''
   const listKey = items.map((post) => post.id).join(',')
   const active = activeState.list === listKey ? activeState.index : -1
 
-  const showing = open && typed !== '' && term !== ''
+  const showing = open && typed !== ''
   const expanded = showing && items.length > 0
-  // 0건은 지금 친 말의 결과가 확정됐을 때만 말한다(치는 도중에 "없어요"가 깜빡이지 않게)
-  const empty = showing && items.length === 0 && shown.data !== null && shown.term === term && term === typed
-  const loading = useLateFlag(showing && query.isFetching && !query.data)
-  /** 앞 결과를 보이는 채로 새 말의 결과를 기다린 지 0.3초가 넘었다 — 결과 아래에 점 셋 */
-  const refreshing = useLateFlag(expanded && (query.isFetching || term !== typed))
+  // 0건은 서버가 지금 친 말로 확정했을 때만 말한다(치는 도중에 "없어요"가 깜빡이지 않게)
+  const empty = showing && items.length === 0 && view?.confirmed === true
+  /** 요청이 0.3초를 넘었다 — 검색칸 안 점 셋(LoadingDots 가 0.3초 · 최소 0.45초를 센다). 찾는 말이 바뀌면 새로 센다 */
+  const fetching = showing && query.isFetching
+  /** 보일 것이 아직 하나도 없는데 0.3초가 넘었다 — 스크린리더에 "찾는 중" */
+  const loading = useLateFlag(fetching && !expanded && !empty, undefined, { resetKey: term })
 
-  const announcement = expanded
-    ? `추천 글 ${items.length}개가 있어요. 위아래 화살표로 고를 수 있어요.`
-    : empty
-      ? '맞는 글이 없어요.'
-      : loading
+  // 알림은 건수가 바뀔 때만 — 확정된 결과(또는 처음 기다림)로만 바꾸고, 치는 도중 거른 결과로는 바꾸지 않는다
+  const [announcement, setAnnouncement] = useState('')
+  const nextAnnouncement = !showing
+    ? ''
+    : view?.confirmed
+      ? items.length > 0
+        ? `추천 글 ${items.length}개가 있어요. 위아래 화살표로 고를 수 있어요.`
+        : '맞는 글이 없어요.'
+      : loading && !expanded
         ? '찾는 중이에요.'
-        : ''
+        : announcement
+  if (nextAnnouncement !== announcement) setAnnouncement(nextAnnouncement)
 
-  const popup = expanded || empty || loading
+  const popup = expanded || empty
   const room = useRoomBelow(formRef, popup)
   useOutsidePress(formRef, popup || open, () => close())
 
@@ -281,6 +298,14 @@ export function PostSearchBar({ keyword, onSearch, suggestionParams, onOpenPost 
         spellCheck={false}
         enterKeyHint="search"
       />
+      {/* 요청이 0.3초를 넘으면 지우기 [X] 왼쪽에 점 셋 — 추천 칸 높이를 바꾸지 않는다. 읽기는 아래 알림 줄이 맡는다 */}
+      <LoadingDots
+        active={fetching}
+        resetKey={term}
+        variant="inline"
+        announce={false}
+        className={styles.fetching}
+      />
       {text ? (
         <button type="button" className={styles.clear} aria-label="검색어 지우기" onClick={handleClear}>
           <X />
@@ -341,12 +366,6 @@ export function PostSearchBar({ keyword, onSearch, suggestionParams, onOpenPost 
           })}
         </ul>
         {empty ? <p className={styles.note}>맞는 글이 없어요.</p> : null}
-        {/* 기다림이 0.3초를 넘었다 — 점 셋. 읽기는 아래 알림 줄 하나가 맡는다(같은 말을 두 번 읽지 않게) */}
-        {(loading && !expanded && !empty) || refreshing ? (
-          <div className={styles.pending} data-under={refreshing || undefined}>
-            <LoadingDots announce={false} delay={0} />
-          </div>
-        ) : null}
       </div>
 
       <p className="sr-only" aria-live="polite" aria-atomic="true">

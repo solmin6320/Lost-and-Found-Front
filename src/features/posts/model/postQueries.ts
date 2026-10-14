@@ -44,6 +44,18 @@ export function postListQueryOptions(params: PostListParams = {}) {
   })
 }
 
+/**
+ * 검색 추천(앞 5건) 쿼리 설정 — 목록과 **같은 키**(같은 캐시)지만 **새 말이 와도 앞 요청을 끊지 않는다**(`signal` 을 넘기지 않는다).
+ * 치는 동안 말이 0.12초마다 바뀌면 앞 말의 요청이 응답 직전에 끊겨 캐시에 남지 않았다 — 늦게 온 앞 말의 응답도
+ * 지금 말의 앞부분이면 걸러서 먼저 보여 준다(QA-D-1 · P-1). 5건짜리라 끝까지 받아도 가볍다
+ */
+export function postSuggestionQueryOptions(params: PostListParams) {
+  return queryOptions({
+    queryKey: postKeys.list(params),
+    queryFn: () => getPosts(params),
+  })
+}
+
 /** 내가 쓴 글 쿼리 설정. 로그인했을 때만 켠다(`enabled`) — 비로그인으로 부르면 401 과 재발급 헛걸음이다 */
 export function myPostsQueryOptions(params: MyPostsParams = {}) {
   return queryOptions({

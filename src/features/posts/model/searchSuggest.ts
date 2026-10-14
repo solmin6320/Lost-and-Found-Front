@@ -50,6 +50,86 @@ export function isSyllableInFlux(term: string, composing: boolean): boolean {
   return composing && LAST_SYLLABLE.test(term)
 }
 
+/** 한글 완성 글자 하나는 받침 28가지(없음 포함)를 묶음으로 갖는다 */
+const FINALS = 28
+const SYLLABLE_BASE = 0xac00
+/** 겹받침 → 남는 앞 받침(뒤 자음이 다음 글자로 옮겨 간다). 홑받침은 통째로 옮겨 간다(0 = 받침 없음) */
+const FINAL_AFTER_SHIFT: Record<number, number> = { 3: 1, 5: 4, 6: 4, 9: 8, 10: 8, 11: 8, 12: 8, 13: 8, 14: 8, 15: 8, 18: 17 }
+
+/**
+ * 조합 중인 끝 글자의 받침을 뗀 말 — "직" → "지", "카드직" → "카드지", "닭" → "달". 받침이 없거나 조합이 끝났으면 그대로.
+ * **서버에 묻는 말이 아니다**(그 말로 찾으면 "직"이 든 제목이 걸리지 않는다). 치는 도중 화면에 먼저 보일 앞 결과를 고르는 데만 쓴다 —
+ * "지갑"을 치는 사람의 "직"은 곧 "지가"가 되니, "지"로 찾은 결과가 지금 보일 만한 것이다
+ */
+export function withoutPendingFinal(term: string, composing: boolean): string {
+  if (!composing || !term) return term
+  const code = term.charCodeAt(term.length - 1) - SYLLABLE_BASE
+  if (code < 0 || code > 0xd7a3 - SYLLABLE_BASE) return term
+  const final = code % FINALS
+  if (final === 0) return term
+  const rest = FINAL_AFTER_SHIFT[final] ?? 0
+  return term.slice(0, -1) + String.fromCharCode(SYLLABLE_BASE + code - final + rest)
+}
+
+/** 추천 칸에 그릴 것 — 어떤 말의 결과이고, 서버가 그 말로 확정한 것인가 */
+export interface SuggestionView<T> {
+  items: readonly T[]
+  /** 강조할 말 */
+  term: string
+  /** 서버가 이 말(`term`)로 돌려준 결과 그대로다. 아니면 앞 결과를 지금 친 말로 거른 것 · 앞 결과를 그대로 둔 것 */
+  confirmed: boolean
+}
+
+/**
+ * 지금 친 말(`typed`)로 추천 칸에 무엇을 그릴까(QA-D-1 · P-1, 2026-10-14). 순서대로
+ *
+ * 1. **서버가 그 말로 답한 결과가 있으면**(캐시 — `lookup`) 그대로. 0건이면 "맞는 글이 없어요"(확정).
+ *    단 조합 중인 끝 글자의 0건은 곧 뒤집히니 손이 멈출 때까지(`rested`) 확정으로 치지 않는다
+ * 2. 없으면 **지금 말의 앞부분**(가장 긴 것부터)으로 서버가 답한 결과를 **지금 말로 제목에서 걸러** 바로(0ms) 보인다 —
+ *    "카드" 결과가 있으면 "카드지"를 치는 순간 "카드지"가 든 제목만 남는다. 늦게 온 앞 말의 응답도 여기서 쓰인다
+ *    (본문에서만 맞은 글은 제목으로 가릴 수 없어 뺀다 — 서버 응답이 오면 돌아온다).
+ *    조합 중인 끝 글자에 받침이 있으면("직") 받침을 뗀 말("지")로도 같은 일을 한다(`withoutPendingFinal`) — 치는 동안에도 결과가 보인다
+ * 3. 그래도 없으면 **직전에 보이던 것**(`last`)을 그대로 둔다 — 0건이어도 "없어요"라고 하지 않는다(확정이 아니다)
+ *
+ * 그래서 음절을 확정할 때마다(`카` → `칻` → `카드`) 칸이 닫혔다 열리거나 "없어요"가 번쩍이지 않는다. "맞는 글이 없어요"는
+ * 서버가 지금 말로 0건을 확정했을 때만이다
+ */
+export function resolveSuggestions<T extends { title: string }>(input: {
+  typed: string
+  composing: boolean
+  /** 손이 `SUGGESTION_HOLD_EMPTY_MS` 넘게 멈췄다 */
+  rested: boolean
+  lookup: (term: string) => readonly T[] | undefined
+  last: SuggestionView<T> | null
+}): SuggestionView<T> | null {
+  const { typed, composing, rested, lookup, last } = input
+  if (!typed) return null
+
+  const exact = lookup(typed)
+  if (exact && (exact.length > 0 || rested || !isSyllableInFlux(typed, composing))) {
+    return { items: exact, term: typed, confirmed: true }
+  }
+
+  const stem = withoutPendingFinal(typed, composing)
+  for (const word of stem !== typed ? [typed, stem] : [typed]) {
+    if (word !== typed) {
+      const known = lookup(word)
+      if (known && known.length > 0) return { items: known, term: word, confirmed: false }
+    }
+    const needle = word.toLocaleLowerCase()
+    for (let length = word.length - 1; length > 0; length -= 1) {
+      const prefix = word.slice(0, length).trim()
+      if (!prefix) continue
+      const base = lookup(prefix)
+      if (!base || base.length === 0) continue
+      const narrowed = base.filter((item) => item.title.toLocaleLowerCase().includes(needle))
+      if (narrowed.length > 0) return { items: narrowed, term: word, confirmed: false }
+    }
+  }
+
+  return last && last.items.length > 0 ? { ...last, confirmed: false } : null
+}
+
 /**
  * 추천 요청 조건 — **그 말로 Enter 를 눌렀을 때 나올 목록의 앞 5건**이다. 추천에서 본 글이 결과에서 빠지는 일이 없다.
  *   - 새 검색어는 분실 · 습득을 함께 찾는다(`withKeyword`) — 추천에도 두 종류가 섞이고 이름표로 가른다

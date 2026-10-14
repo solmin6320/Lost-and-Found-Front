@@ -87,6 +87,21 @@
   }
 }
 
+/*
+ * 요청이 0.3초를 넘으면 지우기 [X] 바로 왼쪽에 점 셋(QA-D-4 · P-2) — 추천 칸 안에 줄을 더하지 않아 칸 높이가 그대로다.
+ * 점이 떠 있는 동안만 오른쪽 자리를 더 비운다(글자는 왼쪽 정렬이라 짧은 글은 움직이지 않는다)
+ */
+.fetching {
+  position: absolute;
+  top: 50%;
+  right: calc(var(--tap-min) + var(--space-1));
+  transform: translateY(-50%);
+}
+
+.form:has(.fetching [data-loading-dots]) .input {
+  padding-right: calc(var(--tap-min) + var(--space-1) + var(--space-8));
+}
+
 /* 브라우저마다 다른 기본 지우기 버튼 대신 같은 모양의 버튼을 둔다 */
 .input::-webkit-search-cancel-button {
   appearance: none;
@@ -223,17 +238,6 @@
 /* 완료 글(상태를 "완료"로 골랐을 때만 섞인다) — 목록 카드처럼 한 단계 흐리게 */
 .option[data-done] .optionTitle {
   color: var(--text-muted);
-}
-
-/* 기다리는 중의 점 셋 — 첫 응답이면 혼자, 앞 결과가 있으면 그 아래에 작게(결과는 지우지 않는다) */
-.pending {
-  display: flex;
-  padding: var(--space-2) var(--space-3);
-}
-
-.pending[data-under] {
-  justify-content: flex-end;
-  padding-block: var(--space-1);
 }
 
 .note {

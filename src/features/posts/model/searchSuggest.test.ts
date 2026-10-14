@@ -6,6 +6,8 @@ import {
   SUGGESTION_LIMIT,
   SUGGESTION_HOLD_EMPTY_MS,
   isSyllableInFlux,
+  resolveSuggestions,
+  withoutPendingFinal,
   foldLead,
   highlightParts,
   suggestTerm,
@@ -188,5 +190,72 @@ describe('suggestionKeyAction — 콤보박스 키보드', () => {
   it('Enter · 글자 키는 다루지 않는다(Enter 는 폼 제출이 맡는다)', () => {
     expect(at('Enter', true, 1)).toEqual({ type: 'none' })
     expect(at('a', true, 1)).toEqual({ type: 'none' })
+  })
+})
+
+describe('withoutPendingFinal — 조합 중 끝 글자의 받침 떼기(화면에 먼저 보일 앞 결과 고르기용)', () => {
+  it('홑받침은 통째로, 겹받침은 뒤 자음만 뗀다', () => {
+    expect(withoutPendingFinal('직', true)).toBe('지')
+    expect(withoutPendingFinal('카드직', true)).toBe('카드지')
+    expect(withoutPendingFinal('닭', true)).toBe('달')
+  })
+
+  it('받침이 없거나 조합이 끝났으면 그대로', () => {
+    expect(withoutPendingFinal('지가', true)).toBe('지가')
+    expect(withoutPendingFinal('직', false)).toBe('직')
+    expect(withoutPendingFinal('ipad', true)).toBe('ipad')
+  })
+})
+
+describe('resolveSuggestions — 치는 동안 추천 칸에 그릴 것', () => {
+  const post = (title: string) => ({ title })
+  const cache = new Map<string, { title: string }[]>([
+    ['카', [post('카드지갑'), post('카메라 가방')]],
+    ['카드', [post('카드지갑'), post('교통카드')]],
+    ['지', [post('카드지갑')]],
+  ])
+  const lookup = (term: string) => cache.get(term)
+  const resolve = (typed: string, composing = false, rested = false, last = null as ReturnType<typeof resolveSuggestions<{ title: string }>>) =>
+    resolveSuggestions({ typed, composing, rested, lookup, last })
+
+  it('서버가 그 말로 답했으면 그대로(확정)', () => {
+    expect(resolve('카드')).toEqual({ items: cache.get('카드'), term: '카드', confirmed: true })
+  })
+
+  it('아직 모르는 말이면 앞부분 결과를 지금 말로 걸러 바로 보인다(확정 아님)', () => {
+    const view = resolve('카드지')
+    expect(view?.items.map((item) => item.title)).toEqual(['카드지갑'])
+    expect(view?.confirmed).toBe(false)
+    expect(view?.term).toBe('카드지')
+  })
+
+  it('조합 중 받침 글자("직")는 받침을 뗀 말("지") 결과를 먼저 보인다', () => {
+    const view = resolve('직', true)
+    expect(view?.items.map((item) => item.title)).toEqual(['카드지갑'])
+    expect(view?.term).toBe('지')
+    expect(view?.confirmed).toBe(false)
+  })
+
+  it('거를 것도 없으면 직전 결과를 그대로 둔다 — 칸이 닫히지 않고 "없어요"도 아니다', () => {
+    const last = { items: [post('카드지갑')], term: '카드', confirmed: true }
+    const view = resolve('쿼', true, false, last)
+    expect(view?.items).toBe(last.items)
+    expect(view?.confirmed).toBe(false)
+  })
+
+  it('음절을 확정하는 사이("카" → "칻")에도 받침을 뗀 "카" 결과가 그대로 보인다', () => {
+    expect(resolve('칻', true)?.items).toBe(cache.get('카'))
+  })
+
+  it('서버가 0건을 확정하면 "없어요" — 조합 중인 끝 글자라면 손이 멈춘 뒤에만', () => {
+    cache.set('카드지가', [])
+    const last = { items: [post('카드지갑')], term: '카드지', confirmed: false }
+    expect(resolve('카드지가', true, false, last)?.confirmed).toBe(false)
+    expect(resolve('카드지가', true, true, last)).toEqual({ items: [], term: '카드지가', confirmed: true })
+    expect(resolve('카드지가', false, false, last)).toEqual({ items: [], term: '카드지가', confirmed: true })
+  })
+
+  it('빈 말이면 아무것도 그리지 않는다', () => {
+    expect(resolve('')).toBeNull()
   })
 })
