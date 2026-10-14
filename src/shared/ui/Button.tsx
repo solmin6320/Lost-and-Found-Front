@@ -2,7 +2,7 @@ import type { ButtonHTMLAttributes, MouseEvent, Ref } from 'react'
 import { Link, type LinkProps } from 'react-router-dom'
 
 import { cx } from '@/shared/lib/cx'
-import { useLateFlag } from '@/shared/lib/useLateFlag'
+import { LATE_FLAG_MIN_SHOW_MS, LATE_FLAG_MS, useLateFlag } from '@/shared/lib/useLateFlag'
 
 import styles from './Button.module.css'
 import { LoadingDots } from './LoadingDots'
@@ -60,7 +60,9 @@ export function Button({
   children,
   ...rest
 }: ButtonProps) {
-  const dots = useLateFlag(pending)
+  // 0.3초 넘게 기다리면 점, 한 번 띄운 점은 0.45초는 둔다 — 글자가 수십 ms 만 사라졌다 돌아오지 않게(QA-D-2)
+  const dots = useLateFlag(pending, LATE_FLAG_MS, { minShow: LATE_FLAG_MIN_SHOW_MS })
+  const pendingLook = pending || dots
   return (
     <button
       type={type}
@@ -71,7 +73,7 @@ export function Button({
       // 제출 버튼이면 누름을 막는 것으로 제출도 막힌다(입력칸에서 Enter 를 쳐도 같다). 요청 중의 두 번째 누름도 여기서 끝난다
       onClick={unavailable || pending ? ignore : onClick}
     >
-      {pending ? (
+      {pendingLook ? (
         <>
           <span className={styles.pendingLabel} data-hidden={dots || undefined} aria-hidden="true">
             {children}

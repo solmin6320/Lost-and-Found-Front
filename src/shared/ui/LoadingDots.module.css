@@ -1,32 +1,37 @@
 /*
  * 기다리는 동안의 점 셋 — "입력 중" 점처럼(본인 피드백 2026-10-14).
- * 점은 글자색(currentColor)을 따른다. 면(bubble)은 옅은 바탕 하나 — 새 색을 만들지 않는다(토큰만).
+ * 따로 서는 점은 본문 잉크(`--text-body`), 버튼 안 점은 버튼 글자색(`--loading-dot-color: currentColor`). 새 색은 만들지 않는다(토큰만).
  * 움직임은 투명도 하나. 차례로 옅어졌다 짙어지며 한 바퀴 1.2초 — 튀거나 커지지 않는다(디자인품질기준 6장)
+ *
+ * **가장 옅은 때도 바탕과 3:1**(QA-D-5, WCAG 1.4.11) — 투명도는 0.6 아래로 내려가지 않는다. 계산(점 색을 바탕에 섞은 대비) :
+ *   본문 잉크 · 옅은 면 0.59(밝게) · 0.45(어둡게) / 본문 잉크 · 종이 0.57 · 0.44 / 버튼 글자 · 잉크 채움 0.33 · 0.49 / 선 버튼 0.47 이상
+ *   → 0.6 이면 모든 자리에서 3:1 이상. 예전 0.3(흐린 잉크)은 1.49 · 1.71 이었다
  */
 
 .root {
   display: inline-flex;
   align-items: center;
   vertical-align: middle;
+  /* 표시일 뿐 누를 것이 아니다 — 아래 이름표 안내 · 카드를 누르는 손가락을 가로채지 않는다(QA-D-6) */
+  pointer-events: none;
 }
 
 .dots {
-  /* 점 지름. 쓰는 쪽이 `--loading-dot` 으로 줄일 수 있다(단계 줄의 작은 점) */
+  /* 점 지름. 쓰는 쪽이 `--loading-dot` 으로 줄일 수 있다 */
   --dot: var(--loading-dot, 0.375rem);
 
   display: inline-flex;
   align-items: center;
   gap: calc(var(--dot) * 0.67);
-  /* 나타날 때만 옅게 — 0.3초를 기다린 뒤 툭 튀어나오지 않게 */
-  animation: dots-in var(--duration-base) var(--ease-out);
+  color: var(--loading-dot-color, var(--text-body));
 }
 
-/* 둥근 면 안의 점 셋 — 따로 서는 표시(목록 · 검색 추천). 놓이는 면이라 12px 반경(반경 네 단계) */
+/* 둥근 면 안의 점 셋 — 따로 서는 표시. 놓이는 면이라 12px 반경(반경 네 단계). 면만 옅게 나타난다(0.3초를 기다린 뒤 툭 튀지 않게) */
 .bubble {
   padding: var(--space-2) var(--space-3);
   border-radius: var(--radius-md);
   background-color: var(--surface-sunken);
-  color: var(--text-muted);
+  animation: dots-in var(--duration-base) var(--ease-out);
 }
 
 .dot {
@@ -35,7 +40,7 @@
   height: var(--dot);
   border-radius: 50%;
   background-color: currentColor;
-  opacity: 0.3;
+  opacity: 0.6;
   animation: dot-pulse 1.2s ease-in-out infinite;
 }
 
@@ -51,7 +56,7 @@
   0%,
   60%,
   100% {
-    opacity: 0.3;
+    opacity: 0.6;
   }
 
   30% {
@@ -66,24 +71,38 @@
 }
 
 /*
- * 모션 줄이기 — 움직이지 않는 점 셋. 짙기를 차례로 고정해 "이어지는 중"이 보이게 한다.
+ * 모션 줄이기 — 움직이지 않는 점 셋. 짙기를 차례로 고정해 "이어지는 중"이 보이게 한다(가장 옅은 것도 0.6 — 3:1)
  * (전역 규칙은 애니메이션을 0.01ms 한 번으로 줄일 뿐이라 이름을 직접 끈다)
  */
 @media (prefers-reduced-motion: reduce) {
-  .dots,
+  .bubble,
   .dot {
     animation: none;
   }
 
   .dot {
-    opacity: 0.45;
+    opacity: 0.6;
   }
 
   .dot:nth-child(2) {
-    opacity: 0.7;
+    opacity: 0.8;
   }
 
   .dot:nth-child(3) {
     opacity: 1;
+  }
+}
+
+/*
+ * 강제 색상(윈도 고대비 등, QA-D-3) — 브라우저가 배경색을 바탕색(Canvas)으로 바꿔 점이 사라졌다(버튼이 빈칸이 됐다).
+ * 점만 색 강제를 빼고 시스템 글자색으로 칠한다 — 바탕 위는 CanvasText, 버튼 안은 ButtonText(`--loading-dot-forced`, Button).
+ * currentColor 를 쓰면 강제 전의 글자색(어둡게의 종이색 등)을 물려받아 검은 버튼 위에서 다시 사라진다(실측). 투명도도 빼 또렷하게
+ */
+@media (forced-colors: active) {
+  .dot {
+    forced-color-adjust: none;
+    background-color: var(--loading-dot-forced, CanvasText);
+    opacity: 1;
+    animation: none;
   }
 }

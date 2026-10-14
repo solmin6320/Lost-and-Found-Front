@@ -60,6 +60,10 @@
 }
 
 .pendingDots {
+  /* 점은 버튼 글자색(잉크 채움 위에서는 흰 점). 강제 색상에서는 버튼 글자 시스템 색 */
+  --loading-dot-color: currentColor;
+  --loading-dot-forced: ButtonText;
+
   position: absolute;
   inset: 0;
   display: grid;
