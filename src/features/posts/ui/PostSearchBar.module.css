@@ -44,7 +44,8 @@
 .input {
   width: 100%;
   min-height: 3.25rem;
-  padding: 0 var(--tap-min) 0 calc(var(--space-4) + var(--icon-md) + var(--space-3));
+  /* 오른쪽은 지우기 버튼(44px, 끝에서 4px) 자리 — 글자가 버튼 밑으로 들어가지 않게 */
+  padding: 0 calc(var(--tap-min) + var(--space-1)) 0 calc(var(--space-4) + var(--icon-md) + var(--space-3));
   border: 1.5px solid transparent;
   border-radius: var(--radius-sm);
   background-color: var(--surface-sunken);
@@ -91,6 +92,11 @@
   appearance: none;
 }
 
+/*
+ * 지우기 [X] — 누르는 면 44px, 아이콘 24px(본인 피드백 2026-10-14 "X 모양 크기 키워" — 16px 은 눈에 잘 안 띄고 맞히기 어려웠다).
+ * Phosphor X 는 그림이 상자보다 작아 24px 상자에서 보이는 크기가 왼쪽 돋보기(20px 상자)와 비슷하다 — 양 끝이 같은 무게로 선다.
+ * 글자색은 돋보기와 같은 본문 잉크(흐린 회색이면 "누를 수 있다"가 약하다)
+ */
 .clear {
   position: absolute;
   top: 50%;
@@ -100,13 +106,17 @@
   width: var(--tap-min);
   height: var(--tap-min);
   border-radius: var(--radius-sm);
-  color: var(--text-muted);
+  color: var(--text-body);
   transform: translateY(-50%);
 }
 
 .clear svg {
-  width: var(--icon-sm);
-  height: var(--icon-sm);
+  width: var(--icon-lg);
+  height: var(--icon-lg);
+}
+
+.clear:active {
+  opacity: var(--press-opacity);
 }
 
 @media (hover: hover) {

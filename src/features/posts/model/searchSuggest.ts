@@ -9,8 +9,12 @@ import { KEYWORD_MAX_LENGTH, toPostListParams, withKeyword, type PostListSearch 
 /** 띄우는 글 수 */
 export const SUGGESTION_LIMIT = 5
 
-/** 마지막 입력에서 이만큼 멈추면 요청한다. 글자마다 보내지 않는다 */
-export const SUGGESTION_DEBOUNCE_MS = 300
+/**
+ * 마지막 입력에서 이만큼 멈추면 요청한다. 글자마다 보내지는 않되, 치는 대로 바로바로 바뀌게 짧게 둔다
+ * (본인 피드백 2026-10-14 "맞는 글 나오는 속도를 높이기" — 300 → 120ms). 빠르게 이어 치는 동안(키 사이 ~100ms)은 묶이고,
+ * 손이 멈추면 사람이 "즉시"로 느끼는 안(~100ms)에 요청이 나간다. 이미 찾아 본 말(지우며 되돌아온 말)은 캐시에서 바로 그린다
+ */
+export const SUGGESTION_DEBOUNCE_MS = 120
 
 /** 한글 호환 자모(ㄱ~ㅣ). 조합이 덜 끝난 글자다 — "지갑"을 치는 도중의 "지ㄱ" */
 const TRAILING_JAMO = /[ㄱ-ㆎ]+$/
@@ -27,6 +31,23 @@ export function suggestTerm(text: string, composing: boolean): string {
   let term = text.trim()
   if (composing) term = term.replace(TRAILING_JAMO, '').trimEnd()
   return term.slice(0, KEYWORD_MAX_LENGTH)
+}
+
+/** 한글 완성 글자(가~힣) */
+const LAST_SYLLABLE = /[가-힣]$/
+
+/**
+ * 치는 도중 0건이어도 "맞는 글이 없어요"를 바로 말하지 않고 앞 결과를 이만큼 더 둔다. 손이 이보다 오래 멈추면 그때 말한다
+ */
+export const SUGGESTION_HOLD_EMPTY_MS = 600
+
+/**
+ * 마지막 글자가 아직 바뀌는 중인가 — 한글 조합 중이고 끝이 완성 글자다. "지갑"을 치는 동안 "직"(받침이 다음 글자로 옮겨 간다) ·
+ * "지가"(받침이 붙는다)처럼 **그 글자로 찾은 0건은 곧 뒤집힌다.** 이때는 0건이어도 앞 결과를 그대로 둔다(한 글자 칠 때마다
+ * "맞는 글이 없어요"가 깜빡이지 않게). 조합이 끝났거나(`composing` 거짓) 끝이 한글 완성 글자가 아니면 `false`
+ */
+export function isSyllableInFlux(term: string, composing: boolean): boolean {
+  return composing && LAST_SYLLABLE.test(term)
 }
 
 /**
@@ -103,7 +124,8 @@ export function titleMatches(text: string, term: string): boolean {
  *
  *   ↓ : 닫혀 있으면 열고 첫 칸 · 열려 있으면 다음 칸(끝에서 첫 칸으로)
  *   ↑ : 닫혀 있으면 열고 끝 칸 · 열려 있으면 앞 칸(첫 칸에서 끝 칸으로)
- *   Esc : 열려 있으면 닫는다(친 글자는 그대로). 닫혀 있으면 아무것도 하지 않는다(브라우저 기본 — 검색칸 비우기)
+ *   Esc : 추천 칸(목록 · "맞는 글이 없어요" · "찾는 중…")이 떠 있으면 닫는다. **친 글자는 언제나 그대로 둔다**
+ *         (본인 피드백 2026-10-14 — 브라우저의 검색칸은 Esc 로 글자를 지워 "처음으로 돌아갔다"). 닫혀 있으면 아무것도 하지 않는다(`keep`)
  *   Enter : 여기서 다루지 않는다 — 폼 제출이 맡는다(가리킨 칸이 있으면 그 글을 열고, 없으면 검색)
  *
  * **한글 조합 중에 누른 키는 무시한다**(`composing`) — 조합을 끝내는 키가 칸 이동으로 함께 읽히지 않게.
@@ -113,18 +135,23 @@ export type SuggestionKeyAction =
   | { type: 'none' }
   | { type: 'move'; active: number }
   | { type: 'close' }
+  /** 브라우저 기본 동작만 막는다(검색칸 Esc = 글자 지우기) */
+  | { type: 'keep' }
 
 export function suggestionKeyAction(input: {
   key: string
+  /** 고를 수 있는 목록이 펼쳐져 있다 */
   open: boolean
+  /** 추천 칸이 무엇이든 떠 있다(목록 · 0건 · 찾는 중). 없으면 `open` 과 같다 */
+  popup?: boolean
   active: number
   count: number
   composing: boolean
 }): SuggestionKeyAction {
-  const { key, open, active, count, composing } = input
+  const { key, open, popup = open, active, count, composing } = input
   if (composing) return { type: 'none' }
 
-  if (key === 'Escape') return open ? { type: 'close' } : { type: 'none' }
+  if (key === 'Escape') return open || popup ? { type: 'close' } : { type: 'keep' }
 
   if (key !== 'ArrowDown' && key !== 'ArrowUp') return { type: 'none' }
   if (count === 0) return { type: 'none' }

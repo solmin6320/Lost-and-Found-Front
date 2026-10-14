@@ -20,6 +20,8 @@ import { postListQueryOptions } from '../model/postQueries'
 import {
   SUGGESTION_DEBOUNCE_MS,
   foldLead,
+  SUGGESTION_HOLD_EMPTY_MS,
+  isSyllableInFlux,
   highlightParts,
   suggestTerm,
   suggestionKeyAction,
@@ -59,12 +61,15 @@ const ROOM_MIN_PX = 200
  * 새 검색어는 분실 · 습득 글을 함께 찾는다(골라 둔 칸을 푼다 — `withKeyword`).
  *
  * **추천** — WAI-ARIA 콤보박스(목록 자동완성, 고르기는 직접). 포커스는 늘 입력칸에 있고 가리키는 칸은
- * `aria-activedescendant` 로 알린다. 치다가 0.3초 멈추면 맞는 글 다섯 개를 칸 아래에 띄운다.
- *   - 빈칸 · 공백뿐이면 띄우지 않는다. 한글 조합 중 끝에 매달린 낱자모("지ㄱ")로는 찾지 않는다
+ * `aria-activedescendant` 로 알린다. 치는 대로(0.12초 멈추면) 맞는 글 다섯 개를 칸 아래에 띄운다(본인 피드백 2026-10-14 — 바로바로).
+ *   - **한글 조합 중에도** 지금 보이는 글자로 찾는다("지" → "직" → "지가" → "지갑"). 끝에 매달린 낱자모("지ㄱ")로는 찾지 않는다
+ *   - 조합 중인 끝 글자("직" · "지가")로 찾은 0건은 곧 뒤집히므로 앞 결과를 그대로 둔다. 손이 0.6초 멈추면 그때 "없어요"(`isSyllableInFlux`)
+ *   - 빈칸 · 공백뿐이면 띄우지 않는다
  *   - 앞 요청은 새 말이 오면 버린다(쿼리 키에 말이 들어 있다 — 안 쓰게 된 요청은 TanStack Query 가 취소한다)
  *   - 새 결과를 받는 동안 앞 결과를 그대로 둔다 — 칸이 비었다 찼다 깜빡이지 않는다. 첫 응답이 늦을 때만 "찾는 중…"
  *   - 제목에서 **맞는 조각만** 강조한다(`<mark>`, React 노드 — HTML 문자열로 만들지 않는다)
- *   - ↑ ↓ 로 가리키고 Enter 로 연다. 가리킨 칸이 없으면 Enter 는 보통 검색이다. Esc · 칸 밖을 누르면 닫힌다
+ *   - ↑ ↓ 로 가리키고 Enter 로 연다. 가리킨 칸이 없으면 Enter 는 보통 검색이다
+ *   - **Esc · 칸 바깥 누름은 추천 칸만 닫는다 — 친 글자는 남는다**(본인 피드백 2026-10-14). 칸을 다시 누르면 다시 펼친다
  *   - 몇 개를 찾았는지 스크린리더에 조용히 알린다
  *   - 추천은 거들 뿐이다 — 실패하면 칸을 띄우지 않고, 검색은 그대로 된다
  */
@@ -91,6 +96,14 @@ export function PostSearchBar({ keyword, onSearch, suggestionParams, onOpenPost 
     return () => clearTimeout(timer)
   }, [typed])
 
+  /** 손이 멈춘 말 — 조합 중 0건을 미루는 것은 이 말이 될 때까지다 */
+  const [restedOn, setRestedOn] = useState('')
+  useEffect(() => {
+    if (typed === '') return
+    const timer = setTimeout(() => setRestedOn(typed), SUGGESTION_HOLD_EMPTY_MS)
+    return () => clearTimeout(timer)
+  }, [typed])
+
   /** 글자가 바뀌었다. 찾을 말이 없어지면 추천을 바로 거둔다 — 다시 칠 때 앞의 추천이 잠깐 비치지 않게 */
   function changeText(value: string, composingNow: boolean) {
     setText(value)
@@ -105,20 +118,34 @@ export function PostSearchBar({ keyword, onSearch, suggestionParams, onOpenPost 
     retry: false,
   })
 
-  /** 지금 보이는 결과가 어떤 말의 것인가 — 강조는 그 말로 한다(새 결과를 받는 동안 앞 결과를 그대로 그린다) */
-  const [shownTerm, setShownTerm] = useState('')
-  if (query.data && !query.isPlaceholderData && term !== '' && shownTerm !== term) {
-    setShownTerm(term)
+  /**
+   * 지금 보이는 결과와 그 말 — 강조는 그 말로 한다. 새 결과를 받는 동안 앞 결과를 그대로 그린다(쿼리 키가 말마다 달라
+   * 늦게 온 옛 응답은 지금 말의 결과를 덮지 못한다). 조합 중인 끝 글자에서 0건이면 손이 멈출 때까지 앞 결과를 둔다
+   */
+  const [shown, setShown] = useState<{ term: string; data: PostListResponse[] | null }>({ term: '', data: null })
+  const settled = term !== '' && query.data && !query.isPlaceholderData && !query.isError ? query.data.content : null
+  const hold =
+    settled !== null &&
+    settled.length === 0 &&
+    isSyllableInFlux(term, composing) &&
+    restedOn !== typed &&
+    (shown.data?.length ?? 0) > 0
+  if (settled && !hold && (shown.term !== term || shown.data !== settled)) {
+    setShown({ term, data: settled })
   }
+  if (term === '' && shown.data !== null) {
+    setShown({ term: '', data: null })
+  }
+  const shownTerm = shown.term
 
-  const items: PostListResponse[] = term !== '' && query.data && !query.isError ? query.data.content : []
+  const items: PostListResponse[] = term !== '' && !query.isError && shown.data ? shown.data : []
   const listKey = items.map((post) => post.id).join(',')
   const active = activeState.list === listKey ? activeState.index : -1
 
   const showing = open && typed !== '' && term !== ''
   const expanded = showing && items.length > 0
   // 0건은 지금 친 말의 결과가 확정됐을 때만 말한다(치는 도중에 "없어요"가 깜빡이지 않게)
-  const empty = showing && items.length === 0 && query.isSuccess && !query.isPlaceholderData && term === typed
+  const empty = showing && items.length === 0 && shown.data !== null && shown.term === term && term === typed
   const loading = useLate(showing && query.isFetching && !query.data, LOADING_SHOW_MS)
 
   const announcement = expanded
@@ -127,7 +154,9 @@ export function PostSearchBar({ keyword, onSearch, suggestionParams, onOpenPost 
       ? '맞는 글이 없어요.'
       : ''
 
-  const room = useRoomBelow(formRef, expanded || empty || loading)
+  const popup = expanded || empty || loading
+  const room = useRoomBelow(formRef, popup)
+  useOutsidePress(formRef, popup || open, () => close())
 
   function close() {
     setOpen(false)
@@ -162,6 +191,7 @@ export function PostSearchBar({ keyword, onSearch, suggestionParams, onOpenPost 
     const action = suggestionKeyAction({
       key: event.key,
       open: expanded,
+      popup,
       active,
       count: items.length,
       composing: composingNow,
@@ -173,6 +203,9 @@ export function PostSearchBar({ keyword, onSearch, suggestionParams, onOpenPost 
     } else if (action.type === 'close') {
       event.preventDefault()
       close()
+    } else if (action.type === 'keep') {
+      // 검색칸(type=search)의 브라우저 기본 Esc 는 글자를 지운다 — 친 글자는 남긴다
+      event.preventDefault()
     } else if (event.key === 'ArrowDown' && !composingNow && !expanded && typed !== '') {
       // 닫아 둔 추천을 다시 연다(APG — ↓는 목록을 연다). 아직 찾지 않은 말이면 지금 찾는다
       event.preventDefault()
@@ -185,6 +218,13 @@ export function PostSearchBar({ keyword, onSearch, suggestionParams, onOpenPost 
     setComposing(false)
     // 조합이 끝난 마지막 글자까지 담는다(브라우저마다 input 이벤트와 순서가 다르다)
     changeText(event.currentTarget.value, false)
+  }
+
+  /** 닫아 둔 추천을 칸을 다시 눌러 연다(Esc · 바깥 누름 뒤) — 친 글자가 있을 때만 */
+  function reopen() {
+    if (open || typed === '') return
+    setOpen(true)
+    setTerm(typed)
   }
 
   // 적용된 검색어를 지우면 목록이 바뀐다 — 결과로 간다. 치던 글자만 지우면 그 자리에서 다시 친다
@@ -228,6 +268,7 @@ export function PostSearchBar({ keyword, onSearch, suggestionParams, onOpenPost 
         onCompositionStart={() => setComposing(true)}
         onCompositionEnd={handleCompositionEnd}
         onKeyDown={handleKeyDown}
+        onClick={reopen}
         onBlur={close}
         placeholder="물건 이름으로 검색"
         maxLength={KEYWORD_MAX_LENGTH}
@@ -243,7 +284,7 @@ export function PostSearchBar({ keyword, onSearch, suggestionParams, onOpenPost 
 
       <div
         className={styles.popup}
-        hidden={!(expanded || empty || loading)}
+        hidden={!popup}
         style={room === null ? undefined : { maxHeight: room }}
       >
         <ul id={listboxId} role="listbox" aria-label="추천 글" className={styles.listbox} hidden={!expanded}>
@@ -303,6 +344,27 @@ export function PostSearchBar({ keyword, onSearch, suggestionParams, onOpenPost 
       </p>
     </form>
   )
+}
+
+/**
+ * 추천 칸이 떠 있는 동안 검색 폼 **바깥**을 누르면 닫는다(친 글자는 그대로). 칸을 벗어나면(blur) 이미 닫히지만,
+ * 휴대폰에서 키보드만 내리고 포커스가 칸에 남은 채 빈 곳을 누르면 blur 가 오지 않아 칸이 남아 있었다.
+ * 누름의 시작(`pointerdown`)에서 판단한다 — 스크롤하려고 댄 손가락도 "바깥"이다(관례 : 바깥을 만지면 닫힌다)
+ */
+function useOutsidePress(ref: RefObject<HTMLElement | null>, active: boolean, onOutside: () => void) {
+  const latest = useRef(onOutside)
+  useLayoutEffect(() => {
+    latest.current = onOutside
+  })
+  useEffect(() => {
+    if (!active) return
+    function handle(event: PointerEvent) {
+      const root = ref.current
+      if (root && event.target instanceof Node && !root.contains(event.target)) latest.current()
+    }
+    document.addEventListener('pointerdown', handle, true)
+    return () => document.removeEventListener('pointerdown', handle, true)
+  }, [ref, active])
 }
 
 /** `flag` 가 `ms` 넘게 이어졌는가. 짧게 켜졌다 꺼지면 끝까지 `false` — 빠른 응답에 "찾는 중…"이 깜빡이지 않는다 */

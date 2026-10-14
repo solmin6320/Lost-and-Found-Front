@@ -2,7 +2,10 @@ import { describe, expect, it } from 'vitest'
 
 import { EMPTY_POST_LIST_SEARCH, type PostListSearch } from './postListSearch'
 import {
+  SUGGESTION_DEBOUNCE_MS,
   SUGGESTION_LIMIT,
+  SUGGESTION_HOLD_EMPTY_MS,
+  isSyllableInFlux,
   foldLead,
   highlightParts,
   suggestTerm,
@@ -38,6 +41,34 @@ describe('suggestTerm — 입력칸 글자 → 추천을 찾을 말', () => {
 
   it('검색어 한도(100자)로 자른다', () => {
     expect(suggestTerm('가'.repeat(150), false)).toHaveLength(100)
+  })
+})
+
+describe('isSyllableInFlux — 조합 중인 끝 글자는 곧 바뀐다', () => {
+  it('조합 중 끝이 한글 완성 글자 — "직"(받침이 다음 글자로 옮겨 간다), "지가"(받침이 붙는다)', () => {
+    expect(isSyllableInFlux('직', true)).toBe(true)
+    expect(isSyllableInFlux('지가', true)).toBe(true)
+  })
+
+  it('끝이 한글 완성 글자가 아니면 아니다', () => {
+    expect(isSyllableInFlux('ipad', true)).toBe(false)
+    expect(isSyllableInFlux('', true)).toBe(false)
+  })
+
+  it('조합이 끝났으면 그 글자는 사용자가 고른 글자다', () => {
+    expect(isSyllableInFlux('직', false)).toBe(false)
+  })
+
+  it('0건을 미루는 시간은 1초보다 짧다 — 멈추면 곧 사실을 말한다', () => {
+    expect(SUGGESTION_HOLD_EMPTY_MS).toBeGreaterThan(SUGGESTION_DEBOUNCE_MS)
+    expect(SUGGESTION_HOLD_EMPTY_MS).toBeLessThan(1000)
+  })
+})
+
+describe('SUGGESTION_DEBOUNCE_MS — 치는 대로 바로바로', () => {
+  it('사람이 즉시로 느끼는 안쪽(150ms 이하)', () => {
+    expect(SUGGESTION_DEBOUNCE_MS).toBeLessThanOrEqual(150)
+    expect(SUGGESTION_DEBOUNCE_MS).toBeGreaterThan(0)
   })
 })
 
@@ -120,8 +151,8 @@ describe('highlightParts — 제목에서 맞는 조각만 강조', () => {
 })
 
 describe('suggestionKeyAction — 콤보박스 키보드', () => {
-  const at = (key: string, open: boolean, active: number, count = 5, composing = false) =>
-    suggestionKeyAction({ key, open, active, count, composing })
+  const at = (key: string, open: boolean, active: number, count = 5, composing = false, popup = open) =>
+    suggestionKeyAction({ key, open, popup, active, count, composing })
 
   it('↓ : 닫혀 있으면 열고 첫 칸, 열려 있으면 다음 칸, 끝에서 첫 칸으로', () => {
     expect(at('ArrowDown', false, -1)).toEqual({ type: 'move', active: 0 })
@@ -136,9 +167,13 @@ describe('suggestionKeyAction — 콤보박스 키보드', () => {
     expect(at('ArrowUp', true, 0)).toEqual({ type: 'move', active: 4 })
   })
 
-  it('Esc : 열려 있으면 닫고, 닫혀 있으면 브라우저 기본(아무것도 안 함)', () => {
+  it('Esc : 열려 있으면 닫고, 닫혀 있으면 아무것도 안 한다 — 어느 쪽이든 친 글자는 남긴다(브라우저 기본 지우기를 막는다)', () => {
     expect(at('Escape', true, 2)).toEqual({ type: 'close' })
-    expect(at('Escape', false, -1)).toEqual({ type: 'none' })
+    expect(at('Escape', false, -1)).toEqual({ type: 'keep' })
+  })
+
+  it('Esc : 고를 목록이 없어도 "맞는 글이 없어요" · "찾는 중…" 칸이 떠 있으면 그 칸을 닫는다', () => {
+    expect(at('Escape', false, -1, 0, false, true)).toEqual({ type: 'close' })
   })
 
   it('고를 칸이 없으면 열지 않는다', () => {
