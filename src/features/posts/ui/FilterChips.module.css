@@ -21,7 +21,8 @@
 .bar {
   display: flex;
   align-items: center;
-  gap: var(--space-1-5);
+  /* 칩 사이 8px — [×]의 누르는 면(보이는 36 + 오른쪽 8)이 다음 칩 밑으로 들어가지 않고, 줄을 바꿀 때 위아래 44px 도 다 남는다(QA-P-7) */
+  gap: var(--space-2);
   margin-inline: calc(-1 * var(--gutter));
   padding: var(--space-1) var(--gutter);
   overflow-x: auto;
@@ -158,13 +159,23 @@ button.trigger[aria-expanded='true'] {
 }
 
 /*
- * [×] 는 보이는 폭 36px, 누르는 폭 44px. 늘린 8px 은 오른쪽(칩 사이 틈)으로만 낸다 —
+ * [×] 는 보이는 폭 36px, 누르는 폭 44px. 늘린 8px 은 오른쪽(칩 사이 틈 8px)으로만 낸다 —
  * 왼쪽으로 늘리면 바로 옆 [값 고치기]를 누르려던 손가락이 조건을 지운다.
- * 틈(6px)을 넘는 2px 은 다음 칩 아래로 들어가고, 뒤에 그려지는 다음 칩이 그 자리를 가져간다
+ * (예전 틈 6px 에서는 넘친 2px 을 다음 칩이 가져가 누르는 폭이 43px 였다 — 2026-10-14 틈을 8px 로)
  */
 .triggerClear::after {
   inset-inline: 0 auto;
   width: max(100%, var(--tap-min));
+}
+
+/*
+ * [×] 그림은 검색칸 지우기 [X]와 같은 크기(24px 상자 — 그려진 X 약 16px, QA-P-7 2026-10-14). 칩 높이(36px) 안에 들어가고
+ * 보이는 폭 36px 는 그대로다(왼쪽 4 + 그림 24 + 오른쪽 8). 색은 칩 글자색을 따른다
+ */
+.trigger .triggerClear svg {
+  width: var(--icon-lg);
+  height: var(--icon-lg);
+  color: inherit;
 }
 
 .triggerMain:focus-visible,

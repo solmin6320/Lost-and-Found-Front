@@ -170,9 +170,10 @@
   inset: calc((var(--tap-min) - 2rem) / -2);
 }
 
+/* [×] 그림은 검색칸 지우기 [X]와 같은 크기(24px 상자 — 그려진 X 약 16px, QA-P-7). 보이는 원 32px · 누르는 면 44px 그대로 */
 .reset svg {
-  width: var(--icon-sm);
-  height: var(--icon-sm);
+  width: var(--icon-lg);
+  height: var(--icon-lg);
 }
 
 @container intent-item (width >= 17rem) {
