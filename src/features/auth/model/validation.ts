@@ -14,6 +14,8 @@ export const AUTH_MESSAGES = {
   emailLength: '이메일은 100자까지 쓸 수 있어요',
   passwordRequired: '비밀번호를 적어 주세요',
   passwordLength: '비밀번호는 8~20자로 적어 주세요',
+  passwordConfirmRequired: '비밀번호를 한 번 더 적어 주세요',
+  passwordConfirmMismatch: '비밀번호가 서로 달라요. 위 칸과 같게 적어 주세요',
   nicknameRequired: '닉네임을 적어 주세요',
   nicknameLength: '닉네임은 20자까지 쓸 수 있어요',
 } as const
@@ -42,6 +44,18 @@ export function checkPassword(value: string, { signup = false } = {}): string | 
   return undefined
 }
 
+/**
+ * 가입의 "비밀번호 확인" 칸(본인 피드백 2026-10-14 — 같은 값을 한 번 더 쳐서 오타를 막는다). 서버로는 보내지 않는다.
+ * - 비밀번호 칸이 비었으면 따지지 않는다 — 그 칸 오류 하나로 충분하다(같은 일을 두 번 말하지 않는다)
+ * - 비어 있으면 한 번 더 적어 달라고, 다르면 다르다고. 공백도 비밀번호의 일부라 자르지 않고 그대로 견준다
+ */
+export function checkPasswordConfirm(password: string, confirm: string): string | undefined {
+  if (!password) return undefined
+  if (!confirm) return AUTH_MESSAGES.passwordConfirmRequired
+  if (confirm !== password) return AUTH_MESSAGES.passwordConfirmMismatch
+  return undefined
+}
+
 /** 앞뒤 공백을 잘라 낸 값으로 본다(보낼 때도 자른다) */
 export function checkNickname(value: string): string | undefined {
   const nickname = value.trim()
@@ -51,6 +65,9 @@ export function checkNickname(value: string): string | undefined {
 }
 
 export type AuthField = 'email' | 'password' | 'nickname'
+
+/** 가입 폼의 칸 — 서버에 없는 "비밀번호 확인" 칸까지. 서버 문장은 이 칸을 가리키지 않는다(`fieldOfMessage`) */
+export type SignupField = AuthField | 'passwordConfirm'
 
 /**
  * 400 `INVALID_INPUT` 이 어느 칸의 문제인지. 서버는 첫 번째 필드 오류의 문구만 준다(`GlobalExceptionHandler`) —
