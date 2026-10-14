@@ -41,7 +41,6 @@ import { EmptyState } from '@/shared/ui/EmptyState'
 import { ErrorState } from '@/shared/ui/ErrorState'
 import { ArrowClockwise, MagnifyingGlass, Plus, WarningCircle } from '@/shared/ui/icons'
 import { LoadingDots } from '@/shared/ui/LoadingDots'
-import { Skeleton } from '@/shared/ui/Skeleton'
 
 import styles from './PostListPage.module.css'
 
@@ -274,9 +273,11 @@ export function PostListPage() {
           <p className={styles.count} aria-live="polite" aria-atomic="true" data-stale={stale || undefined}>
             {total === undefined ? (
               query.isPending ? (
+                // 첫 로딩 — 카드 자리는 스켈레톤, 건수 자리에는 점 셋(본인 결정 2026-10-14, QA-P-5).
+                // 자리(2.75rem)를 먼저 잡아 두어 숫자가 들어와도 줄이 밀리지 않는다. 0.3초 전에는 빈 자리
                 <>
                   <span className="sr-only">게시글을 불러오는 중이에요</span>
-                  <Skeleton shape="text" width="2.75rem" />
+                  <LoadingDots variant="inline" announce={false} />
                 </>
               ) : null
             ) : (
@@ -286,13 +287,13 @@ export function PostListPage() {
               </>
             )}
           </p>
+          {/*
+            조건을 바꿔 다시 받는 중 — 직전 목록은 흐리게 그대로 두고 **건수 바로 뒤**에 점 셋(0.3초 넘을 때만, QA-D-6).
+            흐름 안에 서서 이름표 안내 · 카드를 덮지 않는다. 알림 영역(건수) 밖 형제 — 건수 문장을 다시 읽히지 않게
+          */}
+          <LoadingDots active={stale} label="새 조건으로 불러오는 중" />
           {/* 카드의 이름표가 무엇인지 — 건수 바로 뒤. 누르면 펼친다(온보딩 2층). 알림 영역(건수) 밖 형제로 둔다 */}
           <BadgeGuide className={styles.badgeGuide} />
-          {/*
-            조건을 바꿔 다시 받는 중 — 직전 목록은 흐리게 그대로 두고, 이 줄 오른쪽 끝에 점 셋(0.3초 넘을 때만).
-            줄 위에 떠 있어(absolute) 나타나도 이름표 안내 · 카드가 밀리지 않는다
-          */}
-          <LoadingDots active={stale} label="새 조건으로 불러오는 중" className={styles.refreshing} />
         </div>
 
         {/* 의도를 고른 순간의 글쓰기 입구. 떠 있는 버튼 대신 흐름 안 한 줄 — 결심하는 순간 바로 아래에 있다 */}

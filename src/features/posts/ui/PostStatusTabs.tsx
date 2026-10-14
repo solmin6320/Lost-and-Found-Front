@@ -1,5 +1,7 @@
+import type { ReactNode } from 'react'
 import { Link, type To } from 'react-router-dom'
 
+import { cx } from '@/shared/lib/cx'
 import { Skeleton } from '@/shared/ui/Skeleton'
 
 import { POST_STATUSES, type PostStatus } from '../api/types'
@@ -15,6 +17,8 @@ interface PostStatusTabsProps {
   counts: PostStatusCounts
   /** 탭 → 주소. 경로는 부른 쪽이 정한다 */
   hrefFor: (status: PostStatus | undefined) => To
+  /** 탭 줄 바로 뒤에 서는 것(다시 받는 중의 점 셋). 탭 목록 밖 — 목록 항목 수가 늘지 않는다 */
+  trailing?: ReactNode
   className?: string
 }
 
@@ -31,9 +35,9 @@ const TABS: { status: PostStatus | undefined; label: string }[] = [
  * 글자와 아래 막대(잉크)로만 고른 탭을 보인다. 색을 쓰지 않는다.
  * 숫자는 자리를 먼저 잡는다(스켈레톤) — 숫자가 들어와도 탭이 옆으로 밀리지 않는다.
  */
-export function PostStatusTabs({ selected, counts, hrefFor, className }: PostStatusTabsProps) {
+export function PostStatusTabs({ selected, counts, hrefFor, trailing, className }: PostStatusTabsProps) {
   return (
-    <nav className={className} aria-label="상태별로 보기">
+    <nav className={cx(styles.nav, className)} aria-label="상태별로 보기">
       <ul className={styles.list} role="list">
         {TABS.map(({ status, label }) => {
           const current = status === selected
@@ -55,6 +59,7 @@ export function PostStatusTabs({ selected, counts, hrefFor, className }: PostSta
           )
         })}
       </ul>
+      {trailing}
     </nav>
   )
 }

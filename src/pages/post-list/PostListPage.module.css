@@ -178,14 +178,6 @@
   font-weight: var(--weight-extrabold);
 }
 
-/* 조건을 바꿔 다시 받는 중의 점 셋 — 결과 제목 줄 오른쪽 끝에 떠 있다(나타나도 줄이 밀리지 않는다) */
-.refreshing {
-  position: absolute;
-  top: 50%;
-  right: 0;
-  transform: translateY(-50%);
-}
-
 /* 조건을 바꿔 다시 부르는 동안 이 숫자는 직전 조건의 것이다. 칩과 어긋나 보이지 않게 목록과 같이 흐린다 */
 .count[data-stale] {
   opacity: 0.45;

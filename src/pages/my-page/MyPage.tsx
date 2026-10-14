@@ -132,7 +132,19 @@ function MyPosts({ enabled }: { enabled: boolean }) {
         {/* 올린 글이 하나도 없으면 탭을 두지 않는다 — "0 0 0 0" 은 읽을 거리가 아니라 소음이다. 빈 상태가 첫 글을 권한다 */}
         {noPostsYet ? null : (
           <div ref={tabsRef} className={styles.tabs}>
-            <PostStatusTabs selected={search.status} counts={counts} hrefFor={hrefForStatus} />
+            <PostStatusTabs
+              selected={search.status}
+              counts={counts}
+              hrefFor={hrefForStatus}
+              // 탭 · 쪽을 바꿔 다시 받는 중 — 직전 글은 흐리게 두고 탭 줄(건수) 바로 뒤에 점 셋(0.3초 넘을 때만, QA-D-6).
+              // 흐름 안에 서서 카드 이름표를 덮지 않는다
+              trailing={
+                <LoadingDots
+                  active={query.isPlaceholderData && (query.data?.content.length ?? 0) > 0}
+                  label="글을 불러오는 중"
+                />
+              }
+            />
           </div>
         )}
 
@@ -142,12 +154,6 @@ function MyPosts({ enabled }: { enabled: boolean }) {
         </p>
 
         <div className={styles.body}>
-          {/* 탭 · 쪽을 바꿔 다시 받는 중 — 직전 글은 흐리게 두고 그 위 가운데에 점 셋(0.3초 넘을 때만) */}
-          <LoadingDots
-            active={query.isPlaceholderData && (query.data?.content.length ?? 0) > 0}
-            label="글을 불러오는 중"
-            className={styles.refreshing}
-          />
           <MyPostsBody
             query={query}
             search={search}

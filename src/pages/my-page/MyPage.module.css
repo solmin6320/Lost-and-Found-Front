@@ -55,18 +55,8 @@
 /* ── 사진 피드 — 목록(SCR-01)과 같은 격자 ── */
 
 .body {
-  position: relative;
   min-width: 0;
   container: my-feed / inline-size;
-}
-
-/* 다시 받는 중의 점 셋 — 흐린 직전 글 위 가운데에 떠 있다(나타나도 카드가 밀리지 않는다) */
-.refreshing {
-  position: absolute;
-  top: var(--space-6);
-  left: 50%;
-  z-index: 1;
-  transform: translateX(-50%);
 }
 
 .grid {
