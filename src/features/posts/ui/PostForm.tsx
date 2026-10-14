@@ -11,6 +11,7 @@ import {
 import { useLocation, useNavigate, type NavigateOptions, type To } from 'react-router-dom'
 
 import { todayIsoDate } from '@/shared/lib/date'
+import { openDatePickerOnClick } from '@/shared/lib/datePicker'
 import { ClientValidationError, getErrorMessage, hasErrorCode, subscribeSessionExpired } from '@/shared/lib/http'
 import { allowLeave, isSelfLogout, useDirtyField, type LeaveCopy } from '@/shared/lib/dirtyRegistry'
 import { useObjectUrls } from '@/shared/lib/image'
@@ -551,6 +552,8 @@ export function PostForm({
             error={errors.lostFoundDate}
             announceError={liveField === 'lostFoundDate'}
             readOnly={readOnly}
+            // 글자("연도. 월. 일.")나 칸 이름을 눌러도 달력이 열린다(본인 피드백 2026-10-14)
+            onClick={openDatePickerOnClick}
             onChange={(event) => setField('lostFoundDate', event.target.value)}
             onBlur={() => checkOnBlur('lostFoundDate')}
           />

@@ -84,6 +84,16 @@
   border-color: var(--selected-line);
 }
 
+/* 날짜 칸은 어디를 눌러도 달력이 열린다(쓰는 쪽이 `openDatePicker` 를 건다) — 글자 칸이 아니라 누르는 칸으로 보이게 */
+.input[type='date']:not(:read-only, :disabled) {
+  cursor: pointer;
+}
+
+/* 따로 둔다 — 모르는 의사 요소가 선택자 목록에 섞이면 브라우저가 규칙 전체를 버린다 */
+.input[type='date']:not(:read-only, :disabled)::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+}
+
 .input:read-only {
   background-color: var(--surface-sunken);
 }
