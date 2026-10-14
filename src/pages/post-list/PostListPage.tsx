@@ -238,7 +238,8 @@ export function PostListPage() {
           hrefFor={(type) => hrefWith({ type })}
           resetTo={paths.postList}
           showCounts={!search.keyword && !filtered}
-          // 고른 칸 · [×] → 처음 목록(본인 피드백 2026-10-14). 링크가 주소를 `/` 로 바꾼다 — 치다 만 검색칸 글자도 비우고 맨 위로
+          // 고른 칸 → 처음 목록(본인 결정 2026-10-14). 링크가 주소를 `/` 로 바꾼다 — 치다 만 검색칸 글자도 비우고 맨 위로.
+          // [×]는 분실 · 습득 선택만 푼다(검색어 · 필터 그대로, QA-P-6)
           onReset={resetToStart}
         />
       </section>
