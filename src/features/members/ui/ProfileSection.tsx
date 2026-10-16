@@ -128,7 +128,8 @@ function NicknameForm({ current }: { current: string }) {
           setSaved(false)
           if (error) setError(null)
         }}
-        onBlur={(event) => setError(validate(event.currentTarget.value))}
+        // 벗어날 때는 검사하지 않는다 — 검사할 것이 "비었나" 하나뿐인데, 비어 있으면 지나가는 중일 수 있다(로그인 · 가입과 같은 규칙).
+        // 비운 채 [닉네임 저장]을 누르면 제출 검사가 같은 문장을 띄우고 이 칸으로 데려간다(QA-P-15)
       />
       <div className={styles.actions}>
         <Button

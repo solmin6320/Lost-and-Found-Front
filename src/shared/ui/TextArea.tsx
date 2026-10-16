@@ -1,5 +1,7 @@
 import { useId, type ReactNode, type Ref, type TextareaHTMLAttributes } from 'react'
 
+import { checkOnLeave } from '@/shared/lib/leaveCheck'
+
 import styles from './TextArea.module.css'
 import { FieldCount } from './TextField'
 import { WarningCircle } from './icons'
@@ -30,6 +32,7 @@ interface TextAreaProps
  * 여러 줄 입력 — 한 줄 입력(`TextField`)과 같은 틀 : 이름 위 · 글자 수 오른쪽 · 오류와 도움말 아래.
  * `maxLength` 로 자르지 않는다. 붙여 넣은 글이 소리 없이 잘리면 무엇이 빠졌는지 모른다(댓글 칸과 같은 규칙).
  * 줄이 늘면 칸도 따라 늘어난다(`field-sizing`, 없는 브라우저는 최소 높이 + 손잡이).
+ * 벗어날 때의 검사도 `TextField` 와 같다(`checkOnLeave`, QA-P-15).
  */
 export function TextArea({
   label,
@@ -42,6 +45,7 @@ export function TextArea({
   detected,
   reserveDetected = false,
   ref,
+  onBlur,
   ...rest
 }: TextAreaProps) {
   const id = useId()
@@ -76,6 +80,7 @@ export function TextArea({
         value={value}
         aria-invalid={error ? true : undefined}
         aria-describedby={describedBy}
+        onBlur={onBlur ? (event) => checkOnLeave(event, onBlur) : undefined}
         {...rest}
       />
       {error ? (

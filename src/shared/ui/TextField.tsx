@@ -1,6 +1,7 @@
 import { useId, type InputHTMLAttributes, type ReactNode, type Ref } from 'react'
 
 import { cx } from '@/shared/lib/cx'
+import { checkOnLeave } from '@/shared/lib/leaveCheck'
 
 import { countVisible } from './TextField.count'
 import styles from './TextField.module.css'
@@ -44,7 +45,8 @@ interface TextFieldProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'id
 /**
  * 한 줄 입력 — 이름은 위, 오류는 아래(디자인품질기준 7장 · 화면정의서 1.7).
  * 도움말 · 결과 고지 · 글자 수 · 오류를 `aria-describedby` 로 묶어 스크린리더가 입력과 함께 읽는다.
- * 검증 시점(벗어날 때)은 쓰는 쪽이 `onBlur` 로 정한다.
+ * 검증 시점(벗어날 때)은 쓰는 쪽이 `onBlur` 로 정한다. 그 폼의 제출 버튼을 누르러 가며 벗어날 때는 검사를 미룬다 —
+ * 생긴 오류 줄이 버튼을 밀어 누름이 빗나가지 않게, 제출 검사가 같은 문장을 띄운다(`checkOnLeave`, QA-P-15).
  *
  * 오류는 빨강 글자 + `!` 아이콘(`--error-text`). 틀린 칸 테두리는 잉크 두 겹 그대로 — 빨강은 문장과 아이콘에만(회의 ⑤).
  */
@@ -60,6 +62,7 @@ export function TextField({
   trailing,
   inputId,
   ref,
+  onBlur,
   ...inputProps
 }: TextFieldProps) {
   const autoId = useId()
@@ -96,6 +99,7 @@ export function TextField({
           className={styles.input}
           aria-invalid={error ? true : undefined}
           aria-describedby={describedBy || undefined}
+          onBlur={onBlur ? (event) => checkOnLeave(event, onBlur) : undefined}
           {...inputProps}
         />
         {trailing ? <div className={styles.trailing}>{trailing}</div> : null}
