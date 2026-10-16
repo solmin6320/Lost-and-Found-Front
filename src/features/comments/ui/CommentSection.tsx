@@ -11,7 +11,8 @@ import {
 
 import type { PostDetailResponse } from '@/features/posts'
 import { allowLeave, isSelfLogout, useDirtyField } from '@/shared/lib/dirtyRegistry'
-import { getErrorMessage, subscribeSessionExpired } from '@/shared/lib/http'
+import { focusAndReveal } from '@/shared/lib/focusAndReveal'
+import { getErrorMessage, hasErrorCode, subscribeSessionExpired } from '@/shared/lib/http'
 import { usePersonalInfoCheck } from '@/shared/lib/usePersonalInfoCheck'
 import { Button, ButtonLink } from '@/shared/ui/Button'
 import { ChatCircleDots, Check, ClockCounterClockwise, LockSimple, WarningCircle } from '@/shared/ui/icons'
@@ -427,7 +428,7 @@ function CommentComposer({
     const problem = checkCommentContent(value)
     if (problem) {
       setError(problem)
-      inputRef.current?.focus()
+      focusAndReveal(inputRef.current)
       return
     }
     create.mutate(
@@ -439,8 +440,11 @@ function CommentComposer({
           setRestored(false)
           onCreated(comment)
         },
-        // 입력은 지우지 않는다 — 고쳐서 다시 보낸다
-        onError: (failure) => setError(getErrorMessage(failure)),
+        // 입력은 지우지 않는다 — 고쳐서 다시 보낸다. 서버가 칸 문제로 막았으면(400) 그 칸으로 간다(보내기 전 검사와 같은 규칙)
+        onError: (failure) => {
+          setError(getErrorMessage(failure))
+          if (hasErrorCode(failure, 'INVALID_INPUT')) focusAndReveal(inputRef.current)
+        },
       },
     )
   }

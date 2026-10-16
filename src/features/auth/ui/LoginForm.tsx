@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState, type FormEvent, type ReactNode } from 'react'
 
+import { focusAndReveal } from '@/shared/lib/focusAndReveal'
 import { getErrorMessage, hasErrorCode } from '@/shared/lib/http'
 import { Button } from '@/shared/ui/Button'
 import { FormAlert } from '@/shared/ui/FormAlert'
@@ -78,7 +79,7 @@ export function LoginForm({ initialEmail = '', lockedExit }: LoginFormProps) {
       setLiveEmail(false)
       const firstInvalid = found.email ? emailRef : passwordRef
       movingFocus.current = true
-      firstInvalid.current?.focus()
+      focusAndReveal(firstInvalid.current)
       movingFocus.current = false
       return
     }
@@ -96,7 +97,7 @@ export function LoginForm({ initialEmail = '', lockedExit }: LoginFormProps) {
         }
         if (hasErrorCode(failure, 'INVALID_CREDENTIALS')) {
           setErrors({ form: message })
-          passwordRef.current?.focus()
+          focusAndReveal(passwordRef.current)
           passwordRef.current?.select()
           return
         }
@@ -105,7 +106,7 @@ export function LoginForm({ initialEmail = '', lockedExit }: LoginFormProps) {
           setErrors({ [field]: message })
           setLiveEmail(false)
           const target = field === 'email' ? emailRef : passwordRef
-          target.current?.focus()
+          focusAndReveal(target.current)
           return
         }
         setErrors({ form: message })

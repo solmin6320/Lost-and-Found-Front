@@ -14,6 +14,7 @@ import { todayIsoDate } from '@/shared/lib/date'
 import { openDatePickerOnClick } from '@/shared/lib/datePicker'
 import { ClientValidationError, getErrorMessage, hasErrorCode, subscribeSessionExpired } from '@/shared/lib/http'
 import { allowLeave, isSelfLogout, useDirtyField, type LeaveCopy } from '@/shared/lib/dirtyRegistry'
+import { focusAndReveal } from '@/shared/lib/focusAndReveal'
 import { useObjectUrls } from '@/shared/lib/image'
 import { usePersonalInfoCheck } from '@/shared/lib/usePersonalInfoCheck'
 import { Button, ButtonLink } from '@/shared/ui/Button'
@@ -277,7 +278,7 @@ export function PostForm({
       box?.querySelector<HTMLElement>('input:not([type="file"]), textarea, button')
     movingFocus.current = true
     try {
-      target?.focus()
+      focusAndReveal(target)
     } finally {
       movingFocus.current = false
     }

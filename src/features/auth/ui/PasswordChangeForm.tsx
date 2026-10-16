@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, useState, type FormEvent, type Ref } from 're
 
 import { PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH } from '@/features/members'
 import { useDirtyField } from '@/shared/lib/dirtyRegistry'
+import { focusAndReveal } from '@/shared/lib/focusAndReveal'
 import { getErrorMessage, hasErrorCode } from '@/shared/lib/http'
 import { Button } from '@/shared/ui/Button'
 import { FormAlert } from '@/shared/ui/FormAlert'
@@ -45,6 +46,17 @@ function checkNext(value: string): string | undefined {
   if (!value) return MESSAGES.nextRequired
   if (value.length < PASSWORD_MIN_LENGTH || value.length > PASSWORD_MAX_LENGTH) return MESSAGES.nextLength
   return undefined
+}
+
+/**
+ * 400 `INVALID_INPUT` 이 어느 칸의 문제인지 — 서버 문장의 첫 낱말이 칸 이름이다(`PasswordUpdateRequest`).
+ * `현재 비밀번호는 …` → 현재 칸, `새 비밀번호는 …` · `비밀번호는 8~20자 …` → 새 칸. 모르면 `null`(폼 위 한 줄)
+ */
+function fieldOfPasswordMessage(failure: unknown, message: string): 'current' | 'next' | null {
+  if (!hasErrorCode(failure, 'INVALID_INPUT')) return null
+  if (message.startsWith('현재 비밀번호')) return 'current'
+  if (message.startsWith('새 비밀번호') || message.startsWith('비밀번호')) return 'next'
+  return null
 }
 
 /**
@@ -98,7 +110,7 @@ export function PasswordChangeForm({ email, onChanged }: PasswordChangeFormProps
       setLiveConfirm(false)
       const firstInvalid = found.current ? currentRef : found.next ? nextRef : confirmRef
       movingFocus.current = true
-      firstInvalid.current?.focus()
+      focusAndReveal(firstInvalid.current)
       movingFocus.current = false
       return
     }
@@ -109,12 +121,16 @@ export function PasswordChangeForm({ email, onChanged }: PasswordChangeFormProps
       {
         onSuccess: onChanged,
         onError: (failure) => {
-          if (hasErrorCode(failure, 'PASSWORD_MISMATCH')) {
-            setErrors({ current: getErrorMessage(failure) })
-            currentRef.current?.focus()
+          const message = getErrorMessage(failure)
+          const field = hasErrorCode(failure, 'PASSWORD_MISMATCH') ? 'current' : fieldOfPasswordMessage(failure, message)
+          if (field) {
+            // 서버가 칸 문제로 막았다 — 그 칸 아래에 서버 문장, 그 칸으로 포커스(보내기 전 검사와 같은 규칙)
+            setErrors({ [field]: message })
+            const target = field === 'current' ? currentRef : nextRef
+            focusAndReveal(target.current)
           } else {
             // 어느 칸의 문제인지 모른다(연결 실패 · 서버 오류). [바꾸기] 위의 한 줄부터 읽게 한다
-            setErrors({ form: getErrorMessage(failure) })
+            setErrors({ form: message })
             focusAfterRender.current = () => alertRef.current?.focus()
           }
         },

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type FormEvent } from 'react'
 
 import { NICKNAME_MAX_LENGTH } from '@/features/members'
 import { useDirtyField, type LeaveCopy } from '@/shared/lib/dirtyRegistry'
+import { focusAndReveal } from '@/shared/lib/focusAndReveal'
 import { getErrorMessage, hasErrorCode } from '@/shared/lib/http'
 import { Button } from '@/shared/ui/Button'
 import { FormAlert } from '@/shared/ui/FormAlert'
@@ -70,7 +71,7 @@ export function SignupForm({ signup, onSignedUpWithoutLogin }: SignupFormProps) 
     const refs = { email: emailRef, password: passwordRef, passwordConfirm: passwordConfirmRef, nickname: nicknameRef }
     movingFocus.current = true
     try {
-      refs[field].current?.focus()
+      focusAndReveal(refs[field].current)
     } finally {
       movingFocus.current = false
     }

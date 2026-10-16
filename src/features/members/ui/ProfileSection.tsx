@@ -2,6 +2,7 @@ import { useId, useRef, useState, type FormEvent } from 'react'
 
 import { formatDate } from '@/shared/lib/date'
 import { useDirtyField } from '@/shared/lib/dirtyRegistry'
+import { focusAndReveal } from '@/shared/lib/focusAndReveal'
 import { getErrorMessage } from '@/shared/lib/http'
 import { Button } from '@/shared/ui/Button'
 import { Check } from '@/shared/ui/icons'
@@ -85,7 +86,7 @@ function NicknameForm({ current }: { current: string }) {
     const problem = validate(value)
     if (problem) {
       setError(problem)
-      inputRef.current?.focus()
+      focusAndReveal(inputRef.current)
       return
     }
     if (!changed) return
@@ -101,7 +102,7 @@ function NicknameForm({ current }: { current: string }) {
         // 409 DUPLICATE_NICKNAME · 400 INVALID_INPUT — 입력이 하나뿐이라 전부 이 입력 아래에 붙인다
         onError: (failure) => {
           setError(getErrorMessage(failure))
-          inputRef.current?.focus()
+          focusAndReveal(inputRef.current)
         },
       },
     )

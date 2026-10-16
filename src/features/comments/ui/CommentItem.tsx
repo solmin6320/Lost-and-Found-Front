@@ -2,7 +2,8 @@ import { useId, useRef, useState, type FormEvent, type KeyboardEvent, type Mouse
 
 import { formatDateTime } from '@/shared/lib/date'
 import { isSelfLogout, useDirtyField } from '@/shared/lib/dirtyRegistry'
-import { getErrorMessage } from '@/shared/lib/http'
+import { focusAndReveal } from '@/shared/lib/focusAndReveal'
+import { getErrorMessage, hasErrorCode } from '@/shared/lib/http'
 import { usePressGuard } from '@/shared/lib/pressGuard'
 import { usePersonalInfoCheck } from '@/shared/lib/usePersonalInfoCheck'
 import { Button } from '@/shared/ui/Button'
@@ -110,7 +111,7 @@ export function CommentItem({ postId, comment, mine, byPostAuthor, fresh, onUpda
     const problem = checkCommentContent(draft)
     if (problem) {
       setError(problem)
-      textareaRef.current?.focus()
+      focusAndReveal(textareaRef.current)
       return
     }
     if (draft === comment.content) {
@@ -125,7 +126,11 @@ export function CommentItem({ postId, comment, mine, byPostAuthor, fresh, onUpda
           onUpdated(updated)
           focusLater(editButtonRef)
         },
-        onError: (failure) => setError(getErrorMessage(failure)),
+        // 서버가 칸 문제로 막았으면(400) 고치는 칸으로 간다(보내기 전 검사와 같은 규칙)
+        onError: (failure) => {
+          setError(getErrorMessage(failure))
+          if (hasErrorCode(failure, 'INVALID_INPUT')) focusAndReveal(textareaRef.current)
+        },
       },
     )
   }
