@@ -3,7 +3,7 @@ import { useEffect, useId, useRef, type MouseEvent } from 'react'
 import { Link, type To } from 'react-router-dom'
 
 import { isPlainClick } from '@/shared/lib/events'
-import { isTouchOutside } from '@/shared/lib/strictTap'
+import { isPressNear, isTouchOutside } from '@/shared/lib/strictTap'
 import { X } from '@/shared/ui/icons'
 
 import type { PostType } from '../api/types'
@@ -43,6 +43,8 @@ interface PostIntentPickerProps {
  *   - **고른 칸(면 어디든)** → 처음 목록(`/`) — 칸뿐 아니라 검색어 · 카테고리 · 상태 · 장소 · 기간도 풀리고 맨 위로
  *   - **[×]** → 분실 · 습득 선택만 푼다. 검색어 · 필터는 그대로(무엇을 지우는지가 눈앞의 [×], 2026-10-07 결정 그대로)
  * 검색어나 필터가 걸려 있으면 고른 칸의 둘째 줄이 "누르면 처음 목록으로"가 된다(QA-P-4 — 누르면 무엇이 함께 풀리는지 누르기 전에).
+ * [×]는 고른 칸 **안** 오른쪽 위에 겹쳐 있다. [×]를 노린 누름이 조금 빗나가 칸에 떨어지면 검색어 · 필터까지 풀리므로,
+ * **[×] 누르는 면(44px) 둘레 8px 띠는 칸이 받지 않는다**(누름 시작 좌표로 거른다 — QA-P-8, `isPressNear`). 띠 안의 누름은 아무 일도 하지 않는다.
  * 칸 바깥(배경 · 빈 곳 · 두 칸 사이 틈)을 누르는 것은 아무 일도 하지 않는다. 휴대폰 브라우저가 칸 가장자리 바깥 누름을 칸으로
  * 끌어당기는 것은 `isTouchOutside` 로 버린다(칸 상자 밖에 닿은 손가락).
  * 고른 칸은 같은 자리의 링크 그대로다(토글 버튼으로 바꾸지 않는다 — 주소가 바뀌는 이동이고 새 탭 열기 · 뒤로가기 1번 복귀가 된다).
@@ -51,6 +53,7 @@ interface PostIntentPickerProps {
  */
 export function PostIntentPicker({ selected, hrefFor, resetTo, showCounts, onReset }: PostIntentPickerProps) {
   const listRef = useRef<HTMLUListElement>(null)
+  const resetRef = useRef<HTMLAnchorElement>(null)
   const resetHintId = useId()
   /** [×] 는 누르면 사라진다. 전체로 돌아간 뒤 방금 풀린 선택지로 포커스를 옮긴다 */
   const refocus = useRef<PostType | null>(null)
@@ -84,6 +87,11 @@ export function PostIntentPicker({ selected, hrefFor, resetTo, showCounts, onRes
                   event.preventDefault()
                   return
                 }
+                // [×]를 노리다 빗나간 누름 — [×] 누르는 면 둘레 띠 안이면 칸도 받지 않는다(처음 목록으로 가지 않는다, QA-P-8)
+                if (on && resetRef.current && isPressNear(resetRef.current, event.nativeEvent, resetGuard(resetRef.current))) {
+                  event.preventDefault()
+                  return
+                }
                 if (on && isPlainClick(event)) onReset?.()
               }}
             >
@@ -101,6 +109,7 @@ export function PostIntentPicker({ selected, hrefFor, resetTo, showCounts, onRes
             </Link>
             {on ? (
               <Link
+                ref={resetRef}
                 className={styles.reset}
                 to={hrefFor(undefined)}
                 aria-label="선택 풀고 분실 글과 습득 글 모두 보기"
@@ -124,6 +133,17 @@ export function PostIntentPicker({ selected, hrefFor, resetTo, showCounts, onRes
       })}
     </ul>
   )
+}
+
+/**
+ * [×] 상자(보이는 원)에서 칸이 받지 않을 띠까지의 거리(px) — 누르는 면(::after, 44px)까지 + 8px(0.5rem, 글자를 키우면 같이 큰다).
+ * 보이는 원 32px 이면 6 + 8 = 14px
+ */
+function resetGuard(reset: HTMLElement): number {
+  const visible = reset.getBoundingClientRect().width
+  const hit = parseFloat(getComputedStyle(reset, '::after').width) || visible
+  const rem = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16
+  return Math.max(hit - visible, 0) / 2 + rem * 0.5
 }
 
 /**

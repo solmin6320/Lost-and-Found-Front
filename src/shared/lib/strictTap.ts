@@ -40,3 +40,21 @@ export function isTouchOutside(element: Element, event: { timeStamp: number }): 
   const box = element.getBoundingClientRect()
   return last.x < box.left || last.x > box.right || last.y < box.top || last.y > box.bottom
 }
+
+/**
+ * 이 `click` 의 누름(`pointerdown`)이 `element` 상자에서 `margin` px 안쪽 둘레에 닿았는가(QA-P-8, 2026-10-16).
+ *
+ * 목록 첫 화면의 고른 의도 칸은 칸 **안**에 [×](선택만 풀기)를 둔다. [×]를 노린 손가락이 2px 만 빗나가도 칸이 눌려
+ * 검색어 · 필터까지 한꺼번에 풀렸다(처음 목록으로). [×] 둘레의 띠를 칸이 받지 않게 이 함수로 거른다 — 띠 안의 누름은 아무 일도 하지 않는다.
+ *
+ * - 마우스 · 터치 · 펜 모두(빗나간 누름은 손가락에서 잦지만, 마우스도 [×] 바로 옆이면 [×]를 노린 것이다)
+ * - 키보드(Enter)로 연 `click` 은 `detail` 이 0 이다 — 보지 않는다
+ * - 오래된 기록(1초 넘게 지난 누름)은 보지 않는다
+ */
+export function isPressNear(element: Element, event: { timeStamp: number; detail: number }, margin: number): boolean {
+  if (event.detail === 0 || !last || event.timeStamp - last.at > 1000) return false
+  const box = element.getBoundingClientRect()
+  return (
+    last.x >= box.left - margin && last.x <= box.right + margin && last.y >= box.top - margin && last.y <= box.bottom + margin
+  )
+}
