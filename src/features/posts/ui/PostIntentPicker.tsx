@@ -113,7 +113,8 @@ export function PostIntentPicker({ selected, hrefFor, resetTo, showCounts, onRes
                 ref={resetRef}
                 className={styles.reset}
                 to={hrefFor(undefined)}
-                aria-label="선택 풀고 분실 글과 습득 글 모두 보기"
+                // 이름은 하는 일로 시작한다(QA-P-14). 검색어 · 조건이 걸려 있으면 그것은 남는다는 것까지 — 고른 칸(처음 목록)과 갈린다
+                aria-label={showCounts ? '선택 풀기, 분실 글과 습득 글 모두 보기' : '선택만 풀기, 검색어와 조건은 그대로'}
                 onClick={(event: MouseEvent) => {
                   // 새 탭으로 여는 클릭은 이 화면을 바꾸지 않는다. 포커스 이동을 예약하면 나중에 엉뚱할 때 튄다
                   if (isPlainClick(event)) refocus.current = intent.concept
@@ -123,10 +124,10 @@ export function PostIntentPicker({ selected, hrefFor, resetTo, showCounts, onRes
               </Link>
             ) : null}
             {on ? (
+              // 설명은 이름이 말하지 않은 것만(QA-P-14). 조건이 걸려 있으면 보이는 이름(`… 누르면 처음 목록으로`)이 이미 할 일을 말한다 —
+              // 함께 풀리는 것만 덧붙인다
               <span id={resetHintId} hidden>
-                {showCounts
-                  ? '누르면 선택을 풀고 처음 목록으로 돌아가요.'
-                  : '누르면 선택을 풀고 처음 목록으로 돌아가요. 검색어와 조건도 풀려요.'}
+                {showCounts ? '누르면 선택을 풀고 처음 목록으로 돌아가요.' : '검색어와 조건도 함께 풀려요.'}
               </span>
             ) : null}
           </li>
