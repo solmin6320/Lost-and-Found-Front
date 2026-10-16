@@ -92,7 +92,7 @@ function Bar({ count, done, onOpen, flowEntry, headingEntry, targetRef }: Commen
   useBottomInset(barRef, visible)
 
   return (
-    <div ref={barRef} className={styles.bar} data-visible={visible || undefined} inert={!visible}>
+    <div ref={barRef} className={styles.bar} data-sticks="bottom" data-visible={visible || undefined} inert={!visible}>
       <Button variant={done ? 'secondary' : 'primary'} block onClick={onOpen} className={styles.button}>
         <ChatCircleDots />
         댓글 쓰기

@@ -47,6 +47,7 @@ interface TextFieldProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'id
  * 도움말 · 결과 고지 · 글자 수 · 오류를 `aria-describedby` 로 묶어 스크린리더가 입력과 함께 읽는다.
  * 검증 시점(벗어날 때)은 쓰는 쪽이 `onBlur` 로 정한다. 그 폼의 제출 버튼을 누르러 가며 벗어날 때는 검사를 미룬다 —
  * 생긴 오류 줄이 버튼을 밀어 누름이 빗나가지 않게, 제출 검사가 같은 문장을 띄운다(`checkOnLeave`, QA-P-15).
+ * 바깥 틀에 `data-field-group` — 제출이 막혀 이 칸으로 데려갈 때 이름 · 칸 · 오류를 한 묶음으로 보이게 한다(`focusAndReveal`).
  *
  * 오류는 빨강 글자 + `!` 아이콘(`--error-text`). 틀린 칸 테두리는 잉크 두 겹 그대로 — 빨강은 문장과 아이콘에만(회의 ⑤).
  */
@@ -84,7 +85,7 @@ export function TextField({
     .join(' ')
 
   return (
-    <div className={styles.field}>
+    <div className={styles.field} data-field-group>
       <div className={styles.labelRow}>
         <label className={styles.label} htmlFor={id}>
           {label}

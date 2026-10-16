@@ -601,7 +601,7 @@ export function PostForm({
           />
         </div>
 
-        <div ref={barRef} className={styles.bar}>
+        <div ref={barRef} className={styles.bar} data-sticks="bottom">
           {formError ? (
             <FormAlert ref={alertRef} message={formError} />
           ) : null}

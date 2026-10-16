@@ -218,7 +218,7 @@ export function PostListPage() {
         칩 줄 — 스크롤해도 헤더 아래에 붙는다(높이 40rem · 폭 22.5rem 이상, CSS). 목록 아래에서도 조건을 바로 바꾼다.
         붙어 있는 동안만 아래에 가는 선과 바탕을 깐다(data-stuck)
       */}
-      <div ref={chipsRef} className={styles.chips} data-stuck={stuck || undefined}>
+      <div ref={chipsRef} className={styles.chips} data-stuck={stuck || undefined} data-sticks="top">
         {/* [전체 해제]는 두지 않는다(본인 피드백 2026-10-07) — 걸린 칩마다 [×], 0건이면 빈 상태의 [필터 모두 지우기] */}
         <PostFilterBar search={search} onApply={apply} onRemove={(field) => apply(withoutFilter(search, field))} />
       </div>

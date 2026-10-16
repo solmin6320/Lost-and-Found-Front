@@ -32,7 +32,7 @@ interface TextAreaProps
  * 여러 줄 입력 — 한 줄 입력(`TextField`)과 같은 틀 : 이름 위 · 글자 수 오른쪽 · 오류와 도움말 아래.
  * `maxLength` 로 자르지 않는다. 붙여 넣은 글이 소리 없이 잘리면 무엇이 빠졌는지 모른다(댓글 칸과 같은 규칙).
  * 줄이 늘면 칸도 따라 늘어난다(`field-sizing`, 없는 브라우저는 최소 높이 + 손잡이).
- * 벗어날 때의 검사도 `TextField` 와 같다(`checkOnLeave`, QA-P-15).
+ * 벗어날 때의 검사 · 묶음 표시(`data-field-group`)도 `TextField` 와 같다(`checkOnLeave`, QA-P-15).
  */
 export function TextArea({
   label,
@@ -66,7 +66,7 @@ export function TextArea({
     .join(' ')
 
   return (
-    <div className={styles.field}>
+    <div className={styles.field} data-field-group>
       <div className={styles.labelRow}>
         <label className={styles.label} htmlFor={id}>
           {label}

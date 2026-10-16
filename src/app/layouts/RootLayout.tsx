@@ -41,7 +41,7 @@ export function RootLayout() {
         본문으로 건너뛰기
       </a>
 
-      <header className={styles.header}>
+      <header className={styles.header} data-sticks="top">
         <div className={styles.headerInner}>
           <Link className={styles.wordmark} to={paths.postList}>
             <BrandMark className={styles.mark} />
