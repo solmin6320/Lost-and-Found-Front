@@ -279,7 +279,7 @@ export function PostSearchBar({ keyword, onSearch, suggestionParams, onOpenPost 
         읽기는 아래 알림 줄(`찾는 중이에요.`)이 맡는다
       */}
       <button type="submit" className={styles.submit} aria-label="검색">
-        {fetchingDots ? <LoadingDots variant="inline" announce={false} delay={0} /> : <MagnifyingGlass />}
+        {fetchingDots ? <LoadingDots announce={false} delay={0} /> : <MagnifyingGlass />}
       </button>
       <input
         ref={inputRef}

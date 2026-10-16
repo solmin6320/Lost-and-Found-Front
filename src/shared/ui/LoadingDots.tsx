@@ -10,11 +10,6 @@ interface LoadingDotsProps {
   label?: string
   /** 이만큼 지나야 보인다. 0 이면 바로 */
   delay?: number
-  /**
-   * `bubble` — 둥근 면 안의 점 셋(따로 서는 표시 : 목록 · 검색 추천).
-   * `inline` — 면 없이 글자색 점 셋(버튼 글자 자리 · 단계 줄). 둘러싼 쪽이 이미 알리면 `announce={false}`
-   */
-  variant?: 'bubble' | 'inline'
   /** 알림 영역(`role="status"`)으로 둘까. 버튼 안처럼 둘러싼 쪽이 이름으로 알리면 끈다 */
   announce?: boolean
   /** 기다림을 처음부터 다시 잴 열쇠(찾는 말이 바뀌면 0.3초를 새로 센다) */
@@ -36,12 +31,12 @@ interface LoadingDotsProps {
  * - 모션 줄이기면 움직이지 않는 점 셋(짙기 차례로 고정)
  * - 이미 보던 내용은 지우지 않는다 — 이 표시는 그 위 · 옆에 작게 선다(쓰는 쪽이 자리를 정한다)
  * - 색은 둘러싼 글자색(`currentColor`)을 따른다. 새 색을 만들지 않는다
+ * - **모양은 점만**(본인 결정 2026-10-16, B안) — 면(말풍선) 없이 기다리는 대상 바로 곁에 글자처럼 선다
  */
 export function LoadingDots({
   active = true,
   label = '불러오는 중',
   delay = LATE_FLAG_MS,
-  variant = 'bubble',
   announce = true,
   resetKey,
   reserve = false,
@@ -51,7 +46,7 @@ export function LoadingDots({
   const dots =
     shown || reserve ? (
       <span
-        className={cx(styles.dots, variant === 'bubble' && styles.bubble)}
+        className={styles.dots}
         aria-hidden="true"
         // 보이는 점에만 단다 — 자리만 잡아 둔 점과 가른다(측정 · 강제 색상 규칙이 이것을 본다)
         data-loading-dots={shown ? '' : undefined}

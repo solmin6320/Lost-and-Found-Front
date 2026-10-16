@@ -160,6 +160,27 @@
   outline-offset: 4px;
 }
 
+/*
+ * 건수 + 다시 받는 중의 점 셋(겹쳐 선다, QA-P-9). 점은 건수 상자 왼쪽 끝에서 시작해 흐름에 자리를 차지하지 않는다 —
+ * 쉬는 동안 건수 → 이름표 안내 간격이 8px 그대로이고(QA-D-12), 점이 나타나도 아무것도 밀리지 않는다
+ */
+.countSlot {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.staleDots {
+  position: absolute;
+  inset-block: 0;
+  left: 0;
+}
+
+/* 점이 서 있는 동안 건수 글자는 보이지 않게(직전 조건의 수다). 상자는 그대로라 폭이 바뀌지 않는다 */
+.countSlot:has(.staleDots [data-loading-dots]) .countText {
+  visibility: hidden;
+}
+
 .count {
   min-width: 2.75rem;
   color: var(--text-muted);

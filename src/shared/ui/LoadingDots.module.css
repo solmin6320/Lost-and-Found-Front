@@ -26,14 +26,6 @@
   color: var(--loading-dot-color, var(--text-body));
 }
 
-/* 둥근 면 안의 점 셋 — 따로 서는 표시. 놓이는 면이라 12px 반경(반경 네 단계). 면만 옅게 나타난다(0.3초를 기다린 뒤 툭 튀지 않게) */
-.bubble {
-  padding: var(--space-2) var(--space-3);
-  border-radius: var(--radius-md);
-  background-color: var(--surface-sunken);
-  animation: dots-in var(--duration-base) var(--ease-out);
-}
-
 /* 자리만 잡아 둔 점(`reserve`) — 보이지 않고 움직이지도 않는다. 자리는 그대로라 나타날 때 옆 · 아래가 밀리지 않는다(QA-P-9) */
 .dots[data-idle] {
   visibility: hidden;
@@ -74,18 +66,12 @@
   }
 }
 
-@keyframes dots-in {
-  from {
-    opacity: 0;
-  }
-}
 
 /*
  * 모션 줄이기 — 움직이지 않는 점 셋. 짙기를 차례로 고정해 "이어지는 중"이 보이게 한다(가장 옅은 것도 0.6 — 3:1)
  * (전역 규칙은 애니메이션을 0.01ms 한 번으로 줄일 뿐이라 이름을 직접 끈다)
  */
 @media (prefers-reduced-motion: reduce) {
-  .bubble,
   .dot {
     animation: none;
   }

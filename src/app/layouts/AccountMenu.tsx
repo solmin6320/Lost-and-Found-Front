@@ -116,7 +116,7 @@ export function AccountMenu({ me, onLogout }: AccountMenuProps) {
               <>
                 <span aria-hidden="true">로그아웃</span>
                 <span className="sr-only">로그아웃하는 중</span>
-                <LoadingDots variant="inline" announce={false} className={styles.itemDots} />
+                <LoadingDots announce={false} className={styles.itemDots} />
               </>
             ) : (
               '로그아웃'

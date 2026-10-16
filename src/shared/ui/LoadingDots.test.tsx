@@ -51,14 +51,14 @@ describe('LoadingDots', () => {
   })
 
   it('reserve : 기다리지 않을 때도 점 자리를 그려 두되 보이지 않는다(보이는 점 표지는 없다)', () => {
-    const html = renderToStaticMarkup(<LoadingDots active={false} reserve variant="inline" announce={false} />)
+    const html = renderToStaticMarkup(<LoadingDots active={false} reserve announce={false} />)
     expect(html).toContain('data-idle')
     expect(html).not.toContain('data-loading-dots')
     expect(css).toMatch(/\.dots\[data-idle\]\s*\{[^}]*visibility:\s*hidden/)
   })
 
   it('reserve : 보일 때는 자리 표지 없이 보이는 점', () => {
-    const html = renderToStaticMarkup(<LoadingDots reserve delay={0} variant="inline" announce={false} />)
+    const html = renderToStaticMarkup(<LoadingDots reserve delay={0} announce={false} />)
     expect(html).toContain('data-loading-dots')
     expect(html).not.toContain('data-idle')
   })

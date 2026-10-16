@@ -217,7 +217,7 @@ export function PostOwnerPanel({ post, editHref, onDeleted }: PostOwnerPanelProp
             */}
             <LoadingDots
               active={changeStatus.isPending && !confirm}
-              variant="inline"
+             
               announce={false}
               reserve
               className={styles.hintDots}

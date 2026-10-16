@@ -80,7 +80,7 @@ export function Button({
           </span>
           {dots ? (
             <span className={styles.pendingDots} aria-hidden="true">
-              <LoadingDots variant="inline" announce={false} delay={0} />
+              <LoadingDots announce={false} delay={0} />
             </span>
           ) : null}
           <span className="sr-only">{pendingLabel ?? children}</span>

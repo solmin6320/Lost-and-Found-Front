@@ -17,7 +17,7 @@ interface PostStatusTabsProps {
   counts: PostStatusCounts
   /** 탭 → 주소. 경로는 부른 쪽이 정한다 */
   hrefFor: (status: PostStatus | undefined) => To
-  /** 탭 줄 바로 뒤에 서는 것(다시 받는 중의 점 셋). 탭 목록 밖 — 목록 항목 수가 늘지 않는다 */
+  /** 탭 줄에 덧붙는 것(다시 받는 중의 점 셋). 탭 목록 밖 — 목록 항목 수가 늘지 않는다. 자리는 부른 쪽이 정한다(이 줄이 기준 상자) */
   trailing?: ReactNode
   className?: string
 }

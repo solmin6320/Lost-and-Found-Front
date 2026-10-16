@@ -136,12 +136,16 @@ function MyPosts({ enabled }: { enabled: boolean }) {
               selected={search.status}
               counts={counts}
               hrefFor={hrefForStatus}
-              // 탭 · 쪽을 바꿔 다시 받는 중 — 직전 글은 흐리게 두고 탭 줄(건수) 바로 뒤에 점 셋(0.3초 넘을 때만, QA-D-6).
-              // 흐름 안에 서서 카드 이름표를 덮지 않는다
+              // 탭 · 쪽을 바꿔 다시 받는 중 — 직전 글은 흐리게 두고 **탭 줄 바로 아래(탭 줄과 카드 사이 여백)에 점 셋**(0.3초 넘을 때만, QA-P-9).
+              // 여백 안에 겹쳐 서서 탭 · 카드가 밀리지 않고 카드 이름표도 덮지 않는다. 예전엔 탭 뒤 흐름 안에 서서 자리가 모자라면(320) 줄을 바꿔
+              // 카드가 22px 내려갔다 돌아왔다. 탭 뒤 한 줄에 두면 글자를 키운 폭(125 ~ 200%)에서 탭이 줄을 바꿔 자리가 없다
               trailing={
                 <LoadingDots
                   active={query.isPlaceholderData && (query.data?.content.length ?? 0) > 0}
                   label="글을 불러오는 중"
+                 
+                  reserve
+                  className={styles.tabsDots}
                 />
               }
             />
