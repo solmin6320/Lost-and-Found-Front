@@ -62,3 +62,28 @@ export function useLateFlag(flag: boolean, ms: number = LATE_FLAG_MS, options: L
 
   return (flag && (ms <= 0 || late)) || holding
 }
+
+/**
+ * 버튼 점이 뜨는 때(`LATE_FLAG_MS` 뒤 첫 그림)는 요청을 보낸 순간보다 조금 늦다 — 상태가 그려지고 타이머가 걸리기까지.
+ * 그 늦음을 덮을 여유. 이만큼 더 붙잡아도 점이 0.45초보다 오래 남지 않게 버튼은 이미 지난 시간을 잰다(`useLateFlag` minShow)
+ */
+const SETTLE_SLACK_MS = 50
+
+/** 요청을 보낸 뒤 결과를 내보여도 되는 가장 이른 때 — 점이 뜬 요청이면 점이 다 머문 뒤 */
+export const PENDING_SETTLE_MS = LATE_FLAG_MS + LATE_FLAG_MIN_SHOW_MS + SETTLE_SLACK_MS
+
+/**
+ * 결과(오류 문구 · 포커스 이동 · 새 내용)를 **점이 끝나는 그림과 함께** 내보이게, 남은 시간만큼 기다린다(QA-D-11, 2026-10-16).
+ *
+ * 버튼 점은 한 번 뜨면 0.45초를 둔다(QA-D-2). 그런데 응답은 그 전에 와서, 붙잡는 동안 오류 문구가 먼저 뜨고 포커스가
+ * 칸으로 옮겨 갔다 — 버튼은 아직 "확인 중"(로그인 320ms 응답 : 335ms 엇박자). 이 기다림이 끝나야 요청이 끝난 것으로 친다.
+ *   - 0.3초 안에 온 응답 : 점이 뜨지 않았다 — 기다리지 않는다
+ *   - 0.3 ~ 0.8초 : 보낸 때로부터 0.8초가 될 때까지(점 0.45초 + 여유)
+ *   - 그 뒤 : 점이 이미 충분히 머물렀다 — 기다리지 않는다
+ * `startedAt` 은 `Date.now()` 값(TanStack 의 `submittedAt` 과 같은 시계)
+ */
+export function waitForPendingDots(startedAt: number): Promise<void> | undefined {
+  const took = Date.now() - startedAt
+  if (!(startedAt > 0) || took < LATE_FLAG_MS || took >= PENDING_SETTLE_MS) return undefined
+  return new Promise((resolve) => setTimeout(resolve, PENDING_SETTLE_MS - took))
+}
