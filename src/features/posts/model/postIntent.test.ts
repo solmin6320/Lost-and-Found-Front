@@ -92,12 +92,11 @@ describe('intentHintTail — 칸 아래 한 줄의 뒷부분', () => {
 })
 
 describe('처음 목록 끝 — 제목은 남은 글이 있는지로 갈린다(본인 결정 2026-10-11, QA-P-14)', () => {
-  it('다 펼쳤으면 "찾는 물건이 없나요?"', () => {
-    expect(anyIntentNextTitle('end')).toBe('찾는 물건이 없나요?')
+  it('마지막 페이지면 "찾는 물건이 없나요?"', () => {
+    expect(anyIntentNextTitle(false)).toBe('찾는 물건이 없나요?')
   })
 
-  it('더 볼 글이 남았으면(더 보기 · 96건 상한) "올릴 물건이 있나요?" — 찾기를 끝낸 것처럼 묻지 않는다', () => {
-    expect(anyIntentNextTitle('more')).toBe('올릴 물건이 있나요?')
-    expect(anyIntentNextTitle('capped')).toBe('올릴 물건이 있나요?')
+  it('뒤 페이지가 남았으면 "올릴 물건이 있나요?" — 찾기를 끝낸 것처럼 묻지 않는다', () => {
+    expect(anyIntentNextTitle(true)).toBe('올릴 물건이 있나요?')
   })
 })

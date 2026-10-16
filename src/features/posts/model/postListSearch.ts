@@ -15,10 +15,8 @@ import { POST_CATEGORY_LABEL, POST_STATUS_LABEL } from './labels'
  * 목록 화면의 검색 조건 = URL 쿼리스트링.
  * 뒤로가기 · 새로고침 · 링크 공유가 그대로 동작하도록 화면 상태를 주소에 싣는다(SCR-01).
  *
- * 이름은 백엔드 [4.2] 쿼리 파라미터와 같다. **`page` 만 뜻이 다르다** — 서버의 "몇째 쪽"이 아니라
- * **"24건 묶음을 몇 개까지 펼쳤나"**(1부터, 최대 4)다. [더 보기]를 누를 때마다 하나씩 는다.
- * 폭과 상관없이 뜻이 하나라 공유받은 주소가 휴대폰 · 넓은 화면에서 같은 글을 보여 준다.
- * 예전 쪽 번호 링크(`?page=3` = 49~72번째)도 그대로 읽힌다 — 1~72번째를 펼치니 그 쪽의 글이 다 들어 있다.
+ * 이름은 백엔드 [4.2] 쿼리 파라미터와 같다. `page` 는 **화면의 페이지 번호(1부터)** 다 — 서버에는 하나 빼서(0부터) 보낸다.
+ * 한 페이지 20건(본인 결정 2026-10-16 — [더 보기] 대신 페이지 번호). 폭과 상관없이 뜻이 하나라 공유받은 주소가 휴대폰 · 넓은 화면에서 같은 글을 보여 준다.
  */
 export interface PostListSearch {
   keyword: string
@@ -32,7 +30,7 @@ export interface PostListSearch {
   location: string
   from?: string
   to?: string
-  /** 펼친 묶음 수. 1부터 `POST_LIST_MAX_PAGES` 까지 */
+  /** 페이지 번호. 1부터. 전체 페이지 수를 넘는 번호는 화면이 "이 페이지에는 글이 없어요"로 받는다 */
   page: number
 }
 
@@ -113,8 +111,7 @@ export function parsePostListSearch(params: URLSearchParams): PostListSearch {
     location: (params.get('location') ?? '').trim().slice(0, LOCATION_MAX_LENGTH),
     from,
     to,
-    // 상한을 넘는 예전 쪽 번호(`?page=9`)는 펼칠 수 있는 끝(96건)으로 읽는다
-    page: Number.isSafeInteger(page) && page >= 1 ? Math.min(page, POST_LIST_MAX_PAGES) : 1,
+    page: Number.isSafeInteger(page) && page >= 1 ? page : 1,
   }
 }
 
@@ -141,30 +138,19 @@ export function postListSearchKey(search: PostListSearch): string {
 }
 
 /**
- * 펼친 수를 뺀 조건의 지문. 이것이 같으면 [더 보기]로 펼친 것이고, 다르면 조건이 바뀐 것이다 —
- * 펼치는 동안에는 이미 본 카드를 흐리게 하지 않는다
+ * 페이지 번호를 뺀 조건의 지문. 이것이 같으면 페이지만 넘긴 것이고, 다르면 조건이 바뀐 것이다(조건이 바뀌면 1페이지로)
  */
 export function postListConditionKey(search: PostListSearch): string {
   return postListSearchKey({ ...search, page: 1 })
 }
 
-/**
- * 한 묶음에 싣는 글 수. 2 · 3 · 4 의 공배수라 피드가 몇 열이든 마지막 줄이 비지 않는다
- * (서버 기본 20 은 3열에서 두 칸이 빈다)
- */
-export const POST_LIST_PAGE_SIZE = 24
+/** 한 페이지에 싣는 글 수(본인 결정 2026-10-16). 글이 21 · 41 · 61 … 건이 되면 페이지가 하나씩 는다 */
+export const POST_LIST_PAGE_SIZE = 20
 
-/**
- * 펼칠 수 있는 묶음 수의 상한. 24 × 4 = 96건을 **한 번에** 받는다(서버 최대 100).
- * 그 너머는 쪽을 이어 붙이지 않고 "조건을 좁혀 보세요"로 돌려보낸다 — 96장을 넘겨 내리는 사람에게 필요한 것은
- * 다음 묶음이 아니라 더 좁은 조건이다. 뒤 묶음을 따로 받아 이으면 그사이 새 글이 끼어 겹치거나 빠진다
- */
-export const POST_LIST_MAX_PAGES = 4
+/** 한 번에 보이는 페이지 번호 수. 전체가 이만큼 이상이면 이전 · 다음 묶음 화살표를 보인다(본인 결정 2026-10-16) */
+export const POST_LIST_PAGE_GROUP = 5
 
-/**
- * 조건 → 서버 요청. 펼친 묶음 수만큼을 **첫 쪽 하나로** 받는다(`page=0`, `size=24n`).
- * 요청 하나 · 캐시 하나라 펼친 목록 사이에 겹침 · 빠짐이 없고, 새로고침해도 같은 한 번으로 다시 그린다
- */
+/** 조건 → 서버 요청. 화면의 n 페이지 = 서버의 n−1 쪽(0부터), 20건 */
 export function toPostListParams(search: PostListSearch): PostListParams {
   return {
     keyword: search.keyword,
@@ -174,56 +160,32 @@ export function toPostListParams(search: PostListSearch): PostListParams {
     location: search.location,
     from: search.from,
     to: search.to,
-    page: 0,
-    size: postListShownLimit(search),
+    page: Math.max(Math.trunc(search.page) || 1, 1) - 1,
+    size: POST_LIST_PAGE_SIZE,
   }
 }
 
-/** 지금 펼친 묶음이 담을 수 있는 글 수. 1~4 밖의 값은 그 안으로 맞춘다 */
-export function postListShownLimit(search: Pick<PostListSearch, 'page'>): number {
-  const pages = Math.min(Math.max(Math.trunc(search.page) || 1, 1), POST_LIST_MAX_PAGES)
-  return POST_LIST_PAGE_SIZE * pages
-}
-
 /**
- * 받아 둔 목록의 끝에서 할 수 있는 일.
- *   more   : 더 받을 글이 있고 펼칠 수 있다 → [더 보기]. `next` 는 다음에 붙을 글 수
- *   capped : 더 받을 글이 있지만 상한(96건)에 닿았다 → "조건을 좁혀 보세요"
- *   end    : 다 보여 줬다
- */
-export type PostListProgress =
-  | { kind: 'more'; next: number }
-  | { kind: 'capped' }
-  | { kind: 'end' }
-
-export function postListProgress(search: Pick<PostListSearch, 'page'>, loaded: number, total: number): PostListProgress {
-  if (loaded >= total) return { kind: 'end' }
-  if (search.page >= POST_LIST_MAX_PAGES) return { kind: 'capped' }
-  return { kind: 'more', next: Math.min(POST_LIST_PAGE_SIZE, total - loaded) }
-}
-
-/**
- * 주소를 바꾸는 방법. **조건을 바꾸면 기록을 쌓고**(뒤로가기 = 방금 고른 것 되돌리기),
- * **[더 보기]는 바꿔 쓴다**(뒤로가기가 "덜 펼친 목록"이 아니라 이전 화면으로 간다)
+ * 주소를 바꾸는 방법. 조건을 바꾸든 페이지를 넘기든 **기록을 쌓는다** — 뒤로가기 한 번이 방금 고른 조건 · 보던 페이지로 돌아간다
  */
 export interface PostListNavigation {
   search: PostListSearch
   replace: boolean
 }
 
-/** [더 보기] — 묶음 하나를 더 펼친다. 상한이면 그대로 */
-export function expandNavigation(search: PostListSearch): PostListNavigation {
-  return { search: { ...search, page: Math.min(search.page + 1, POST_LIST_MAX_PAGES) }, replace: true }
-}
-
-/** 조건을 바꾼다. 결과가 달라지므로 첫 묶음으로 돌아간다 */
+/** 조건을 바꾼다. 결과가 달라지므로 1페이지로 돌아간다 */
 export function conditionNavigation(next: PostListSearch): PostListNavigation {
   return { search: { ...next, page: 1 }, replace: false }
 }
 
+/** 페이지를 넘긴다. 조건은 그대로 */
+export function pageNavigation(search: PostListSearch, page: number): PostListNavigation {
+  return { search: { ...search, page: Math.max(Math.trunc(page) || 1, 1) }, replace: false }
+}
+
 /**
  * 하나만 고르는 묶음(카테고리 · 상태)에서 고른 값을 **바로** 건다. `undefined` 는 그 묶음의 기본값 —
- * 카테고리는 "전체", 상태는 "진행 중"(`DEFAULT_LIST_STATUSES`). 검색어 · 유형 · 다른 조건은 그대로 두고 첫 묶음으로 돌아간다
+ * 카테고리는 "전체", 상태는 "진행 중"(`DEFAULT_LIST_STATUSES`). 검색어 · 유형 · 다른 조건은 그대로 두고 1페이지로 돌아간다
  */
 export function withChoice<F extends 'category' | 'status'>(
   search: PostListSearch,
@@ -309,7 +271,7 @@ export function periodDraftFromSearch(search: PostListSearch): PostPeriodDraft {
  */
 export const EMPTY_PERIOD_DRAFT: PostPeriodDraft = { from: '', to: '' }
 
-/** 기간을 건다. 잘못된 날짜는 버린다. 나머지 조건은 그대로 두고 첫 묶음으로 돌아간다 */
+/** 기간을 건다. 잘못된 날짜는 버린다. 나머지 조건은 그대로 두고 1페이지로 돌아간다 */
 export function applyPeriodDraft(search: PostListSearch, draft: PostPeriodDraft): PostListSearch {
   return {
     ...search,
