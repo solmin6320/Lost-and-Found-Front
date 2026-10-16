@@ -71,7 +71,7 @@ const ROOM_MIN_PX = 200
  *   - 빈칸 · 공백뿐이면 띄우지 않는다
  *   - 앞 요청은 끊지 않는다 — 늦게 온 앞 말의 응답은 캐시에 남아 지금 말의 앞부분이면 걸러 쓰인다. 지금 보이는 것을 덮지는 않는다
  *     (그리는 것은 늘 지금 친 말로 고른다 — `resolveSuggestions`)
- *   - 요청이 0.3초를 넘기면 그때만 **왼쪽 돋보기 자리에 돋보기 대신 점 셋**(찾는 말이 바뀌면 0.3초를 새로 센다, QA-D-4 · P-2 · D-10).
+ *   - 요청이 0.3초를 넘기고 **지금 말로 보일 결과가 아직 없을 때만** **왼쪽 돋보기 자리에 돋보기 대신 점 셋**(찾는 말이 바뀌면 0.3초를 새로 센다, QA-D-4 · P-2 · D-10 · P-10).
  *     추천 칸 높이도, 글자 칸 폭도 바뀌지 않는다 — 예전엔 [X] 왼쪽에 서며 오른쪽 여백을 늘려 친 글자 끝이 잘렸다(320 · 200%에서 다 가려짐)
  *   - 제목에서 **맞는 조각만** 강조한다(`<mark>`, React 노드 — HTML 문자열로 만들지 않는다)
  *   - ↑ ↓ 로 가리키고 Enter 로 연다. 가리킨 칸이 없으면 Enter 는 보통 검색이다
@@ -158,8 +158,13 @@ export function PostSearchBar({ keyword, onSearch, suggestionParams, onOpenPost 
   const expanded = showing && items.length > 0
   // 0건은 서버가 지금 친 말로 확정했을 때만 말한다(치는 도중에 "없어요"가 깜빡이지 않게)
   const empty = showing && items.length === 0 && view?.confirmed === true
-  /** 요청 중 — 0.3초를 넘으면 돋보기 자리에 점 셋(한 번 뜨면 0.45초는 둔다). 찾는 말이 바뀌면 새로 센다 */
-  const fetching = showing && query.isFetching
+  /**
+   * 요청 중 — 0.3초를 넘으면 돋보기 자리에 점 셋(한 번 뜨면 0.45초는 둔다). 찾는 말이 바뀌면 새로 센다.
+   * **지금 친 말로 거른 결과가 이미 보이면 켜지 않는다**(QA-P-10) — 사용자는 이미 답을 보고 있다(서버 확인은 뒤에서 조용히).
+   * 켜는 것은 보일 것이 없거나, 보이는 것이 앞 말의 결과일 때뿐이다
+   */
+  const answered = view !== null && view.term === typed && items.length > 0
+  const fetching = showing && query.isFetching && !answered
   const fetchingDots = useLateFlag(fetching, LATE_FLAG_MS, { minShow: LATE_FLAG_MIN_SHOW_MS, resetKey: term })
   /** 보일 것이 아직 하나도 없는데 0.3초가 넘었다 — 스크린리더에 "찾는 중" */
   const loading = useLateFlag(fetching && !expanded && !empty, undefined, { resetKey: term })
