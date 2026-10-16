@@ -11,6 +11,8 @@
 .intents {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
+  /* 위아래로 쌓여도(아래 16rem 규칙) 두 칸 높이가 같다 — 고른 칸만 경고 줄로 길어지지 않게(QA-P-11) */
+  grid-auto-rows: 1fr;
   gap: var(--space-2);
 }
 
@@ -31,8 +33,10 @@
   }
 }
 
+/* 칸(링크)이 줄 높이를 다 채운다 — 한쪽 둘째 줄이 길어져도(고른 칸의 경고) 두 칸 높이가 같다(QA-P-11) */
 .item {
   position: relative;
+  display: grid;
   container: intent-item / inline-size;
 }
 
@@ -119,6 +123,15 @@
 /* 건수가 없으면 한 줄로 이어 쓴다 — "보기" 한 단어가 둘째 줄에 홀로 남지 않게. 좁으면 글자 단위로 접힌다 */
 .hint[data-single] {
   display: block;
+}
+
+/*
+ * 고른 칸의 경고 `누르면 처음 목록으로`(검색어 · 필터가 걸렸을 때) — 모든 폭에서 16px/600(QA-P-11, 2026-10-16).
+ * 좁은 칸의 둘째 줄(13px)은 정보(건수)라 작아도 되지만, 이 줄은 누르면 검색어 · 조건까지 풀린다는 경고다. 좁으면 낱말 사이에서 두 줄로
+ */
+.hint[data-reset] {
+  font-size: var(--text-base);
+  word-break: keep-all;
 }
 
 /* 건수가 들어올 자리. 숫자 두세 자 폭 */

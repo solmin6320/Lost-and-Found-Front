@@ -99,8 +99,9 @@ export function PostIntentPicker({ selected, hrefFor, resetTo, showCounts, onRes
                 <span>{intent.label[0]}</span> <span>{intent.label[1]}</span>
               </span>
               {on && !showCounts ? (
-                // 검색어 · 필터가 걸려 있다 — 누르면 그것까지 풀린다는 것을 둘째 줄이 먼저 말한다(칸 크기는 그대로)
-                <span className={styles.hint} data-single="">
+                // 검색어 · 필터가 걸려 있다 — 누르면 그것까지 풀린다는 것을 둘째 줄이 먼저 말한다.
+                // 경고라 모든 폭에서 16px(QA-P-11 — 좁은 칸의 13px 는 "여기를 누르면 다 풀린다"를 너무 작게 말했다)
+                <span className={styles.hint} data-single="" data-reset="">
                   누르면 처음 목록으로
                 </span>
               ) : (
