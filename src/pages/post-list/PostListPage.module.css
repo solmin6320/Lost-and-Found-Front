@@ -83,14 +83,21 @@
 
   /*
    * 붙어 있는 동안만 바탕과 아래 가는 선 — 화면 끝까지. 그림자 퍼짐(spread)으로 그려 가로 넘침이 생기지 않고,
-   * 잘라 내기(clip-path)로 아래 1px 만 남겨 선이 된다. 붙기 전에는 종이와 같은 색이라 아무것도 깔지 않는다
+   * 잘라 내기(clip-path)로 아래 1px 만 남겨 선이 된다. 붙기 전에는 종이와 같은 색이라 아무것도 깔지 않는다.
+   * **칩 줄 자체가 아니라 뒤에 깐 판(::before)에 그린다** — 칩 줄을 잘라 내면 넓은 화면의 펼침 칸(칩 바로 아래)까지 잘려,
+   * 붙은 칩 줄에서 연 장소 · 기간 칸이 보이지 않았다(2026-10-16 실측 1280 : 칸은 열려 포커스까지 받았는데 화면에 없었다)
    */
-  .chips[data-stuck] {
+  .chips[data-stuck]::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
     background-color: var(--surface);
     box-shadow:
       0 0 0 100vmax var(--surface),
       0 1px 0 100vmax var(--border-subtle);
     clip-path: inset(0 -100vmax -1px);
+    pointer-events: none;
   }
 
   /* 카드 · 결과 제목으로 포커스가 갈 때 붙은 칩 줄 밑에 숨지 않게. 이 화면에 있는 동안만 */
