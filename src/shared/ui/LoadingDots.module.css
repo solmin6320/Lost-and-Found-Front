@@ -34,6 +34,16 @@
   animation: dots-in var(--duration-base) var(--ease-out);
 }
 
+/* 자리만 잡아 둔 점(`reserve`) — 보이지 않고 움직이지도 않는다. 자리는 그대로라 나타날 때 옆 · 아래가 밀리지 않는다(QA-P-9) */
+.dots[data-idle] {
+  visibility: hidden;
+}
+
+.dots[data-idle],
+.dots[data-idle] .dot {
+  animation: none;
+}
+
 .dot {
   flex: none;
   width: var(--dot);

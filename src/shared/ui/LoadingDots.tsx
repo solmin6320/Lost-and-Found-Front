@@ -19,6 +19,11 @@ interface LoadingDotsProps {
   announce?: boolean
   /** 기다림을 처음부터 다시 잴 열쇠(찾는 말이 바뀌면 0.3초를 새로 센다) */
   resetKey?: unknown
+  /**
+   * 점 자리를 늘 잡아 둔다(QA-P-9). 기다리지 않을 때도 점 셋을 그려 두고 보이지만 않게 한다(`visibility`) —
+   * 점이 나타나고 사라질 때 옆 글자 · 아래 줄이 밀리지 않는다. 흐름 안에 서는 점(글자 뒤 · 줄 끝)에 쓴다
+   */
+  reserve?: boolean
   className?: string
 }
 
@@ -39,16 +44,24 @@ export function LoadingDots({
   variant = 'bubble',
   announce = true,
   resetKey,
+  reserve = false,
   className,
 }: LoadingDotsProps) {
   const shown = useLateFlag(active, delay, { minShow: LATE_FLAG_MIN_SHOW_MS, resetKey })
-  const dots = shown ? (
-    <span className={cx(styles.dots, variant === 'bubble' && styles.bubble)} aria-hidden="true" data-loading-dots="">
-      <span className={styles.dot} />
-      <span className={styles.dot} />
-      <span className={styles.dot} />
-    </span>
-  ) : null
+  const dots =
+    shown || reserve ? (
+      <span
+        className={cx(styles.dots, variant === 'bubble' && styles.bubble)}
+        aria-hidden="true"
+        // 보이는 점에만 단다 — 자리만 잡아 둔 점과 가른다(측정 · 강제 색상 규칙이 이것을 본다)
+        data-loading-dots={shown ? '' : undefined}
+        data-idle={shown ? undefined : ''}
+      >
+        <span className={styles.dot} />
+        <span className={styles.dot} />
+        <span className={styles.dot} />
+      </span>
+    ) : null
 
   if (!announce) {
     return <span className={cx(styles.root, className)}>{dots}</span>
