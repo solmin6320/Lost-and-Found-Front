@@ -134,15 +134,21 @@
   word-break: keep-all;
 }
 
-/* 건수가 들어올 자리. 숫자 두세 자 폭 */
+/*
+ * 건수가 들어올 자리 — 숫자 두세 자 폭을 먼저 잡고, 0.3초가 넘으면 그 안에 점 셋(본인 결정 2026-10-16, QA-P-12 — 모든 건수 자리가 같은 표시).
+ * 점은 칸 글자색(분실 칸 잉크 · 습득 칸 흰 글자)이고 글자 크기를 따른다(0.3em — 13px 줄 3.9px, 16px 줄 4.8px). 강제 색상에서는 링크 글자색
+ */
 .countPending {
-  display: inline-block;
+  --loading-dot: 0.3em;
+  --loading-dot-color: currentColor;
+  --loading-dot-forced: LinkText;
+  /* 가장 옅을 때도 칸 면과 3:1 — 0.6 이면 어둡게 습득 칸이 2.98 이라 0.7 로(밝게 분실 · 습득 4.09 · 3.93, 어둡게 4.03 · 3.49) */
+  --loading-dot-dim: 0.7;
+
+  display: inline-flex;
+  align-items: center;
   width: 1.75em;
-  height: 0.85em;
-  border-radius: var(--radius-xs);
-  background-color: currentColor;
-  vertical-align: -0.05em;
-  opacity: 0.25;
+  vertical-align: middle;
 }
 
 @container intent-item (width >= 17rem) {

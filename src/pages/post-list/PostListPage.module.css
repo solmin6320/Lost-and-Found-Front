@@ -182,7 +182,8 @@
 }
 
 .count {
-  min-width: 2.75rem;
+  /* 첫 로딩의 점 셋(1.63rem)이 들어갈 만큼 — 숫자(한두 자리 + 건)와 거의 같은 폭이라 숫자가 들어와도 이름표 안내가 거의 밀리지 않는다(QA-P-12) */
+  min-width: 1.75rem;
   color: var(--text-muted);
   font-size: var(--text-base);
   font-weight: var(--weight-semibold);

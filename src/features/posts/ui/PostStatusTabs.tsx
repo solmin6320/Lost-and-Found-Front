@@ -2,7 +2,7 @@ import type { ReactNode } from 'react'
 import { Link, type To } from 'react-router-dom'
 
 import { cx } from '@/shared/lib/cx'
-import { Skeleton } from '@/shared/ui/Skeleton'
+import { LoadingDots } from '@/shared/ui/LoadingDots'
 
 import { POST_STATUSES, type PostStatus } from '../api/types'
 import { POST_STATUS_LABEL } from '../model/labels'
@@ -33,7 +33,7 @@ const TABS: { status: PostStatus | undefined; label: string }[] = [
  *
  * 필터 칩(알약)과 모양을 가른다 — 칩은 조건을 켜고 끄는 것, 이것은 내 글을 나눠 보는 자리다.
  * 글자와 아래 막대(잉크)로만 고른 탭을 보인다. 색을 쓰지 않는다.
- * 숫자는 자리를 먼저 잡는다(스켈레톤) — 숫자가 들어와도 탭이 옆으로 밀리지 않는다.
+ * 숫자는 자리를 먼저 잡는다 — 0.3초가 넘으면 그 자리에 점 셋(모든 건수 자리가 같은 표시, 본인 결정 2026-10-16 QA-P-12).
  */
 export function PostStatusTabs({ selected, counts, hrefFor, trailing, className }: PostStatusTabsProps) {
   return (
@@ -47,7 +47,9 @@ export function PostStatusTabs({ selected, counts, hrefFor, trailing, className 
               <Link className={styles.tab} to={hrefFor(status)} aria-current={current ? 'page' : undefined}>
                 <span className={styles.label}>{label}</span>
                 {count === undefined ? (
-                  <Skeleton shape="text" width="1.25rem" className={styles.countSkeleton} />
+                  <span className={styles.countPending}>
+                    <LoadingDots announce={false} />
+                  </span>
                 ) : count === null ? null : (
                   <span className={styles.count} data-numeric>
                     {count.toLocaleString('ko-KR')}

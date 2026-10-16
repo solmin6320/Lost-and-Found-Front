@@ -282,7 +282,7 @@ export function PostListPage() {
               {total === undefined ? (
                 query.isPending ? (
                   // 첫 로딩 — 카드 자리는 스켈레톤, 건수 자리에는 점 셋(본인 결정 2026-10-14, QA-P-5).
-                  // 자리(2.75rem)를 먼저 잡아 두어 숫자가 들어와도 줄이 밀리지 않는다. 0.3초 전에는 빈 자리
+                  // 자리(점 셋 폭)를 먼저 잡아 두어 숫자가 들어와도 줄이 밀리지 않는다. 0.3초 전에는 빈 자리
                   <>
                     <span className="sr-only">게시글을 불러오는 중이에요</span>
                     <LoadingDots announce={false} />

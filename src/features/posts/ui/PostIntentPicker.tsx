@@ -5,6 +5,7 @@ import { Link, type To } from 'react-router-dom'
 import { isPlainClick } from '@/shared/lib/events'
 import { isPressNear, isTouchOutside } from '@/shared/lib/strictTap'
 import { X } from '@/shared/ui/icons'
+import { LoadingDots } from '@/shared/ui/LoadingDots'
 
 import type { PostType } from '../api/types'
 import { POST_INTENTS, intentHintTail, type PostIntent } from '../model/postIntent'
@@ -153,7 +154,8 @@ function resetGuard(reset: HTMLElement): number {
  * (넓은 칸에서는 면 오른쪽 끝에 한 줄로 선다 — CSS).
  * 건수는 목록과 별개로 불러온다 — 목록을 막지 않는다. **기준은 기본 목록과 같은 "진행 중"**(게시중 + 연락중, 회의 ⑧) —
  * 칸을 눌러 나오는 건수와 같다.
- * 불러오는 동안 숫자 자리를 비워 두어 글자가 밀리지 않고, 실패하면 숫자 대신 "모두" 를 쓴다.
+ * 불러오는 동안 숫자 자리를 먼저 잡아 두고 그 자리에 점 셋(0.3초 넘을 때만 — 모든 건수 자리가 같은 표시, 본인 결정 2026-10-16 QA-P-12).
+ * 실패하면 숫자 대신 "모두" 를 쓴다.
  * 검색어 · 필터가 걸려 있으면 숫자를 빼고 **한 줄로 이어 쓴다**("분실 글 보기") —
  * 두 줄로 끊으면 "보기" 한 단어가 둘째 줄에 홀로 남는다.
  */
@@ -179,7 +181,10 @@ function IntentHint({ intent, on, showCount }: { intent: PostIntent; on: boolean
         </span>
         <span aria-hidden="true">{intent.sees}</span>{' '}
         <span aria-hidden="true">
-          <span className={styles.countPending} />건 {on ? '보는 중' : '보기'}
+          <span className={styles.countPending}>
+            <LoadingDots announce={false} />
+          </span>
+          건 {on ? '보는 중' : '보기'}
         </span>
       </span>
     )
