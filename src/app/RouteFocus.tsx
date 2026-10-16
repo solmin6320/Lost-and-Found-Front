@@ -16,7 +16,10 @@ const ORIGIN_WAIT_MS = 600
  * - **뒤로 · 앞으로(POP)는 떠날 때 누른 링크로 돌아간다.** 목록 → 상세 → 뒤로 하면 보던 카드에 포커스가 있다.
  *   제목으로 보내면 스크롤은 카드 앞(ScrollMemory)인데 포커스는 맨 위라, 다음 Tab 에서 화면이 맨 위로 튄다.
  *   누른 링크는 스크롤 위치와 같은 키(`location.key`)로 기억한다. 링크가 없으면(지워진 글 · 다른 쪽) 제목으로 간다
- * - **경로가 바뀔 때만.** 첫 화면 · 같은 화면 안에서 주소만 바뀌는 것(목록의 필터 · 페이지)은 그 화면이 스스로 옮긴다
+ * - **경로가 바뀔 때만 제목으로.** 첫 화면 · 같은 화면 안에서 주소만 바뀌는 것(목록의 필터 · 페이지)은 그 화면이 스스로 옮긴다
+ * - **같은 경로의 뒤로 · 앞으로도 떠날 때 누른 링크로**(QA-P-16, 2026-10-17). 목록 2페이지 → 뒤로 하면 스크롤은 누르던 번호 줄(ScrollMemory)인데
+ *   포커스는 넘길 때 옮긴 결과 제목(화면 밖 2,600px 위)에 남아, 다음 Tab 에서 화면이 맨 위로 튀었다. 누른 링크(페이지 번호 · 화살표)를
+ *   모르면 — 지금 포커스가 화면에 보이면 그대로, 화면 밖이면 보이는 지금 페이지 번호(`aria-current="page"`)로. 스크롤은 밀지 않는다
  * - **스크롤을 밀지 않는다**(`preventScroll`). 뒤로가기로 목록을 되돌린 위치(ScrollMemory)가 그대로 남는다
  * - **화면이 먼저 옮겼으면 두고 본다.** 이어 쓰기 묻기 · 폼 오류처럼 화면이 고른 자리가 더 정확하다.
  *   사용자가 기다리는 사이 Tab 을 눌렀어도 그대로 둔다
@@ -57,7 +60,10 @@ export function RouteFocus() {
 
   useEffect(() => {
     currentKey.current = key
-    if (previous.current === pathname) return
+    if (previous.current === pathname) {
+      if (navigationType === 'POP') returnToOrigin(origins.current.get(key), frame)
+      return
+    }
     previous.current = pathname
     cancelAnimationFrame(frame.current)
     setAnnouncement('')
@@ -113,4 +119,44 @@ export function RouteFocus() {
       {announcement}
     </p>
   )
+}
+
+/**
+ * 같은 경로 안의 뒤로 · 앞으로 — 그 기록에서 떠날 때 누른 링크로, 없으면 지금 페이지 번호로 포커스(스크롤은 그대로).
+ * 기다리는 동안 사용자가 포커스를 옮겼으면(Tab · 누름) 손대지 않는다
+ */
+function returnToOrigin(originHref: string | undefined, frame: { current: number }) {
+  cancelAnimationFrame(frame.current)
+  const main = document.getElementById('main')
+  if (!main) return
+  const before = document.activeElement
+  const started = performance.now()
+
+  frame.current = requestAnimationFrame(function move() {
+    if (document.activeElement !== before) return
+    if (originHref) {
+      for (const link of main.querySelectorAll<HTMLAnchorElement>('a[href]')) {
+        if (link.getAttribute('href') === originHref) {
+          link.focus({ preventScroll: true })
+          return
+        }
+      }
+      // 아직 그려지는 중일 수 있다(캐시가 없으면 받은 뒤에 그린다) — 잠깐 더 기다린다
+      if (performance.now() - started < ORIGIN_WAIT_MS) {
+        frame.current = requestAnimationFrame(move)
+        return
+      }
+    }
+    // 누른 링크를 모른다(검색 · 칩처럼 링크가 아닌 것으로 떠났다) — 지금 포커스가 화면에 보이면 그대로,
+    // 화면 밖이면 보이는 페이지 번호(지금 페이지)로. 그것도 화면 밖이면 두고 본다
+    if (inView(document.activeElement)) return
+    const current = main.querySelector<HTMLElement>('nav[aria-label="페이지 이동"] a[aria-current="page"]')
+    if (current && inView(current)) current.focus({ preventScroll: true })
+  })
+}
+
+function inView(element: Element | null): boolean {
+  if (!element || element === document.body) return false
+  const rect = element.getBoundingClientRect()
+  return rect.height > 0 && rect.bottom > 0 && rect.top < window.innerHeight
 }
