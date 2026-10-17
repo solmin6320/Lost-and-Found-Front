@@ -31,15 +31,6 @@
   height: var(--icon-md);
 }
 
-/*
- * 추천을 찾는 요청이 0.3초를 넘으면 돋보기 자리에 점 셋(QA-D-10). 버튼 상자(44px) 안에서 바뀌어 글자 칸의 여백 · 폭은 그대로다 —
- * 예전엔 지우기 [X] 왼쪽에 서며 오른쪽 여백을 32px 늘려 친 글자 끝이 잘렸다. 점은 돋보기와 같은 본문 잉크, 강제 색상에서는 버튼 글자색
- */
-.submit {
-  --loading-dot-color: currentColor;
-  --loading-dot-forced: ButtonText;
-}
-
 .submit:active {
   opacity: var(--press-opacity);
 }
@@ -94,6 +85,22 @@
   .input:not(:focus):hover {
     border-color: var(--border-strong);
   }
+}
+
+/*
+ * 추천을 찾는 점 셋(QA-D-18) — 칸 안, 친 글자 첫머리(왼쪽 여백과 같은 x) 아래 4px 위에 겹쳐 선다. 세 후보를 캡처로 비교해 골랐다 :
+ *   ① 칸 오른쪽 [X] 왼쪽 — 검색칸 흔한 자리지만 여백을 늘리지 않으면 긴 글자 끝을 덮는다(늘리면 D-10 — 320 · 200%에서 친 글자가 다 가려졌다)
+ *   ② 칸 바로 아래 틈 — 375 에서 틈이 12px 라 칩 줄 위 선에 붙고, 추천 칸이 열리면 그 밑에 깔린다
+ *   ③ 칸 안 글자 아래(이것) — 기다리는 대상(친 말) 바로 곁, 폭 · 높이 · 추천 칸 어느 것도 바꾸지 않는다
+ * 점은 4px(셋 17px) — 글자(16px) 아래 틈에 들어가는 크기. 색은 본문 잉크, 강제 색상에서는 CanvasText(LoadingDots 기본). 누름은 칸이 받는다
+ */
+.fieldDots {
+  --loading-dot: 0.25rem;
+
+  position: absolute;
+  bottom: var(--space-1);
+  left: calc(var(--space-4) + var(--icon-md) + var(--space-3));
+  z-index: 1;
 }
 
 /* 브라우저마다 다른 기본 지우기 버튼 대신 같은 모양의 버튼을 둔다 */

@@ -71,7 +71,7 @@ const ROOM_MIN_PX = 200
  *   - 빈칸 · 공백뿐이면 띄우지 않는다
  *   - 앞 요청은 끊지 않는다 — 늦게 온 앞 말의 응답은 캐시에 남아 지금 말의 앞부분이면 걸러 쓰인다. 지금 보이는 것을 덮지는 않는다
  *     (그리는 것은 늘 지금 친 말로 고른다 — `resolveSuggestions`)
- *   - 요청이 0.3초를 넘기고 **지금 말로 보일 결과가 아직 없을 때만** **왼쪽 돋보기 자리에 돋보기 대신 점 셋**(찾는 말이 바뀌면 0.3초를 새로 센다, QA-D-4 · P-2 · D-10 · P-10).
+ *   - 요청이 0.3초를 넘기고 **지금 말로 보일 결과가 아직 없을 때만** **칸 안, 친 글자 첫머리 아래에 점 셋** — 돋보기는 그대로(찾는 말이 바뀌면 0.3초를 새로 센다, QA-D-4 · P-2 · D-10 · P-10 · D-18).
  *     추천 칸 높이도, 글자 칸 폭도 바뀌지 않는다 — 예전엔 [X] 왼쪽에 서며 오른쪽 여백을 늘려 친 글자 끝이 잘렸다(320 · 200%에서 다 가려짐)
  *   - 제목에서 **맞는 조각만** 강조한다(`<mark>`, React 노드 — HTML 문자열로 만들지 않는다)
  *   - ↑ ↓ 로 가리키고 Enter 로 연다. 가리킨 칸이 없으면 Enter 는 보통 검색이다
@@ -159,7 +159,7 @@ export function PostSearchBar({ keyword, onSearch, suggestionParams, onOpenPost 
   // 0건은 서버가 지금 친 말로 확정했을 때만 말한다(치는 도중에 "없어요"가 깜빡이지 않게)
   const empty = showing && items.length === 0 && view?.confirmed === true
   /**
-   * 요청 중 — 0.3초를 넘으면 돋보기 자리에 점 셋(한 번 뜨면 0.45초는 둔다). 찾는 말이 바뀌면 새로 센다.
+   * 요청 중 — 0.3초를 넘으면 칸 안 글자 아래에 점 셋(한 번 뜨면 0.45초는 둔다). 찾는 말이 바뀌면 새로 센다.
    * **지금 친 말로 거른 결과가 이미 보이면 켜지 않는다**(QA-P-10) — 사용자는 이미 답을 보고 있다(서버 확인은 뒤에서 조용히).
    * 켜는 것은 보일 것이 없거나, 보이는 것이 앞 말의 결과일 때뿐이다
    */
@@ -275,11 +275,11 @@ export function PostSearchBar({ keyword, onSearch, suggestionParams, onOpenPost 
       </label>
       {/*
         돋보기도 보내기다(본인 피드백 2026-10-07). 보이는 아이콘 20px, 누르는 면 44px. Enter 와 같은 일을 한다.
-        추천을 찾는 요청이 0.3초를 넘으면 돋보기 대신 점 셋(QA-D-10) — 버튼 상자 안에서 바뀌어 글자 칸 폭이 그대로다. 이름은 그대로 `검색`,
-        읽기는 아래 알림 줄(`찾는 중이에요.`)이 맡는다
+        돋보기는 늘 그대로 둔다(QA-D-18) — 버튼 안 점은 "그 버튼을 누른 요청"(Button 의 점)과 같은 모양이라 누르지 않은 버튼이 일하는 것처럼 보였고,
+        치는 동안 버튼의 유일한 표지(돋보기)가 사라졌다. 추천을 찾는 점은 아래 `fieldDots`
       */}
       <button type="submit" className={styles.submit} aria-label="검색">
-        {fetchingDots ? <LoadingDots announce={false} delay={0} /> : <MagnifyingGlass />}
+        <MagnifyingGlass />
       </button>
       <input
         ref={inputRef}
@@ -308,6 +308,11 @@ export function PostSearchBar({ keyword, onSearch, suggestionParams, onOpenPost 
         spellCheck={false}
         enterKeyHint="search"
       />
+      {/*
+        추천을 찾는 요청이 0.3초를 넘으면 칸 안, 친 글자 첫머리 아래에 점 셋(QA-D-18 · 후보 셋을 캡처로 비교해 골랐다 — 화면정의서 SCR-01 검색).
+        칸 위에 겹쳐 서서 글자 칸 폭(QA-D-10) · 추천 칸 높이(QA-D-4)를 바꾸지 않는다. 읽기는 알림 줄(`찾는 중이에요.`)이 맡는다
+      */}
+      {fetchingDots ? <LoadingDots announce={false} delay={0} className={styles.fieldDots} /> : null}
       {text ? (
         <button type="button" className={styles.clear} aria-label="검색어 지우기" onClick={handleClear}>
           <X />
