@@ -199,3 +199,45 @@ button.trigger[aria-expanded='true'] {
     border-color: var(--border-hover);
   }
 }
+
+/* 320 폭(22.5rem 미만)의 칩 글자 줄바꿈 — 위 기본 규칙(한 줄 · 알약 · 값 12em 말줄임)보다 뒤에 둬야 이긴다 */
+@media not all and (min-width: 22.5rem) {
+  /*
+   * 줄보다 긴 칩은 글자가 줄을 바꾼다(QA-D-19) — 말줄임만 하면 320 · 글자 200%에서 `카테고리: 지.`처럼 값이 한 글자로 잘려
+   * 무엇이 걸렸는지 잃었다. 이름(`카테고리:`)과 값이 각각 한 덩어리로 줄을 갈아 서고, 값도 띄어쓰기에서 줄을 바꾼다.
+   * 아주 긴 값(장소 100자)은 세 줄에서 말줄임 — 전체 값은 title · 칩을 눌러 연 칸에 있다. 칩이 두 줄이 되면 위아래 4px 를 더 둔다
+   */
+  .trigger,
+  .triggerMain {
+    white-space: normal;
+  }
+
+  /*
+   * 모서리는 한 줄 칩 높이의 절반(1.125rem) — 한 줄이면 지금과 같은 알약, 두 줄 이상이면 둥근 네모가 된다.
+   * 알약 반지름(999px)을 그대로 두면 두 줄 칩이 타원이 되어 첫 글자 · 끝 글자가 곡선에 붙었다
+   */
+  .trigger {
+    border-radius: 1.125rem;
+  }
+
+  .triggerMain {
+    flex-wrap: wrap;
+    row-gap: 0;
+    padding-block: var(--space-1);
+    border-radius: 1.125rem 0 0 1.125rem;
+    text-align: start;
+  }
+
+  .triggerClear {
+    border-radius: 0 1.125rem 1.125rem 0;
+  }
+
+  .value {
+    display: -webkit-box;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    word-break: keep-all;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+  }
+}
