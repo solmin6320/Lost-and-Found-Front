@@ -116,13 +116,20 @@ function MyPosts({ enabled }: { enabled: boolean }) {
    * 쪽을 넘기면 탭 줄부터 다시 읽는다. 포커스는 탭 줄 바로 위 결과 제목(`전체 글` — 화면에는 탭이 이름이라 읽는 사람에게만)에 —
    * 목록이 결과 제목으로 데려가는 것과 같다(QA-P-23). 예전엔 지금 탭에 두어 Tab 네 번을 지나야 첫 카드였고,
    * 탭(`aria-current`)과 지금 페이지 번호가 한 화면에 둘 다 "지금 페이지"로 읽혔다
+   *
+   * 주소가 그려진 **뒤에** 옮긴다(목록과 같다, QA-P-25 · D-21). 누른 직후(다음 프레임)에 옮기면 주소가 아직 그려지기 전이라
+   * 그 스크롤이 떠나는 페이지의 기록으로 남아(ScrollMemory) 뒤로가기가 누르던 번호 줄이 아니라 맨 위(탭 줄)로 돌아왔다
    */
+  const turnedPage = useRef(false)
   function handlePageNavigate() {
-    requestAnimationFrame(() => {
-      tabsRef.current?.scrollIntoView({ block: 'start' })
-      headingRef.current?.focus({ preventScroll: true })
-    })
+    turnedPage.current = true
   }
+  useEffect(() => {
+    if (!turnedPage.current) return
+    turnedPage.current = false
+    tabsRef.current?.scrollIntoView({ block: 'start' })
+    headingRef.current?.focus({ preventScroll: true })
+  }, [search.status, search.page])
 
   const tabLabel = search.status ? POST_STATUS_LABEL[search.status] : '전체'
   const settled = query.data && !query.isPlaceholderData ? query.data : null
