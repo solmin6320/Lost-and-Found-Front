@@ -232,7 +232,8 @@ export function PostListPage() {
 
       <section className={styles.results} aria-labelledby="post-list-heading">
         <div ref={summaryRef} className={styles.summary}>
-          <h2 id="post-list-heading" ref={headingRef} tabIndex={-1} className={styles.heading}>
+          {/* data-page-turn-focus : 같은 경로의 뒤로 · 앞으로에서 고른 자리가 화면 밖이면 여기로(RouteFocus, QA-P-24) */}
+          <h2 id="post-list-heading" ref={headingRef} tabIndex={-1} className={styles.heading} data-page-turn-focus>
             {heading}
           </h2>
           {/*

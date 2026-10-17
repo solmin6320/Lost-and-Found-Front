@@ -161,8 +161,11 @@ function MyPosts({ enabled }: { enabled: boolean }) {
       </header>
 
       <section aria-labelledby="my-posts-heading">
-        {/* 결과 제목 — 쪽을 넘기면 포커스가 여기로 온다(목록의 결과 제목과 같은 자리 · 같은 일). 화면에는 탭이 이름이라 읽는 사람에게만 */}
-        <h2 id="my-posts-heading" ref={headingRef} tabIndex={-1} className="sr-only">
+        {/*
+          결과 제목 — 쪽을 넘기면 포커스가 여기로 온다(목록의 결과 제목과 같은 자리 · 같은 일). 화면에는 탭이 이름이라 읽는 사람에게만.
+          뒤로 · 앞으로에서 고른 자리가 화면 밖이면 여기로(data-page-turn-focus, RouteFocus)
+        */}
+        <h2 id="my-posts-heading" ref={headingRef} tabIndex={-1} className="sr-only" data-page-turn-focus>
           {`${tabLabel} 글`}
         </h2>
         {/* 올린 글이 하나도 없으면 탭을 두지 않는다 — "0 0 0 0" 은 읽을 거리가 아니라 소음이다. 빈 상태가 첫 글을 권한다 */}

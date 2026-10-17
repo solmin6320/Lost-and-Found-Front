@@ -1,6 +1,8 @@
 import { useEffect, useLayoutEffect, useRef } from 'react'
 import { useLocation, useNavigationType } from 'react-router-dom'
 
+import { setScrollRestoring } from './scrollRestore'
+
 /**
  * 화면을 오갈 때의 스크롤 위치. 데이터 라우터의 `<ScrollRestoration>` 대신 직접 둔다(새 화면 · 뒤로가기 규칙과 새로고침 뒤 이어 두기가 이 앱에 맞춰져 있다).
  *
@@ -13,6 +15,7 @@ import { useLocation, useNavigationType } from 'react-router-dom'
  * 위치는 기록 항목(`location.key`)마다 적어 둔다. 스크롤을 따라 적되 프레임당 한 번, 상태로 올리지 않는다(다시 그리지 않음).
  * 새로고침 뒤에도 같은 탭이면 이어지도록 떠날 때 sessionStorage 에 넣는다. 비밀이 아니다.
  * 브라우저의 자동 복원은 끈다(`manual`) — 둘이 겹치면 React 가 그리기 전에 브라우저가 먼저 옮겨 어긋난다.
+ * 되돌리는 동안은 `scrollRestore` 에 알린다 — 포커스(RouteFocus)는 다 되돌린 뒤의 화면을 보고 자리를 고른다(QA-P-24).
  */
 
 const STORAGE_KEY = 'scroll:v1'
@@ -93,16 +96,21 @@ export function ScrollMemory() {
     // 목적지가 아직 짧으면(불러오는 중) 높이가 찰 때까지 몇 프레임 기다린다
     const started = performance.now()
     let frame = 0
+    setScrollRestoring(true)
     function restore() {
       const reachable = document.documentElement.scrollHeight - window.innerHeight
       if (reachable >= (target ?? 0) || performance.now() - started > RESTORE_WAIT_MS) {
         window.scrollTo({ top: target, left: 0, behavior: 'instant' })
+        setScrollRestoring(false)
         return
       }
       frame = requestAnimationFrame(restore)
     }
     restore()
-    return () => cancelAnimationFrame(frame)
+    return () => {
+      cancelAnimationFrame(frame)
+      setScrollRestoring(false)
+    }
   }, [location.key, location.pathname, navigationType])
 
   return null
