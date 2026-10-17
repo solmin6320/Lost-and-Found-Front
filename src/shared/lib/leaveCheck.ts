@@ -9,7 +9,9 @@ import type { FocusEvent } from 'react'
  * 제출 검사가 **같은 문장을 띄우고 그 칸으로 데려간다**(focusAndReveal). 그러니 그 경우만 벗어날 때의 검사를 미뤄도 잃는 것이 없다.
  *
  * 어떻게 아나 — 문서에서 누름(pointerdown)을 지켜본다. 버튼이 포커스를 받지 않는 브라우저(iOS)는 `relatedTarget` 이 비어 있어
- * 그것만으로는 알 수 없다. 누름이 이 폼의 제출 버튼에서 시작됐고 아직 누르는 중이거나 방금(1초 안)이면 미룬다.
+ * 그것만으로는 알 수 없다. 누름이 이 폼의 제출 버튼에서 시작됐고 **아직 누르는 중이거나 손을 뗀 지 0.3초 안**이면 미룬다.
+ * 예전엔 "누름을 시작한 지 1초 안"으로 세어, 터치를 1초 넘게 누르면(손을 뗀 뒤에야 blur 가 온다) 바로 검사해 오류가 버튼을 밀고
+ * 제출이 0번이었다(QA-D-23). 손 뗀 시각부터 세면 누른 시간과 상관없다
  * 키보드로 Tab 해서 버튼에 온 것은 누름이 없으니 바로 검사한다(키보드는 자리가 밀려도 빗나가지 않는다).
  *
  * 미룬 뒤 — 누름이 끝나고(손을 뗌 → click) 그 폼이 제출됐으면 검사를 버린다(제출 검사가 이미 같은 오류를 붙였다).
@@ -18,12 +20,12 @@ import type { FocusEvent } from 'react'
 
 interface Press {
   button: HTMLButtonElement | HTMLInputElement
-  at: number
-  down: boolean
+  /** 손을 뗀 시각(`pointerup` · `pointercancel`). 누르는 중이면 `null` */
+  releasedAt: number | null
 }
 
-/** 누름을 "방금"으로 볼 시간. 탭은 손을 뗀 뒤에야 blur 가 온다(터치 → 합성 mousedown) — 보통 0.1~0.3초 */
-export const PRESS_FRESH_MS = 1000
+/** 손을 뗀 뒤 "방금"으로 볼 시간. 탭은 손을 뗀 뒤에야 blur 가 온다(터치 → 합성 mousedown) — 보통 0.1초 안 */
+export const RELEASE_FRESH_MS = 300
 /** 손을 뗀 뒤 click 을 기다리는 시간. click 은 보통 같은 작업 안에서 바로 온다 — 끌어 놓아 click 이 없을 때의 상한 */
 export const CLICK_WAIT_MS = 400
 
@@ -42,12 +44,12 @@ if (typeof document !== 'undefined') {
     'pointerdown',
     (event) => {
       const button = submitButtonOf(event.target)
-      press = button ? { button, at: performance.now(), down: true } : null
+      press = button ? { button, releasedAt: null } : null
     },
     true,
   )
   const release = () => {
-    if (press) press.down = false
+    if (press && press.releasedAt === null) press.releasedAt = performance.now()
   }
   document.addEventListener('pointerup', release, true)
   document.addEventListener('pointercancel', release, true)
@@ -55,12 +57,12 @@ if (typeof document !== 'undefined') {
 
 /** 지금 이 폼의 제출 버튼을 누르는 중(또는 방금 눌렀다)인가. 순수 판정 — 시험용으로 꺼내 둔다 */
 export function isPressingSubmit(
-  current: { form: HTMLFormElement | null; at: number; down: boolean } | null,
+  current: { form: HTMLFormElement | null; releasedAt: number | null } | null,
   form: HTMLFormElement | null,
   now: number,
 ): boolean {
   if (!current || !form || current.form !== form) return false
-  return current.down || now - current.at < PRESS_FRESH_MS
+  return current.releasedAt === null || now - current.releasedAt < RELEASE_FRESH_MS
 }
 
 function formOf(field: Element): HTMLFormElement | null {
@@ -112,13 +114,13 @@ function afterPress(form: HTMLFormElement, stillDown: boolean, done: (submitted:
 export function checkOnLeave<E extends HTMLElement>(event: FocusEvent<E>, check: (event: FocusEvent<E>) => void): void {
   const field = event.currentTarget
   const form = formOf(field)
-  const current = press ? { form: press.button.form, at: press.at, down: press.down } : null
+  const current = press ? { form: press.button.form, releasedAt: press.releasedAt } : null
   if (!form || !isPressingSubmit(current, form, performance.now())) {
     check(event)
     return
   }
   const kept = { ...event, currentTarget: field, target: event.target } as FocusEvent<E>
-  afterPress(form, Boolean(current?.down), (submitted) => {
+  afterPress(form, current?.releasedAt === null, (submitted) => {
     if (!submitted) check(kept)
   })
 }
