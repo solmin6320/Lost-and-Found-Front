@@ -18,7 +18,8 @@ interface PaginationProps {
   onNavigate?: () => void
   /**
    * 번호를 이만큼씩 묶어 보인다(목록 SCR-01, 본인 결정 2026-10-16 — `1 2 3 4 5` · `6 7 8 9 10`).
-   * 전체 페이지가 이만큼 이상이면 양 끝에 이전 · 다음 **묶음** 화살표(‹ ›)를 둔다 — 첫 묶음의 ‹ · 마지막 묶음의 › 는 흐리게(누를 수 없음).
+   * 전체가 이보다 **많으면**(6페이지부터) 양 끝에 이전 · 다음 **묶음** 화살표(‹ ›)를 둔다 — 첫 묶음의 ‹ · 마지막 묶음의 › 는 흐리게(누를 수 없음).
+   * 딱 이만큼(5페이지)이면 화살표를 두지 않는다 — 둘 다 누를 수 없는 화살표는 할 일이 없다(본인 결정 2026-10-17, QA-D-15)
    * 주지 않으면 처음 · 끝 · 지금 앞뒤만 남기는 모양(내가 쓴 글)
    */
   groupSize?: number
@@ -126,6 +127,11 @@ function pageGroup(page: number, totalPages: number, groupSize: number): { start
   return { start, end: Math.min(start + groupSize - 1, totalPages) }
 }
 
+/** 묶음 이름 — `6~10페이지`, 한 쪽뿐이면 `6페이지`(QA-P-18② · D-16 — `6~6페이지`라고 읽지 않게) */
+export function pageRangeLabel({ start, end }: { start: number; end: number }): string {
+  return start === end ? `${start}페이지` : `${start}~${end}페이지`
+}
+
 /**
  * 묶음 페이지 번호 — `‹ 1 2 3 4 5 ›`. 번호는 지금 묶음만, 화살표는 앞 · 뒤 묶음으로 간다(‹ 는 앞 묶음의 끝 번호, › 는 뒤 묶음의 첫 번호).
  * 화살표는 아이콘만 보이고 이름표(툴팁)와 이름(`이전 페이지 묶음, 1~5페이지`)이 무엇을 하는지 말한다.
@@ -133,7 +139,8 @@ function pageGroup(page: number, totalPages: number, groupSize: number): { start
  */
 function GroupedPagination({ page, totalPages, hrefFor, onNavigate, groupSize }: PaginationProps & { groupSize: number }) {
   const { start, end } = pageGroup(page, totalPages, groupSize)
-  const arrows = totalPages >= groupSize
+  // 화살표는 6페이지부터 — 딱 다섯 페이지면 둘 다 누를 수 없는 화살표만 남는다(본인 결정 2026-10-17, QA-D-15 · P-18①)
+  const arrows = totalPages > groupSize
   const prev = start > 1 ? pageGroup(start - 1, totalPages, groupSize) : null
   const next = end < totalPages ? pageGroup(end + 1, totalPages, groupSize) : null
   const handleClick = (event: MouseEvent) => {
@@ -150,12 +157,12 @@ function GroupedPagination({ page, totalPages, hrefFor, onNavigate, groupSize }:
             <Link
               className={cx(styles.arrow, styles.arrowPrev, tip.host)}
               to={hrefFor(prev.end)}
-              aria-label={`이전 페이지 묶음, ${prev.start}~${prev.end}페이지`}
+              aria-label={`이전 페이지 묶음, ${pageRangeLabel(prev)}`}
               onClick={handleClick}
             >
               <CaretLeft />
               <span className={tip.tip} aria-hidden="true">
-                {prev.start}~{prev.end}페이지
+                {pageRangeLabel(prev)}
               </span>
             </Link>
           ) : (
@@ -187,12 +194,12 @@ function GroupedPagination({ page, totalPages, hrefFor, onNavigate, groupSize }:
             <Link
               className={cx(styles.arrow, styles.arrowNext, tip.host)}
               to={hrefFor(next.start)}
-              aria-label={`다음 페이지 묶음, ${next.start}~${next.end}페이지`}
+              aria-label={`다음 페이지 묶음, ${pageRangeLabel(next)}`}
               onClick={handleClick}
             >
               <CaretRight />
               <span className={cx(tip.tip, styles.tipEnd)} aria-hidden="true">
-                {next.start}~{next.end}페이지
+                {pageRangeLabel(next)}
               </span>
             </Link>
           ) : (
