@@ -1,7 +1,7 @@
 import { useCallback, useMemo } from 'react'
 import { useSearchParams, type To } from 'react-router-dom'
 
-import { useCanonicalPageParam } from '@/shared/lib/pageParam'
+import { parsePageParam, useCanonicalPageParam } from '@/shared/lib/pageParam'
 
 import { isPostStatus, type MyPostsParams, type PostStatus } from '../api/types'
 
@@ -36,10 +36,9 @@ export function myPostsSkeletonCount(known: number | undefined, page: number): n
 
 export function parseMyPostsSearch(params: URLSearchParams): MyPostsSearch {
   const status = params.get('status')
-  const page = Number(params.get('page'))
   return {
     status: isPostStatus(status) ? status : undefined,
-    page: Number.isSafeInteger(page) && page >= 1 ? page : 1,
+    page: parsePageParam(params.get('page')),
   }
 }
 

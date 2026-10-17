@@ -36,6 +36,7 @@ import {
 import { isPlainClick } from '@/shared/lib/events'
 import { getErrorMessage } from '@/shared/lib/http'
 import { pageAnnouncement } from '@/shared/lib/pageAnnouncement'
+import { useDropPageWhenEmpty } from '@/shared/lib/pageParam'
 import { useDocumentTitle } from '@/shared/lib/useDocumentTitle'
 import type { PagedModel } from '@/shared/types/api'
 import { Button, ButtonLink } from '@/shared/ui/Button'
@@ -180,6 +181,8 @@ export function PostListPage() {
   const filtered = hasActiveFilters(search)
   // 확정된 데이터로만 판정한다. 조건을 바꾸는 동안의 앞 목록 숫자로 판정하면 입구가 한 번 떴다 사라진다
   const confirmedTotal = view && !query.isPlaceholderData ? view.page.totalElements : undefined
+  // 0건이면 ?page=4 를 지운다 — 갈 페이지가 없다(QA-P-28)
+  useDropPageWhenEmpty(confirmedTotal)
   const totalPages = view?.page.totalPages ?? 0
   /** 뒤 페이지가 남았나(확정된 목록 기준) */
   const morePages = view !== undefined && !stale && search.page < totalPages

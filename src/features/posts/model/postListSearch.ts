@@ -1,4 +1,5 @@
 import { formatDate, isIsoDate } from '@/shared/lib/date'
+import { parsePageParam } from '@/shared/lib/pageParam'
 
 import {
   isPostCategory,
@@ -101,8 +102,6 @@ export function parsePostListSearch(params: URLSearchParams): PostListSearch {
     to = undefined
   }
 
-  const page = Number(params.get('page'))
-
   return {
     keyword: (params.get('keyword') ?? '').trim().slice(0, KEYWORD_MAX_LENGTH),
     type: isPostType(type) ? type : undefined,
@@ -111,7 +110,7 @@ export function parsePostListSearch(params: URLSearchParams): PostListSearch {
     location: (params.get('location') ?? '').trim().slice(0, LOCATION_MAX_LENGTH),
     from,
     to,
-    page: Number.isSafeInteger(page) && page >= 1 ? page : 1,
+    page: parsePageParam(params.get('page')),
   }
 }
 

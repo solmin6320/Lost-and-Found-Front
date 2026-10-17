@@ -26,6 +26,7 @@ import {
 import { isPlainClick } from '@/shared/lib/events'
 import { getErrorMessage, subscribeSessionExpired } from '@/shared/lib/http'
 import { pageAnnouncement } from '@/shared/lib/pageAnnouncement'
+import { useDropPageWhenEmpty } from '@/shared/lib/pageParam'
 import { useDocumentTitle } from '@/shared/lib/useDocumentTitle'
 import type { PagedModel } from '@/shared/types/api'
 import { ButtonLink } from '@/shared/ui/Button'
@@ -137,6 +138,8 @@ function MyPosts({ enabled }: { enabled: boolean }) {
 
   const tabLabel = search.status ? POST_STATUS_LABEL[search.status] : '전체'
   const settled = query.data && !query.isPlaceholderData ? query.data : null
+  // 이 탭이 0건이면 ?page=4 를 지운다 — 갈 페이지가 없다(QA-P-28, 목록과 같다)
+  useDropPageWhenEmpty(settled?.page.totalElements)
 
   /*
    * 결과 알림. 같은 탭에서 쪽을 넘긴 결과는 목록과 같은 문장(`3페이지예요. 230건 중 41~60번째 글이에요.`, QA-P-23),
