@@ -15,6 +15,11 @@ interface PostStatusTabsProps {
   /** 지금 보는 탭. `undefined` 면 전체 */
   selected: PostStatus | undefined
   counts: PostStatusCounts
+  /**
+   * 이번 방문에 받은 적 있는 건수(쿼리 캐시). 숫자를 기다리는 동안 그 자릿수만큼 자리를 잡는다 — 없으면 두 자리(QA-P-26).
+   * 화면에 숫자로 내지 않는다
+   */
+  knownCounts?: Partial<Record<PostStatus | 'ALL', number>>
   /** 탭 → 주소. 경로는 부른 쪽이 정한다 */
   hrefFor: (status: PostStatus | undefined) => To
   /** 탭 줄에 덧붙는 것(다시 받는 중의 점 셋). 탭 목록 밖 — 목록 항목 수가 늘지 않는다. 자리는 부른 쪽이 정한다(이 줄이 기준 상자) */
@@ -34,10 +39,11 @@ const TABS: { status: PostStatus | undefined; label: string }[] = [
  *
  * 필터 칩(알약)과 모양을 가른다 — 칩은 조건을 켜고 끄는 것, 이것은 내 글을 나눠 보는 자리다.
  * 글자와 아래 막대(잉크)로만 고른 탭을 보인다. 색을 쓰지 않는다.
- * 숫자는 자리를 먼저 잡는다(숫자 한 자리 폭) — 0.3초가 넘으면 그 자리에 점 셋이 겹쳐 선다(모든 건수 자리가 같은 표시, 본인 결정 2026-10-16 QA-P-12).
- * 예전엔 점 자리(20px)가 숫자보다 넓어 숫자가 들어오면 탭이 11px 줄고 뒤 탭들이 왼쪽으로 33px 당겨졌다(QA-P-19).
+ * 숫자는 자리를 먼저 잡는다 — 이번 방문에 받은 건수가 있으면 그 자릿수, 없으면 두 자리(QA-P-26). 0.3초가 넘으면 그 자리에
+ * 목록 건수 자리와 같은 6px 점 셋이 선다(모든 건수 자리가 같은 표시, 본인 결정 2026-10-16 QA-P-12 · 2026-10-18 점 크기).
+ * 네 숫자는 한꺼번에 들어온다(부른 쪽이 셋 다 받은 뒤 넘긴다, QA-D-25) — 탭 줄이 두세 번 나뉘어 움직이지 않는다.
  */
-export function PostStatusTabs({ selected, counts, hrefFor, trailing, className }: PostStatusTabsProps) {
+export function PostStatusTabs({ selected, counts, knownCounts, hrefFor, trailing, className }: PostStatusTabsProps) {
   return (
     <nav className={cx(styles.nav, className)} aria-label="상태별로 보기">
       <ul className={styles.list} role="list">
@@ -49,10 +55,10 @@ export function PostStatusTabs({ selected, counts, hrefFor, trailing, className 
               <Link className={styles.tab} to={hrefFor(status)} aria-current={current ? 'true' : undefined}>
                 <span className={styles.label}>{label}</span>
                 {count === undefined ? (
-                  // 숫자 한 자리 폭을 잡고 점 셋은 그 위에 겹쳐 선다 — 숫자가 들어와도 탭 폭이 그대로다(QA-P-19, 목록 건수 자리와 같은 방식)
+                  // 들어올 숫자의 자릿수만큼 자리를 잡고 점 셋은 그 위에 겹쳐 선다(QA-P-19 · P-26, 목록 건수 자리와 같은 방식)
                   <span className={cx(styles.count, styles.countPending)} data-numeric>
                     <span className={styles.countGhost} aria-hidden="true">
-                      0
+                      {ghostOf(knownCounts?.[status ?? 'ALL'])}
                     </span>
                     <LoadingDots announce={false} className={styles.countDots} />
                   </span>
@@ -70,4 +76,12 @@ export function PostStatusTabs({ selected, counts, hrefFor, trailing, className 
       {trailing}
     </nav>
   )
+}
+
+/**
+ * 기다리는 자리의 보이지 않는 숫자 — 받은 적 있는 건수의 자릿수(쉼표 포함), 없으면 두 자리.
+ * 한 자리 자리는 230 · 40 처럼 자주 보는 두세 자리 수가 들어오면 탭이 9 · 18px 늘어 뒤 탭이 최대 54px 밀렸다(QA-P-26)
+ */
+function ghostOf(known: number | undefined): string {
+  return known === undefined ? '00' : known.toLocaleString('ko-KR').replace(/\d/g, '0')
 }

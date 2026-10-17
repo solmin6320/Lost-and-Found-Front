@@ -1,7 +1,9 @@
-import { queryOptions, useQuery } from '@tanstack/react-query'
+import { queryOptions, useQuery, type QueryClient } from '@tanstack/react-query'
+
+import type { PagedModel } from '@/shared/types/api'
 
 import { getMyPosts, getPost, getPosts, normalizeMyPostsParams, normalizePostListParams } from '../api/postApi'
-import type { MyPostsParams, PostListParams } from '../api/types'
+import type { MyPostsParams, PostListParams, PostListResponse, PostStatus } from '../api/types'
 
 /**
  * 게시글 쿼리 키. 무효화할 때 범위를 고른다.
@@ -62,6 +64,20 @@ export function myPostsQueryOptions(params: MyPostsParams = {}) {
     queryKey: postKeys.mine(params),
     queryFn: ({ signal }) => getMyPosts(params, signal),
   })
+}
+
+/**
+ * 이번 방문에 받은 내 글 건수 — 상태별(`ALL` = 전체), 쿼리 캐시에 남은 아무 응답(탭 숫자용 한 건 · 카드 페이지)의 `totalElements`.
+ * 숫자가 아직 없을 때 자리 폭(자릿수)과 카드 자리표시 수를 잡는 데만 쓴다(QA-P-26). 화면에 숫자로 내지 않는다
+ */
+export function cachedMyPostCounts(client: QueryClient): Partial<Record<PostStatus | 'ALL', number>> {
+  const counts: Partial<Record<PostStatus | 'ALL', number>> = {}
+  for (const [key, data] of client.getQueriesData<PagedModel<PostListResponse>>({ queryKey: postKeys.mines() })) {
+    if (!data) continue
+    const params = key[key.length - 1] as MyPostsParams | undefined
+    counts[params?.status ?? 'ALL'] = data.page.totalElements
+  }
+  return counts
 }
 
 /** [6.1] 내가 쓴 글. `page` 는 0부터 센다 */

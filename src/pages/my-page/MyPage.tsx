@@ -1,4 +1,4 @@
-import { keepPreviousData, useQueries, useQuery, type UseQueryResult } from '@tanstack/react-query'
+import { keepPreviousData, useQueries, useQuery, useQueryClient, type UseQueryResult } from '@tanstack/react-query'
 import { useEffect, useRef, useState } from 'react'
 import { Navigate, useLocation, type To } from 'react-router-dom'
 
@@ -6,6 +6,7 @@ import { loginPath } from '@/app/authRedirect'
 import { paths, postDetailFromMine, type LoginNoticeState } from '@/app/paths'
 import { subscribeSignedOutElsewhere, useAuth } from '@/features/auth'
 import {
+  cachedMyPostCounts,
   ConceptButtonLink,
   MY_POSTS_PAGE_GROUP,
   MY_POSTS_PAGE_SIZE,
@@ -107,6 +108,8 @@ function MyPosts({ enabled }: { enabled: boolean }) {
     queries: POST_STATUSES.map((status) => ({ ...myPostsQueryOptions({ status, size: 1 }), enabled })),
   })
   const counts = countsOf(countQueries, search, query)
+  // 숫자를 기다리는 동안 자리 폭을 잡을 건수 — 이번 방문에 받은 것(쿼리 캐시)
+  const knownCounts = cachedMyPostCounts(useQueryClient())
 
   const tabsRef = useRef<HTMLDivElement>(null)
   const headingRef = useRef<HTMLHeadingElement>(null)
@@ -174,6 +177,7 @@ function MyPosts({ enabled }: { enabled: boolean }) {
             <PostStatusTabs
               selected={search.status}
               counts={counts}
+              knownCounts={knownCounts}
               hrefFor={hrefForStatus}
               // 탭 · 쪽을 바꿔 다시 받는 중 — 직전 글은 흐리게 두고 **탭 줄 바로 아래(탭 줄과 카드 사이 여백)에 점 셋**(0.3초 넘을 때만, QA-P-9).
               // 여백 안에 겹쳐 서서 탭 · 카드가 밀리지 않고 카드 이름표도 덮지 않는다. 예전엔 탭 뒤 흐름 안에 서서 자리가 모자라면(320) 줄을 바꿔
@@ -226,14 +230,18 @@ function MyPosts({ enabled }: { enabled: boolean }) {
 
 /**
  * 탭별 수. 아직 모르면 `undefined`(자리만), 못 불러왔으면 `null`(숫자 없이).
- * 전체는 세 상태의 합이다 — 따로 한 번 더 묻지 않는다. 셋 중 하나라도 비면 지금 보는 전체 탭의 수로 대신한다
+ * 전체는 세 상태의 합이다 — 따로 한 번 더 묻지 않는다. 셋 중 하나라도 비면 지금 보는 전체 탭의 수로 대신한다.
+ * **셋이 다 끝날 때까지(받음 · 실패) 넷 다 기다린다** — 응답이 0.1초 간격으로 나뉘어 오면 탭 줄이 두세 번 나뉘어 움직였다(QA-D-25)
  */
 function countsOf(
   countQueries: UseQueryResult<PagedModel<PostListResponse>>[],
   search: MyPostsSearch,
   query: UseQueryResult<PagedModel<PostListResponse>>,
 ): PostStatusCounts {
-  const byStatus = countQueries.map((q) => (q.data ? q.data.page.totalElements : q.isError ? null : undefined))
+  if (countQueries.some((q) => !q.data && !q.isError)) {
+    return { ALL: undefined, OPEN: undefined, IN_PROGRESS: undefined, DONE: undefined }
+  }
+  const byStatus = countQueries.map((q) => (q.data ? q.data.page.totalElements : null))
   const [open, progress, done] = byStatus
 
   let all: number | null | undefined

@@ -10,6 +10,7 @@ export {
   updatePost,
 } from './api/postApi'
 export {
+  cachedMyPostCounts,
   myPostsQueryOptions,
   postDetailQueryOptions,
   postKeys,
