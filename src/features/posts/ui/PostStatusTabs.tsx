@@ -33,7 +33,8 @@ const TABS: { status: PostStatus | undefined; label: string }[] = [
  *
  * 필터 칩(알약)과 모양을 가른다 — 칩은 조건을 켜고 끄는 것, 이것은 내 글을 나눠 보는 자리다.
  * 글자와 아래 막대(잉크)로만 고른 탭을 보인다. 색을 쓰지 않는다.
- * 숫자는 자리를 먼저 잡는다 — 0.3초가 넘으면 그 자리에 점 셋(모든 건수 자리가 같은 표시, 본인 결정 2026-10-16 QA-P-12).
+ * 숫자는 자리를 먼저 잡는다(숫자 한 자리 폭) — 0.3초가 넘으면 그 자리에 점 셋이 겹쳐 선다(모든 건수 자리가 같은 표시, 본인 결정 2026-10-16 QA-P-12).
+ * 예전엔 점 자리(20px)가 숫자보다 넓어 숫자가 들어오면 탭이 11px 줄고 뒤 탭들이 왼쪽으로 33px 당겨졌다(QA-P-19).
  */
 export function PostStatusTabs({ selected, counts, hrefFor, trailing, className }: PostStatusTabsProps) {
   return (
@@ -47,8 +48,12 @@ export function PostStatusTabs({ selected, counts, hrefFor, trailing, className 
               <Link className={styles.tab} to={hrefFor(status)} aria-current={current ? 'page' : undefined}>
                 <span className={styles.label}>{label}</span>
                 {count === undefined ? (
-                  <span className={styles.countPending}>
-                    <LoadingDots announce={false} />
+                  // 숫자 한 자리 폭을 잡고 점 셋은 그 위에 겹쳐 선다 — 숫자가 들어와도 탭 폭이 그대로다(QA-P-19, 목록 건수 자리와 같은 방식)
+                  <span className={cx(styles.count, styles.countPending)} data-numeric>
+                    <span className={styles.countGhost} aria-hidden="true">
+                      0
+                    </span>
+                    <LoadingDots announce={false} className={styles.countDots} />
                   </span>
                 ) : count === null ? null : (
                   <span className={styles.count} data-numeric>

@@ -97,12 +97,26 @@
   color: var(--text-muted);
 }
 
-/* 숫자가 들어올 자리(두 자 폭) — 0.3초가 넘으면 점 셋(QA-P-12). 탭 숫자(14px)에 맞춰 점은 4px — 자리 안에 들어간다 */
+/*
+ * 숫자가 들어올 자리 — 숫자 한 자리(보이지 않는 `0`, 고정폭 숫자)만큼. 0.3초가 넘으면 점 셋이 그 위에 겹쳐 선다(QA-P-12 · P-19).
+ * 점은 3px(셋 13px) — 한 자리(약 9px)보다 조금 넓어 오른쪽 탭 사이 여백으로 4px 나간다. 4px 점(17px)은 다음 탭 이름과 7px 까지 붙어
+ * 점이 어느 탭 것인지 갈리지 않았다(근접성 — 제 이름과 6px · 다음 이름과 11px 이상). 폭에 넣지 않아 숫자가 들어와도 탭 폭이 그대로다.
+ * 글 수가 두 자리 이상이면 그만큼만 는다(한 자리마다 약 9px)
+ */
 .countPending {
-  --loading-dot: 0.25rem;
+  --loading-dot: 0.1875rem;
 
+  position: relative;
   display: inline-flex;
   align-items: center;
-  width: 1.25rem;
-  font-size: var(--text-sm);
+}
+
+.countGhost {
+  visibility: hidden;
+}
+
+.countDots {
+  position: absolute;
+  inset-block: 0;
+  left: 0;
 }
