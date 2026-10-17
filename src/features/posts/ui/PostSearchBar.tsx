@@ -75,7 +75,8 @@ const ROOM_MIN_PX = 200
  *     추천 칸 높이도, 글자 칸 폭도 바뀌지 않는다 — 예전엔 [X] 왼쪽에 서며 오른쪽 여백을 늘려 친 글자 끝이 잘렸다(320 · 200%에서 다 가려짐)
  *   - 제목에서 **맞는 조각만** 강조한다(`<mark>`, React 노드 — HTML 문자열로 만들지 않는다)
  *   - ↑ ↓ 로 가리키고 Enter 로 연다. 가리킨 칸이 없으면 Enter 는 보통 검색이다
- *   - **Esc · 칸 바깥 누름은 추천 칸만 닫는다 — 친 글자는 남는다**(본인 피드백 2026-10-14). 칸을 다시 누르면 다시 펼친다
+ *   - **Esc · 칸 바깥 누름은 추천 칸만 닫는다 — 친 글자는 남는다**(본인 피드백 2026-10-14). 칸을 다시 누르면 다시 펼친다.
+ *     칸이 아직 뜨기 전(찾는 중)의 Esc 도 닫는다 — 점 · 알림을 바로 거두고 늦게 온 응답이 칸을 다시 열지 않는다(QA-P-27)
  *   - 몇 개를 찾았는지 스크린리더에 조용히 알린다
  *   - 추천은 거들 뿐이다 — 실패하면 칸을 띄우지 않고, 검색은 그대로 된다
  */
@@ -232,8 +233,11 @@ export function PostSearchBar({ keyword, onSearch, suggestionParams, onOpenPost 
       event.preventDefault()
       close()
     } else if (action.type === 'keep') {
-      // 검색칸(type=search)의 브라우저 기본 Esc 는 글자를 지운다 — 친 글자는 남긴다
+      // 검색칸(type=search)의 브라우저 기본 Esc 는 글자를 지운다 — 친 글자는 남긴다.
+      // 추천 칸이 아직 없어도(찾는 중) 닫는다 — 점 · "찾는 중이에요."를 거두고, 응답이 와도 다시 열지 않는다(QA-P-27).
+      // 다시 여는 것은 ↓ · 칸 누름 · 새 글자뿐
       event.preventDefault()
+      close()
     } else if (event.key === 'ArrowDown' && !composingNow && !expanded && typed !== '') {
       // 닫아 둔 추천을 다시 연다(APG — ↓는 목록을 연다). 아직 찾지 않은 말이면 지금 찾는다
       event.preventDefault()
@@ -312,7 +316,8 @@ export function PostSearchBar({ keyword, onSearch, suggestionParams, onOpenPost 
         추천을 찾는 요청이 0.3초를 넘으면 칸 안, 친 글자 첫머리 아래에 점 셋(QA-D-18 · 후보 셋을 캡처로 비교해 골랐다 — 화면정의서 SCR-01 검색).
         칸 위에 겹쳐 서서 글자 칸 폭(QA-D-10) · 추천 칸 높이(QA-D-4)를 바꾸지 않는다. 읽기는 알림 줄(`찾는 중이에요.`)이 맡는다
       */}
-      {fetchingDots ? <LoadingDots announce={false} delay={0} className={styles.fieldDots} /> : null}
+      {/* 닫았으면(Esc · 바깥 누름) 한 번 뜬 점도 바로 거둔다 — 최소 표시 시간(0.45초)을 기다리지 않는다(QA-P-27) */}
+      {fetchingDots && showing ? <LoadingDots announce={false} delay={0} className={styles.fieldDots} /> : null}
       {text ? (
         <button type="button" className={styles.clear} aria-label="검색어 지우기" onClick={handleClear}>
           <X />
