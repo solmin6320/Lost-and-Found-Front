@@ -33,6 +33,7 @@ import {
   type PostListSearch,
   type PostType,
 } from '@/features/posts'
+import { isPlainClick } from '@/shared/lib/events'
 import { getErrorMessage } from '@/shared/lib/http'
 import { useDocumentTitle } from '@/shared/lib/useDocumentTitle'
 import type { PagedModel } from '@/shared/types/api'
@@ -103,7 +104,8 @@ export function PostListPage() {
   const [shown, setShown] = useState<{ condition: string; page: number } | null>(null)
   const [announcement, setAnnouncement] = useState('')
   if (query.data && !query.isPlaceholderData && (shown?.condition !== condition || shown.page !== search.page)) {
-    const turned = shown !== null && shown.condition === condition
+    // 글이 없는 쪽(끝을 넘은 번호)은 알리지 않는다 — 빈 상태 제목이 말한다. 예전엔 "99페이지예요. 1,961~1,960번째"라고 읽었다(QA-P-17)
+    const turned = shown !== null && shown.condition === condition && query.data.content.length > 0
     setShown({ condition, page: search.page })
     setAnnouncement(turned ? pageAnnouncement(search.page, query.data) : '')
   }
@@ -276,6 +278,7 @@ export function PostListPage() {
           view={view}
           search={search}
           lastPageHref={view ? hrefForPage(Math.max(view.page.totalPages, 1)) : undefined}
+          onPageNavigate={handlePageNavigate}
           intent={intent}
           stale={stale}
           gridRef={gridRef}
@@ -389,6 +392,8 @@ interface PostListBodyProps {
   search: PostListSearch
   /** 끝을 넘은 페이지에서 돌아갈 마지막 페이지 주소 */
   lastPageHref: To | undefined
+  /** [n페이지로]를 눌렀다 — 페이지 번호를 누른 것과 같이 결과 제목으로 데려가고 알린다(QA-P-17 · D-14 — 누른 버튼이 사라져 포커스가 body 로 빠졌다) */
+  onPageNavigate: () => void
   intent: PostIntent | undefined
   stale: boolean
   gridRef: RefObject<HTMLUListElement | null>
@@ -404,6 +409,7 @@ function PostListBody({
   view,
   search,
   lastPageHref,
+  onPageNavigate,
   intent,
   stale,
   gridRef,
@@ -446,7 +452,18 @@ function PostListBody({
           icon={<MagnifyingGlass />}
           title="이 페이지에는 글이 없어요."
           description={`글은 ${last}페이지까지 있어요.`}
-          action={lastPageHref ? <ButtonLink to={lastPageHref}>{`${last}페이지로`}</ButtonLink> : null}
+          action={
+            lastPageHref ? (
+              <ButtonLink
+                to={lastPageHref}
+                onClick={(event) => {
+                  if (isPlainClick(event)) onPageNavigate()
+                }}
+              >
+                {`${last}페이지로`}
+              </ButtonLink>
+            ) : null
+          }
         />
       </div>
     )
