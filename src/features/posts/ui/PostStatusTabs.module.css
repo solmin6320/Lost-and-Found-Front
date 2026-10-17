@@ -17,9 +17,12 @@
 }
 
 .list {
+  /* 탭 사이 간격. 기다리는 숫자 자리(.countPending)가 이 값으로 점이 다음 탭 이름과 얼마나 떨어지는지 센다 */
+  --tab-gap: clamp(var(--space-3), 0.4rem + 2.6vw, var(--space-8));
+
   display: flex;
   flex: none;
-  gap: clamp(var(--space-3), 0.4rem + 2.6vw, var(--space-8));
+  gap: var(--tab-gap);
 }
 
 /* 글자를 키워 그릇(`RootLayout` .shell)이 16rem 보다 좁으면 넷이 한 줄에 들지 않는다 — 넘기지 않고 다음 줄로(숨은 탭이 없게) */
@@ -98,17 +101,18 @@
 }
 
 /*
- * 숫자가 들어올 자리 — 이번 방문에 받은 건수의 자릿수, 없으면 두 자리(보이지 않는 `00`, 고정폭 숫자, QA-P-26). 0.3초가 넘으면 점 셋이 그 위에 겹쳐 선다(QA-P-12 · P-19).
- * 점은 3px(셋 13px) — 한 자리(약 9px)보다 조금 넓어 오른쪽 탭 사이 여백으로 4px 나간다. 4px 점(17px)은 다음 탭 이름과 7px 까지 붙어
- * 점이 어느 탭 것인지 갈리지 않았다(근접성 — 제 이름과 6px · 다음 이름과 11px 이상). 폭에 넣지 않아 숫자가 들어와도 탭 폭이 그대로다.
- * 글 수가 두 자리 이상이면 그만큼만 는다(한 자리마다 약 9px)
+ * 숫자가 들어올 자리 — 이번 방문에 받은 건수의 자릿수, 없으면 두 자리(보이지 않는 `00`, 고정폭 숫자 한 자리 약 9px, QA-P-26).
+ * 0.3초가 넘으면 점 셋이 그 위에 겹쳐 선다. 점은 목록 건수 자리와 같은 6px(셋 26px, 본인 결정 2026-10-18 — 모든 건수 자리 같은 표시).
+ * 점이 자리보다 넓으면 오른쪽 탭 사이 여백으로 나가되 **다음 탭 이름과 11px 은 남긴다**(근접성 — 제 이름과 6px · 다음 이름과 11px 이상, QA-D-25).
+ * 모자라면 자리를 넓힌다(`min-width` = 점 폭 + 11px − 탭 간격) : 320 에서 22px · 375 에서 21px · 넓은 화면은 숫자 폭 그대로
  */
 .countPending {
-  --loading-dot: 0.1875rem;
+  --dots-width: calc(var(--loading-dot, 0.375rem) * (3 + 2 * 0.67));
 
   position: relative;
   display: inline-flex;
   align-items: center;
+  min-width: max(0px, calc(var(--dots-width) + 0.6875rem - var(--tab-gap)));
 }
 
 .countGhost {
