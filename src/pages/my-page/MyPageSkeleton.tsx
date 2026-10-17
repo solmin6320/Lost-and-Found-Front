@@ -1,9 +1,12 @@
-import { PostCardSkeleton, PostStatusTabs, useMyPostsSearch } from '@/features/posts'
+import { MY_POSTS_PAGE_SIZE, PostCardSkeleton, PostStatusTabs, useMyPostsSearch } from '@/features/posts'
 
 import styles from './MyPage.module.css'
 
-/** 로딩 스켈레톤 개수 — 2 · 4열에서 줄이 채워진다. 내 글은 목록보다 적다 */
-const SKELETON_COUNT = 8
+/**
+ * 로딩 스켈레톤 개수 — 한 쪽(20건)만큼, 목록과 같다(본인 결정 2026-10-17). 뒤로가기 · 새로고침에서 문서 높이가 응답 전에 거의 맞아
+ * 스크롤 기억이 보던 자리로 데려간다. 글이 적은 사람은 받은 뒤 짧아진다(받은 만큼만 그린다)
+ */
+const SKELETON_COUNT = MY_POSTS_PAGE_SIZE
 
 /** 아직 숫자를 모르는 탭 — 자리만 잡는다 */
 const UNKNOWN_COUNTS = { ALL: undefined, OPEN: undefined, IN_PROGRESS: undefined, DONE: undefined }

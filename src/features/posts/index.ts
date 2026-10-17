@@ -84,7 +84,7 @@ export {
 export { SUGGESTION_LIMIT, highlightParts, suggestionParams } from './model/searchSuggest'
 export type { PostFilterField, PostListSearch } from './model/postListSearch'
 export { usePostListSearch } from './model/usePostListSearch'
-export { MY_POSTS_PAGE_SIZE, toMyPostsParams, useMyPostsSearch } from './model/myPostsSearch'
+export { MY_POSTS_PAGE_GROUP, MY_POSTS_PAGE_SIZE, toMyPostsParams, useMyPostsSearch } from './model/myPostsSearch'
 export type { MyPostsSearch } from './model/myPostsSearch'
 export {
   ALL_POSTS_HEADING,

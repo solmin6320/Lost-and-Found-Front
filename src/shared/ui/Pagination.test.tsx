@@ -2,7 +2,8 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { MemoryRouter } from 'react-router-dom'
 import { describe, expect, it } from 'vitest'
 
-import { Pagination, pageRangeLabel } from './Pagination'
+import { Pagination } from './Pagination'
+import { pageRangeLabel } from './pageRangeLabel'
 
 /*
  * 페이지 번호(목록 · 내가 쓴 글) — 다섯 개씩 묶고, 전체가 다섯 페이지보다 많으면(6페이지부터) 이전 · 다음 묶음 화살표

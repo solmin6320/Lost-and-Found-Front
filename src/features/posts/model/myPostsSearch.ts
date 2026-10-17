@@ -17,8 +17,12 @@ export interface MyPostsSearch {
   page: number
 }
 
-/** 한 쪽의 글 수. 목록과 같다 — 2 · 3 · 4열 어디서든 줄이 빈 채 끝나지 않는다 */
-export const MY_POSTS_PAGE_SIZE = 24
+/**
+ * 한 쪽의 글 수 · 번호 묶음 — 목록과 같다(20건, 다섯 개씩 · 6페이지부터 ‹ ›, 본인 결정 2026-10-17, QA-D-20).
+ * 예전 24건은 2 · 3 · 4열이 딱 떨어지는 수였지만, 목록과 페이지 모양이 달라 같은 서비스 안에서 번호가 다르게 읽혔다
+ */
+export const MY_POSTS_PAGE_SIZE = 20
+export const MY_POSTS_PAGE_GROUP = 5
 
 export function parseMyPostsSearch(params: URLSearchParams): MyPostsSearch {
   const status = params.get('status')

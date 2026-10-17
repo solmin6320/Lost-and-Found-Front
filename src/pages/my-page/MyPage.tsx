@@ -7,6 +7,7 @@ import { paths, postDetailFromMine, type LoginNoticeState } from '@/app/paths'
 import { subscribeSignedOutElsewhere, useAuth } from '@/features/auth'
 import {
   ConceptButtonLink,
+  MY_POSTS_PAGE_GROUP,
   POST_STATUSES,
   POST_STATUS_LABEL,
   PostCard,
@@ -19,6 +20,7 @@ import {
   type PostStatus,
   type PostStatusCounts,
 } from '@/features/posts'
+import { isPlainClick } from '@/shared/lib/events'
 import { getErrorMessage, subscribeSessionExpired } from '@/shared/lib/http'
 import { useDocumentTitle } from '@/shared/lib/useDocumentTitle'
 import type { PagedModel } from '@/shared/types/api'
@@ -163,7 +165,8 @@ function MyPosts({ enabled }: { enabled: boolean }) {
             search={search}
             noPostsYet={noPostsYet}
             allHref={hrefForStatus(undefined)}
-            firstPageHref={hrefForPage(1)}
+            hrefForPage={hrefForPage}
+            onPageNavigate={handlePageNavigate}
             linkState={postDetailFromMine(location.search)}
           />
         </div>
@@ -175,6 +178,7 @@ function MyPosts({ enabled }: { enabled: boolean }) {
               totalPages={settled.page.totalPages}
               hrefFor={hrefForPage}
               onNavigate={handlePageNavigate}
+              groupSize={MY_POSTS_PAGE_GROUP}
             />
           </div>
         ) : null}
@@ -212,12 +216,15 @@ interface MyPostsBodyProps {
   /** 올린 글이 하나도 없다(세 상태의 합이 0) */
   noPostsYet: boolean
   allHref: To
-  firstPageHref: To
+  /** 끝을 넘은 쪽에서 돌아갈 마지막 쪽 주소 */
+  hrefForPage: (page: number) => To
+  /** [n페이지로]를 눌렀다 — 쪽 번호를 누른 것과 같이 탭 줄로 데려간다 */
+  onPageNavigate: () => void
   linkState: unknown
 }
 
 /** 네 가지 상태 — 로딩 · 오류 · 비어 있음(전체 0건 · 이 탭 0건 · 끝을 넘은 쪽) · 목록. 권한은 화면 앞에서 갈랐다 */
-function MyPostsBody({ query, search, noPostsYet, allHref, firstPageHref, linkState }: MyPostsBodyProps) {
+function MyPostsBody({ query, search, noPostsYet, allHref, hrefForPage, onPageNavigate, linkState }: MyPostsBodyProps) {
   // 직전 탭이 비어 있었으면 그 빈 상태를 흐리게 남기지 않는다 — 문장이 새 탭과 어긋난다
   if (query.isPending || (query.isPlaceholderData && query.data?.content.length === 0)) {
     return <MyPostsGridSkeleton />
@@ -239,7 +246,11 @@ function MyPostsBody({ query, search, noPostsYet, allHref, firstPageHref, linkSt
   const { content, page } = query.data
 
   if (content.length === 0) {
-    return <div className={styles.stateBox}>{emptyOf(search, page.totalElements, noPostsYet, allHref, firstPageHref)}</div>
+    return (
+      <div className={styles.stateBox}>
+        {emptyOf(search, page, noPostsYet, allHref, hrefForPage, onPageNavigate)}
+      </div>
+    )
   }
 
   return (
@@ -268,19 +279,31 @@ function MyPostsBody({ query, search, noPostsYet, allHref, firstPageHref, linkSt
 /** 왜 비었는지 + 다음에 할 일. 막다른 길을 만들지 않는다 */
 function emptyOf(
   search: MyPostsSearch,
-  totalElements: number,
+  page: { totalElements: number; totalPages: number },
   noPostsYet: boolean,
   allHref: To,
-  firstPageHref: To,
+  hrefForPage: (page: number) => To,
+  onPageNavigate: () => void,
 ) {
-  // 오래된 링크 · 그사이 글을 지워 쪽이 줄었다
-  if (totalElements > 0) {
+  // 오래된 링크 · 그사이 글을 지워 쪽이 줄었다 — 목록과 같은 문장 · 같은 행선지(마지막 쪽, 본인 결정 2026-10-17)
+  if (page.totalElements > 0) {
+    const last = Math.max(page.totalPages, 1)
+    const lastText = last.toLocaleString('ko-KR')
     return (
       <EmptyState
         icon={<MagnifyingGlass />}
-        title={`${search.page}페이지에는 글이 없어요.`}
-        description={`이 탭의 글 ${totalElements.toLocaleString('ko-KR')}건은 앞 페이지에 있어요.`}
-        action={<ButtonLink to={firstPageHref}>첫 페이지로</ButtonLink>}
+        title="이 페이지에는 글이 없어요."
+        description={`글은 ${lastText}페이지까지 있어요.`}
+        action={
+          <ButtonLink
+            to={hrefForPage(last)}
+            onClick={(event) => {
+              if (isPlainClick(event)) onPageNavigate()
+            }}
+          >
+            {`${lastText}페이지로`}
+          </ButtonLink>
+        }
       />
     )
   }
