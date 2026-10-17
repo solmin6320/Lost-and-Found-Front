@@ -61,12 +61,12 @@
     transform var(--duration-base) var(--ease-out);
 }
 
-.tab[aria-current='page'] {
+.tab[aria-current='true'] {
   color: var(--text-strong);
   font-weight: var(--weight-extrabold);
 }
 
-.tab[aria-current='page']::after {
+.tab[aria-current='true']::after {
   opacity: 1;
   transform: none;
 }
@@ -78,7 +78,7 @@
 }
 
 @media (hover: hover) {
-  .tab:not([aria-current='page']):hover {
+  .tab:not([aria-current='true']):hover {
     color: var(--text-strong);
   }
 }
@@ -93,7 +93,7 @@
   font-weight: var(--weight-bold);
 }
 
-.tab:not([aria-current='page']) .count {
+.tab:not([aria-current='true']) .count {
   color: var(--text-muted);
 }
 

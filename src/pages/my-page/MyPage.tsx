@@ -8,6 +8,7 @@ import { subscribeSignedOutElsewhere, useAuth } from '@/features/auth'
 import {
   ConceptButtonLink,
   MY_POSTS_PAGE_GROUP,
+  MY_POSTS_PAGE_SIZE,
   POST_STATUSES,
   POST_STATUS_LABEL,
   PostCard,
@@ -22,6 +23,7 @@ import {
 } from '@/features/posts'
 import { isPlainClick } from '@/shared/lib/events'
 import { getErrorMessage, subscribeSessionExpired } from '@/shared/lib/http'
+import { pageAnnouncement } from '@/shared/lib/pageAnnouncement'
 import { useDocumentTitle } from '@/shared/lib/useDocumentTitle'
 import type { PagedModel } from '@/shared/types/api'
 import { ButtonLink } from '@/shared/ui/Button'
@@ -107,18 +109,39 @@ function MyPosts({ enabled }: { enabled: boolean }) {
   const counts = countsOf(countQueries, search, query)
 
   const tabsRef = useRef<HTMLDivElement>(null)
+  const headingRef = useRef<HTMLHeadingElement>(null)
   const noPostsYet = counts.ALL === 0
 
-  // 쪽을 넘기면 탭 줄부터 다시 읽는다. 포커스는 지금 탭에 — 거기서 Tab 한 번이면 첫 카드다
+  /*
+   * 쪽을 넘기면 탭 줄부터 다시 읽는다. 포커스는 탭 줄 바로 위 결과 제목(`전체 글` — 화면에는 탭이 이름이라 읽는 사람에게만)에 —
+   * 목록이 결과 제목으로 데려가는 것과 같다(QA-P-23). 예전엔 지금 탭에 두어 Tab 네 번을 지나야 첫 카드였고,
+   * 탭(`aria-current`)과 지금 페이지 번호가 한 화면에 둘 다 "지금 페이지"로 읽혔다
+   */
   function handlePageNavigate() {
     requestAnimationFrame(() => {
       tabsRef.current?.scrollIntoView({ block: 'start' })
-      tabsRef.current?.querySelector<HTMLElement>('[aria-current="page"]')?.focus({ preventScroll: true })
+      headingRef.current?.focus({ preventScroll: true })
     })
   }
 
   const tabLabel = search.status ? POST_STATUS_LABEL[search.status] : '전체'
   const settled = query.data && !query.isPlaceholderData ? query.data : null
+
+  /*
+   * 결과 알림. 같은 탭에서 쪽을 넘긴 결과는 목록과 같은 문장(`3페이지예요. 230건 중 41~60번째 글이에요.`, QA-P-23),
+   * 탭을 바꾼 결과 · 처음 받은 결과는 건수(`연락중 글 3건`). 마지막으로 다 받은 탭 · 쪽과 견준다
+   */
+  const [shown, setShown] = useState<{ status: PostStatus | undefined; page: number } | null>(null)
+  const [announcement, setAnnouncement] = useState('')
+  if (settled && (shown === null || shown.status !== search.status || shown.page !== search.page)) {
+    const turned = shown !== null && shown.status === search.status && settled.content.length > 0
+    setShown({ status: search.status, page: search.page })
+    setAnnouncement(
+      turned
+        ? pageAnnouncement(search.page, MY_POSTS_PAGE_SIZE, settled.content.length, settled.page.totalElements)
+        : `${tabLabel} 글 ${settled.page.totalElements.toLocaleString('ko-KR')}건`,
+    )
+  }
 
   return (
     <div className={styles.page}>
@@ -130,7 +153,11 @@ function MyPosts({ enabled }: { enabled: boolean }) {
         )}
       </header>
 
-      <section aria-label={`${tabLabel} 글`}>
+      <section aria-labelledby="my-posts-heading">
+        {/* 결과 제목 — 쪽을 넘기면 포커스가 여기로 온다(목록의 결과 제목과 같은 자리 · 같은 일). 화면에는 탭이 이름이라 읽는 사람에게만 */}
+        <h2 id="my-posts-heading" ref={headingRef} tabIndex={-1} className="sr-only">
+          {`${tabLabel} 글`}
+        </h2>
         {/* 올린 글이 하나도 없으면 탭을 두지 않는다 — "0 0 0 0" 은 읽을 거리가 아니라 소음이다. 빈 상태가 첫 글을 권한다 */}
         {noPostsYet ? null : (
           <div ref={tabsRef} className={styles.tabs}>
@@ -154,9 +181,9 @@ function MyPosts({ enabled }: { enabled: boolean }) {
           </div>
         )}
 
-        {/* 탭을 바꿀 때 결과를 알린다. 탭 링크에 포커스가 남아 있어 스크린리더는 목록을 따로 듣지 못한다 */}
+        {/* 탭 · 쪽을 바꿀 때 결과를 알린다. 탭 링크 · 결과 제목에 포커스가 있어 스크린리더는 목록을 따로 듣지 못한다 */}
         <p className="sr-only" aria-live="polite" aria-atomic="true">
-          {settled ? `${tabLabel} 글 ${settled.page.totalElements.toLocaleString('ko-KR')}건` : ''}
+          {announcement}
         </p>
 
         <div className={styles.body}>

@@ -29,7 +29,8 @@ const TABS: { status: PostStatus | undefined; label: string }[] = [
 
 /**
  * 상태 탭 — 전체 · 게시중 · 연락중 · 완료. 주소를 바꾸는 **링크**다(ARIA 탭이 아니다).
- * 탭마다 주소가 있어 뒤로가기 · 새로고침 · 새 탭 열기가 그대로 된다. 지금 탭은 `aria-current="page"`.
+ * 탭마다 주소가 있어 뒤로가기 · 새로고침 · 새 탭 열기가 그대로 된다. 지금 탭은 `aria-current="true"`(묶음 안의 지금 것) —
+ * `"page"` 는 아래 페이지 번호의 지금 페이지 하나에만 쓴다. 둘 다 `page` 면 한 화면에 "지금 페이지"가 둘로 읽혔다(QA-P-23)
  *
  * 필터 칩(알약)과 모양을 가른다 — 칩은 조건을 켜고 끄는 것, 이것은 내 글을 나눠 보는 자리다.
  * 글자와 아래 막대(잉크)로만 고른 탭을 보인다. 색을 쓰지 않는다.
@@ -45,7 +46,7 @@ export function PostStatusTabs({ selected, counts, hrefFor, trailing, className 
           const count = counts[status ?? 'ALL']
           return (
             <li key={label}>
-              <Link className={styles.tab} to={hrefFor(status)} aria-current={current ? 'page' : undefined}>
+              <Link className={styles.tab} to={hrefFor(status)} aria-current={current ? 'true' : undefined}>
                 <span className={styles.label}>{label}</span>
                 {count === undefined ? (
                   // 숫자 한 자리 폭을 잡고 점 셋은 그 위에 겹쳐 선다 — 숫자가 들어와도 탭 폭이 그대로다(QA-P-19, 목록 건수 자리와 같은 방식)

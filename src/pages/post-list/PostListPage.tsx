@@ -35,6 +35,7 @@ import {
 } from '@/features/posts'
 import { isPlainClick } from '@/shared/lib/events'
 import { getErrorMessage } from '@/shared/lib/http'
+import { pageAnnouncement } from '@/shared/lib/pageAnnouncement'
 import { useDocumentTitle } from '@/shared/lib/useDocumentTitle'
 import type { PagedModel } from '@/shared/types/api'
 import { Button, ButtonLink } from '@/shared/ui/Button'
@@ -107,7 +108,11 @@ export function PostListPage() {
     // 글이 없는 쪽(끝을 넘은 번호)은 알리지 않는다 — 빈 상태 제목이 말한다. 예전엔 "99페이지예요. 1,961~1,960번째"라고 읽었다(QA-P-17)
     const turned = shown !== null && shown.condition === condition && query.data.content.length > 0
     setShown({ condition, page: search.page })
-    setAnnouncement(turned ? pageAnnouncement(search.page, query.data) : '')
+    setAnnouncement(
+      turned
+        ? pageAnnouncement(search.page, POST_LIST_PAGE_SIZE, query.data.content.length, query.data.page.totalElements)
+        : '',
+    )
   }
 
   /**
@@ -376,14 +381,6 @@ function emptyKindOf(search: PostListSearch, data: PostList): EmptyKind | null {
   if (data.page.totalElements > 0) return 'past-end'
   if (hasActiveFilters(search) || search.keyword) return 'filtered'
   return 'none-yet'
-}
-
-/** 페이지를 넘긴 결과 알림 — 화면의 건수 · 페이지 번호와 같은 말로 */
-function pageAnnouncement(page: number, data: PostList): string {
-  const from = (page - 1) * POST_LIST_PAGE_SIZE + 1
-  const to = from + data.content.length - 1
-  const total = data.page.totalElements.toLocaleString('ko-KR')
-  return `${page}페이지예요. ${total}건 중 ${from.toLocaleString('ko-KR')}~${to.toLocaleString('ko-KR')}번째 글이에요.`
 }
 
 interface PostListBodyProps {
