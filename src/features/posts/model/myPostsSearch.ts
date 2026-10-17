@@ -24,6 +24,16 @@ export interface MyPostsSearch {
 export const MY_POSTS_PAGE_SIZE = 20
 export const MY_POSTS_PAGE_GROUP = 5
 
+/**
+ * 카드 자리표시 수 — 이번 방문에 받은 그 탭의 건수(`known`)가 있으면 그 쪽에 남은 글 수(20장까지), 없으면 한 쪽(20장)(본인 결정 2026-10-18).
+ * 글이 3건인 탭에 20장을 그렸다가 3장으로 줄면 문서가 한 번 크게 줄었다. 그 쪽에 글이 없을 것 같아도(0건 · 끝을 넘은 쪽) 한 장은 둔다 — 기다리는 표시가 사라지지 않게
+ */
+export function myPostsSkeletonCount(known: number | undefined, page: number): number {
+  if (known === undefined) return MY_POSTS_PAGE_SIZE
+  const remaining = known - (page - 1) * MY_POSTS_PAGE_SIZE
+  return Math.min(MY_POSTS_PAGE_SIZE, Math.max(remaining, 1))
+}
+
 export function parseMyPostsSearch(params: URLSearchParams): MyPostsSearch {
   const status = params.get('status')
   const page = Number(params.get('page'))

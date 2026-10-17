@@ -10,6 +10,7 @@ import {
   ConceptButtonLink,
   MY_POSTS_PAGE_GROUP,
   MY_POSTS_PAGE_SIZE,
+  myPostsSkeletonCount,
   POST_STATUSES,
   POST_STATUS_LABEL,
   PostCard,
@@ -204,6 +205,7 @@ function MyPosts({ enabled }: { enabled: boolean }) {
           <MyPostsBody
             query={query}
             search={search}
+            skeletonCount={myPostsSkeletonCount(knownCounts[search.status ?? 'ALL'], search.page)}
             noPostsYet={noPostsYet}
             allHref={hrefForStatus(undefined)}
             hrefForPage={hrefForPage}
@@ -258,6 +260,8 @@ function countsOf(
 interface MyPostsBodyProps {
   query: UseQueryResult<PagedModel<PostListResponse>>
   search: MyPostsSearch
+  /** 받는 동안의 카드 자리표시 수(이번 방문에 받은 건수가 있으면 그 쪽에 남은 만큼, 없으면 20) */
+  skeletonCount: number
   /** 올린 글이 하나도 없다(세 상태의 합이 0) */
   noPostsYet: boolean
   allHref: To
@@ -269,10 +273,10 @@ interface MyPostsBodyProps {
 }
 
 /** 네 가지 상태 — 로딩 · 오류 · 비어 있음(전체 0건 · 이 탭 0건 · 끝을 넘은 쪽) · 목록. 권한은 화면 앞에서 갈랐다 */
-function MyPostsBody({ query, search, noPostsYet, allHref, hrefForPage, onPageNavigate, linkState }: MyPostsBodyProps) {
+function MyPostsBody({ query, search, skeletonCount, noPostsYet, allHref, hrefForPage, onPageNavigate, linkState }: MyPostsBodyProps) {
   // 직전 탭이 비어 있었으면 그 빈 상태를 흐리게 남기지 않는다 — 문장이 새 탭과 어긋난다
   if (query.isPending || (query.isPlaceholderData && query.data?.content.length === 0)) {
-    return <MyPostsGridSkeleton />
+    return <MyPostsGridSkeleton count={skeletonCount} />
   }
 
   if (query.isError) {
