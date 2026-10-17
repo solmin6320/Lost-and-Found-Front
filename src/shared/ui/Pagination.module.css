@@ -224,3 +224,18 @@ a.arrow:active {
     color: var(--text-strong);
   }
 }
+
+/*
+ * 강제 색상(Windows 고대비) — 바탕색이 지워져 지금 페이지가 굵기 하나로만 갈렸다(QA-D-17). 2px 테두리로 가른다.
+ * outline 이 아니라 border — 포커스 링(outline)이 따로 남아, 지금 페이지에 포커스가 와도 둘 다 보인다(상자는 border-box 라 44px 그대로).
+ * 흐린 화살표는 시스템의 "누를 수 없음" 색(GrayText) — 누를 수 있는 화살표(LinkText)와 갈린다
+ */
+@media (forced-colors: active) {
+  .page[aria-current='page'] {
+    border: 2px solid CanvasText;
+  }
+
+  .arrow[aria-disabled='true'] {
+    color: GrayText;
+  }
+}
