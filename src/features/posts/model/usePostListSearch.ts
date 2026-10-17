@@ -1,6 +1,8 @@
 import { useCallback, useMemo } from 'react'
 import { useSearchParams, type To } from 'react-router-dom'
 
+import { useCanonicalPageParam } from '@/shared/lib/pageParam'
+
 import {
   conditionNavigation,
   pageNavigation,
@@ -20,6 +22,8 @@ import {
 export function usePostListSearch() {
   const [searchParams, setSearchParams] = useSearchParams()
   const search = useMemo(() => parsePostListSearch(searchParams), [searchParams])
+  // ?page=0 · abc · 1 처럼 고쳐 읽은 값이 주소와 다르면 주소를 바꿔 쓴다(QA-P-21)
+  useCanonicalPageParam(search.page)
 
   const go = useCallback(
     ({ search: next, replace }: PostListNavigation) => {
