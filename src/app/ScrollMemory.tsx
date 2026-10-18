@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useLocation, useNavigationType } from 'react-router-dom'
 
 import { setScrollRestoring } from './scrollRestore'
@@ -13,7 +13,8 @@ import { setScrollRestoring } from './scrollRestore'
  *   목록은 캐시(5분)에서 바로 그려져 높이가 같다. 아직 짧으면(불러오는 중) 잠깐 기다렸다가 맞춘다
  *
  * 위치는 기록 항목(`location.key`)마다 적어 둔다. 스크롤을 따라 적되 프레임당 한 번, 상태로 올리지 않는다(다시 그리지 않음).
- * 새로고침 뒤에도 같은 탭이면 이어지도록 떠날 때 sessionStorage 에 넣는다. 비밀이 아니다.
+ * 새로고침 뒤에도 같은 탭이면 이어지도록 떠날 때 sessionStorage 에 넣는다. 비밀이 아니다. 이어 두는 것은 새로고침 · 브라우저 뒤로 · 앞으로로
+ * 연 문서뿐 — 주소를 새로 열면 맨 위에서 시작한다(QA-P-33).
  * 브라우저의 자동 복원은 끈다(`manual`) — 둘이 겹치면 React 가 그리기 전에 브라우저가 먼저 옮겨 어긋난다.
  * 되돌리는 동안은 `scrollRestore` 에 알린다 — 포커스(RouteFocus)는 다 되돌린 뒤의 화면을 보고 자리를 고른다(QA-P-24).
  */
@@ -42,18 +43,28 @@ function savePositions(positions: Map<string, number>) {
   }
 }
 
+/** 이 문서를 새로고침 · 브라우저 뒤로 · 앞으로로 열었나. 모르는 브라우저는 새로 연 것으로 본다(맨 위가 덜 놀랍다) */
+function isReturningDocument(): boolean {
+  const [entry] = performance.getEntriesByType('navigation') as PerformanceNavigationTiming[]
+  return entry?.type === 'reload' || entry?.type === 'back_forward'
+}
+
 export function ScrollMemory() {
   const location = useLocation()
   const navigationType = useNavigationType()
-  const positions = useRef<Map<string, number> | null>(null)
   const currentKey = useRef(location.key)
   const previousPath = useRef(location.pathname)
 
-  if (positions.current === null) positions.current = loadPositions()
+  // 주소를 새로 열었으면(주소창 · 링크 · 북마크) 맨 위에서 시작한다 — 새로고침 · 브라우저 뒤로 · 앞으로로 돌아온 문서만 이어 둔다(QA-P-33).
+  // 새로 연 문서도 첫 기록의 키가 같아(`default`) 지난번 그 탭에서 보던 자리(/me 1,007px)로 데려갔다. 지운 뒤 이번 방문의 스크롤을 새로 적는다
+  const [positions] = useState(() => {
+    const loaded = loadPositions()
+    if (!isReturningDocument()) loaded.delete(location.key)
+    return loaded
+  })
 
   useEffect(() => {
-    const store = positions.current
-    if (!store) return
+    const store = positions
     const previous = window.history.scrollRestoration
     window.history.scrollRestoration = 'manual'
 
@@ -62,11 +73,11 @@ export function ScrollMemory() {
       if (frame) return
       frame = requestAnimationFrame(() => {
         frame = 0
-        store?.set(currentKey.current, window.scrollY)
+        store.set(currentKey.current, window.scrollY)
       })
     }
     function persist() {
-      if (store) savePositions(store)
+      savePositions(store)
     }
 
     window.addEventListener('scroll', record, { passive: true })
@@ -77,7 +88,7 @@ export function ScrollMemory() {
       window.removeEventListener('pagehide', persist)
       window.history.scrollRestoration = previous
     }
-  }, [])
+  }, [positions])
 
   useLayoutEffect(() => {
     const key = location.key
@@ -90,7 +101,7 @@ export function ScrollMemory() {
       return
     }
 
-    const target = positions.current?.get(key)
+    const target = positions.get(key)
     if (target === undefined) return
 
     // 목적지가 아직 짧으면(불러오는 중) 높이가 찰 때까지 몇 프레임 기다린다
@@ -111,7 +122,7 @@ export function ScrollMemory() {
       cancelAnimationFrame(frame)
       setScrollRestoring(false)
     }
-  }, [location.key, location.pathname, navigationType])
+  }, [location.key, location.pathname, navigationType, positions])
 
   return null
 }
