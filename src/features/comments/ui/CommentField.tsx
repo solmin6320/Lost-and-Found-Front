@@ -38,7 +38,7 @@ export function CommentField({ label, hideLabel = false, value, hint, noticeId, 
   const describedBy = [error ? errorId : null, hint ? hintId : null, noticeId ?? null, countId].filter(Boolean).join(' ')
 
   return (
-    <div className={styles.field}>
+    <div className={styles.field} data-field-group>
       <div className={styles.labelRow}>
         <label className={hideLabel ? 'sr-only' : styles.label} htmlFor={id}>
           {label}

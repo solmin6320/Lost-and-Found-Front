@@ -130,6 +130,11 @@
 
 /* ── 1 제목 ── */
 .title {
+  /*
+   * 제목 자리는 늘 두 줄 — 스켈레톤(두 줄)과 같고, 한 줄 제목 카드도 장소 · 날짜가 옆 카드와 같은 높이에 선다.
+   * 넓은 카드(1280)에서 한 줄 제목이면 응답 순간 장소 · 날짜가 26px 올라갔다(QA-D-35)
+   */
+  min-height: calc(2em * var(--leading-snug));
   color: var(--text-strong);
   font-size: var(--text-base);
   font-weight: var(--weight-bold);
@@ -274,9 +279,30 @@
   line-height: var(--leading-snug);
 }
 
+/* 넓은 카드의 제목 글자(18px)를 따른다. 위 `.title, .skeletonTitle` 규칙이 이 기본값에 덮여 스켈레톤만 16px 였다(1280 카드 제목 두 줄 6px 작음) */
+@container post-card (width >= 15rem) {
+  .skeletonTitle {
+    font-size: var(--text-lg);
+  }
+}
+
 .skeletonFacts {
   display: grid;
   gap: var(--space-0-5);
   font-size: var(--text-sm);
   line-height: var(--leading-snug);
+}
+
+/*
+ * 글자 자리 한 줄 = 카드 글자 한 줄 높이(글자 크기 × 행간 1.45). 공용 글자 자리는 1.5줄이라 카드마다 제목 두 줄 · 장소 · 날짜에서
+ * 4px(글자 200% 9px) 커서, 응답이 오면 둘째 줄 카드부터 4 · 9px 씩 올라왔다(본인 지시 2026-10-18 "스켈레톤까지").
+ * 날짜 줄은 실제와 같은 작은 글자(13px)
+ */
+.skeletonCard .skeletonTitle > *,
+.skeletonCard .skeletonFacts > * {
+  margin-block: calc((1em * var(--leading-snug) - 0.8em) / 2);
+}
+
+.skeletonCard .skeletonFacts > :last-child {
+  font-size: var(--text-xs);
 }

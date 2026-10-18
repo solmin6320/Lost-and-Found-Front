@@ -138,6 +138,11 @@
   font-size: var(--text-xl);
 }
 
+/* 스켈레톤 제목 한 줄 = 진짜 제목 한 줄(행간 1.25). 공용 글자 자리는 행간 1.5 기준이라 6px 컸다(QA-D-30) */
+.head .skeletonTitleLine {
+  margin-block: calc((var(--leading-tight) * 1em - 0.8em) / 2);
+}
+
 @media (min-width: 40rem) {
   .title[data-long] {
     font-size: var(--text-2xl);
@@ -183,6 +188,11 @@
   row-gap: var(--space-2);
   min-width: 0;
   margin-left: auto;
+}
+
+/* 스켈레톤의 자리만 잡은 묶음 — 같은 크기, 보이지 않는다(QA-D-30) */
+.tools[data-reserve] {
+  visibility: hidden;
 }
 
 /*

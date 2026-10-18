@@ -7,37 +7,7 @@
   font-variant-numeric: tabular-nums;
 }
 
-.pages {
-  display: none;
-  align-items: center;
-  gap: var(--space-1);
-}
-
-/* 좁은 칸에서는 번호를 다 늘어놓지 않고 "3 / 12" 로 줄인다. 320px 에서 7칸 × 44px 은 넘친다 */
-.compact {
-  min-width: 5rem;
-  color: var(--text-body);
-  font-size: var(--text-sm);
-  text-align: center;
-}
-
-.compact strong {
-  color: var(--text-strong);
-  font-weight: var(--weight-bold);
-}
-
-@container pagination (width >= 30rem) {
-  .pages {
-    display: flex;
-  }
-
-  .compact {
-    display: none;
-  }
-}
-
-.page,
-.step {
+.page {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -56,35 +26,160 @@
   font-weight: var(--weight-bold);
 }
 
-.step {
+@media (hover: hover) {
+  .page:not([aria-current='page']):hover {
+    background-color: var(--surface-sunken);
+    color: var(--text-strong);
+  }
+}
+
+/*
+ * 묶음 페이지 번호(목록 · 내가 쓴 글, 본인 결정 2026-10-16 · 10-17) — `‹ 1 2 3 4 5 ›`. 모양은 위 번호 · 지금 페이지(잉크 채움)와 같다.
+ * 넉넉하면 한 줄. 일곱 칸(44px × 7 + 사이 4px × 6 = 20.75rem)이 안 들어가면 번호 줄이 위, 화살표 둘이 아래 줄 가운데로 — 넘기지 않는다.
+ * 번호도 칸이 모자라면(글자 200%) 줄을 바꾼다
+ */
+.groups {
+  display: grid;
+  grid-template-columns: auto;
+  grid-template-areas: 'pages';
+  justify-content: center;
+  align-items: center;
   gap: var(--space-1);
-  padding-inline: var(--space-2) var(--space-3);
 }
 
-.step:last-child {
-  padding-inline: var(--space-3) var(--space-2);
+.groups[data-arrows] {
+  grid-template-columns: auto auto auto;
+  grid-template-areas: 'prev pages next';
 }
 
-.step svg {
-  width: var(--icon-sm);
-  height: var(--icon-sm);
+/*
+ * 한 줄에 안 들어가면(칸 수 × 44px + 사이 4px 보다 좁으면) 번호 줄이 위, 화살표 둘이 아래 줄 가운데로.
+ * 칸 수(번호 + 화살표 둘)마다 문턱이 다르다 — 마지막 묶음처럼 번호가 적으면 좁은 폭에서도 한 줄(`‹ 6 7 ›`)
+ */
+@container pagination (width < 20.75rem) {
+  .groups[data-slots='7'] {
+    grid-template-columns: auto auto;
+    grid-template-areas:
+      'pages pages'
+      'prev next';
+    row-gap: var(--space-2);
+  }
 }
 
-.step[aria-disabled='true'] {
+@container pagination (width < 17.75rem) {
+  .groups[data-slots='6'] {
+    grid-template-columns: auto auto;
+    grid-template-areas:
+      'pages pages'
+      'prev next';
+    row-gap: var(--space-2);
+  }
+}
+
+@container pagination (width < 14.75rem) {
+  .groups[data-slots='5'] {
+    grid-template-columns: auto auto;
+    grid-template-areas:
+      'pages pages'
+      'prev next';
+    row-gap: var(--space-2);
+  }
+}
+
+@container pagination (width < 11.75rem) {
+  .groups[data-slots='4'] {
+    grid-template-columns: auto auto;
+    grid-template-areas:
+      'pages pages'
+      'prev next';
+    row-gap: var(--space-2);
+  }
+}
+
+@container pagination (width < 8.75rem) {
+  .groups[data-slots='3'] {
+    grid-template-columns: auto auto;
+    grid-template-areas:
+      'pages pages'
+      'prev next';
+    row-gap: var(--space-2);
+  }
+}
+
+/* 두 줄일 때 화살표 둘은 아래 줄 가운데에 붙어 선다 */
+.arrowPrev {
+  justify-self: end;
+}
+
+.arrowNext {
+  justify-self: start;
+}
+
+.groupPages {
+  display: flex;
+  flex-wrap: wrap;
+  grid-area: pages;
+  justify-content: center;
+  gap: var(--space-1);
+}
+
+/* 이전 · 다음 묶음 — 아이콘만(이름표 · 이름이 할 일을 말한다). 누르는 면 44px, 번호와 같은 모양 */
+.arrow {
+  display: inline-grid;
+  place-items: center;
+  width: var(--tap-min);
+  height: var(--tap-min);
+  border-radius: var(--radius-sm);
+  color: var(--text-body);
+}
+
+.arrowPrev {
+  grid-area: prev;
+}
+
+.arrowNext {
+  grid-area: next;
+}
+
+.arrow svg {
+  width: var(--icon-md);
+  height: var(--icon-md);
+}
+
+.arrow[aria-disabled='true'] {
   color: var(--text-disabled);
 }
 
-.gap {
-  display: inline-grid;
-  place-items: center;
-  width: var(--space-6);
-  color: var(--text-muted);
+/* 다음 묶음 이름표는 오른쪽을 맞춘다 — 줄 오른쪽 끝에서 화면 밖으로 나가지 않게 */
+.arrowNext .tipEnd {
+  left: auto;
+  right: 0;
+  transform: none;
+}
+
+.page:active,
+a.arrow:active {
+  opacity: var(--press-opacity);
 }
 
 @media (hover: hover) {
-  .page:not([aria-current='page']):hover,
-  a.step:hover {
+  a.arrow:hover {
     background-color: var(--surface-sunken);
     color: var(--text-strong);
+  }
+}
+
+/*
+ * 강제 색상(Windows 고대비) — 바탕색이 지워져 지금 페이지가 굵기 하나로만 갈렸다(QA-D-17). 2px 테두리로 가른다.
+ * outline 이 아니라 border — 포커스 링(outline)이 따로 남아, 지금 페이지에 포커스가 와도 둘 다 보인다(상자는 border-box 라 44px 그대로).
+ * 흐린 화살표는 시스템의 "누를 수 없음" 색(GrayText) — 누를 수 있는 화살표(LinkText)와 갈린다
+ */
+@media (forced-colors: active) {
+  .page[aria-current='page'] {
+    border: 2px solid CanvasText;
+  }
+
+  .arrow[aria-disabled='true'] {
+    color: GrayText;
   }
 }

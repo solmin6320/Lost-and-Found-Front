@@ -1,4 +1,6 @@
-import { QueryClient } from '@tanstack/react-query'
+import { MutationCache, QueryClient } from '@tanstack/react-query'
+
+import { waitForPendingDots } from '@/shared/lib/useLateFlag'
 
 /**
  * 서버 응답이 아니라 네트워크·서버 장애일 때만 재시도한다.
@@ -27,6 +29,16 @@ function shouldRetry(_failureCount: number, error: unknown): boolean {
 
 export function createQueryClient(): QueryClient {
   return new QueryClient({
+    /**
+     * 쓰기 요청이 끝나는 때를 **버튼 점이 끝나는 그림**에 맞춘다(QA-D-11) — 모든 쓰기(로그인 · 가입 · 저장 · 댓글 · 삭제 · 상태 바꾸기 · 올리기)가
+     * 버튼 점(`Button pending`)으로 기다림을 보인다. 점은 한 번 뜨면 0.45초 머무는데, 그 사이에 응답이 오면 오류 문구 · 포커스가
+     * 먼저 나오고 버튼만 "확인 중"으로 남았다. 여기서 남은 시간을 기다리면 성공 · 실패가 그 뒤에야 정해져(훅의 onSuccess · onError,
+     * 화면의 mutate 콜백, isPending 이 모두 뒤로) 점이 끝나는 그림에서 결과가 함께 나온다. 0.3초 안의 응답은 기다리지 않는다
+     */
+    mutationCache: new MutationCache({
+      onSuccess: (_data, _variables, _context, mutation) => waitForPendingDots(mutation.state.submittedAt),
+      onError: (_error, _variables, _context, mutation) => waitForPendingDots(mutation.state.submittedAt),
+    }),
     defaultOptions: {
       queries: {
         /**

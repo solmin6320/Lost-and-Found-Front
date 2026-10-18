@@ -11,8 +11,10 @@ import {
 import { useLocation, useNavigate, type NavigateOptions, type To } from 'react-router-dom'
 
 import { todayIsoDate } from '@/shared/lib/date'
+import { openDatePickerOnClick } from '@/shared/lib/datePicker'
 import { ClientValidationError, getErrorMessage, hasErrorCode, subscribeSessionExpired } from '@/shared/lib/http'
 import { allowLeave, isSelfLogout, useDirtyField, type LeaveCopy } from '@/shared/lib/dirtyRegistry'
+import { focusAndReveal } from '@/shared/lib/focusAndReveal'
 import { useObjectUrls } from '@/shared/lib/image'
 import { usePersonalInfoCheck } from '@/shared/lib/usePersonalInfoCheck'
 import { Button, ButtonLink } from '@/shared/ui/Button'
@@ -104,7 +106,7 @@ const LEAVE_COPY: Record<'create' | 'edit', LeaveCopy> = {
 const COPY = {
   create: {
     submit: '올리기',
-    submitting: '올리는 중…',
+    submitting: '올리는 중',
     cancel: '작성 취소',
     cancelTitle: '작성을 취소할까요?',
     cancelBody: '쓰던 내용이 사라져요.',
@@ -112,7 +114,7 @@ const COPY = {
   },
   edit: {
     submit: '저장하기',
-    submitting: '저장하는 중…',
+    submitting: '저장하는 중',
     cancel: '수정 취소',
     cancelTitle: '수정을 취소할까요?',
     cancelBody: '고친 내용이 사라져요. 글은 고치기 전 그대로 남아요.',
@@ -120,11 +122,16 @@ const COPY = {
   },
 } as const
 
-/** 보내는 동안 보이는 단계. 사진이 없으면 "올리는 중" 하나 */
-const STEPS: { phase: Exclude<PostSubmitPhase, 'idle'>; label: string }[] = [
-  { phase: 'preparing', label: '사진 줄이는 중' },
-  { phase: 'uploading', label: '올리는 중' },
-]
+/**
+ * 보내는 동안 보이는 단계. 사진이 없으면 보내는 단계 하나. 보내는 단계의 이름은 버튼의 요청 중 이름과 같다
+ * (등록 `올리는 중` · 수정 `저장하는 중` — QA-D-8, 수정 화면에서 단계 줄은 "올리는 중"인데 버튼은 "저장하는 중"이었다)
+ */
+function submitSteps(sendingLabel: string): { phase: Exclude<PostSubmitPhase, 'idle'>; label: string }[] {
+  return [
+    { phase: 'preparing', label: '사진 줄이는 중' },
+    { phase: 'uploading', label: sendingLabel },
+  ]
+}
 
 /**
  * 게시글 등록 · 수정 폼(SCR-02 · SCR-04). 입력 순서 : 유형 → 사진 → 제목 → 종류 → 장소 → 날짜 → 설명.
@@ -271,7 +278,7 @@ export function PostForm({
       box?.querySelector<HTMLElement>('input:not([type="file"]), textarea, button')
     movingFocus.current = true
     try {
-      target?.focus()
+      focusAndReveal(target)
     } finally {
       movingFocus.current = false
     }
@@ -551,6 +558,8 @@ export function PostForm({
             error={errors.lostFoundDate}
             announceError={liveField === 'lostFoundDate'}
             readOnly={readOnly}
+            // 글자("연도. 월. 일.")나 칸 이름을 눌러도 달력이 열린다(본인 피드백 2026-10-14)
+            onClick={openDatePickerOnClick}
             onChange={(event) => setField('lostFoundDate', event.target.value)}
             onBlur={() => checkOnBlur('lostFoundDate')}
           />
@@ -592,11 +601,11 @@ export function PostForm({
           />
         </div>
 
-        <div ref={barRef} className={styles.bar}>
+        <div ref={barRef} className={styles.bar} data-sticks="bottom">
           {formError ? (
             <FormAlert ref={alertRef} message={formError} />
           ) : null}
-          {pending ? <SubmitSteps phase={phase} withPhotos={change === 'replace'} /> : null}
+          {pending ? <SubmitSteps phase={phase} withPhotos={change === 'replace'} sendingLabel={copy.submitting} /> : null}
           {/* 제출이 막혔을 때 남은 수 — 이 화면의 유일한 알림(칸 오류는 포커스가 간 칸이 읽는다). 비어 있어도 자리를 두어야 읽힌다 */}
           <p className={styles.remaining} role="status">
             {remaining}
@@ -614,10 +623,11 @@ export function PostForm({
               type="submit"
               variant="primary"
               className={styles.submit}
-              aria-disabled={pending || undefined}
+              pending={pending}
+              pendingLabel={copy.submitting}
               unavailable={stranded}
             >
-              {pending ? copy.submitting : copy.submit}
+              {copy.submit}
             </Button>
           </div>
         </div>
@@ -749,8 +759,17 @@ function QuickDates({
 }
 
 /** 보내는 동안 — "사진 줄이는 중 → 올리는 중". 진행률(%)은 없다(`PostSubmitPhase`) */
-function SubmitSteps({ phase, withPhotos }: { phase: PostSubmitPhase; withPhotos: boolean }) {
-  const steps = withPhotos ? STEPS : STEPS.slice(1)
+function SubmitSteps({
+  phase,
+  withPhotos,
+  sendingLabel,
+}: {
+  phase: PostSubmitPhase
+  withPhotos: boolean
+  sendingLabel: string
+}) {
+  const all = submitSteps(sendingLabel)
+  const steps = withPhotos ? all : all.slice(1)
   const currentIndex = Math.max(
     0,
     steps.findIndex((step) => step.phase === phase),

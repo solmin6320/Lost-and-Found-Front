@@ -11,7 +11,8 @@ import {
 
 import type { PostDetailResponse } from '@/features/posts'
 import { allowLeave, isSelfLogout, useDirtyField } from '@/shared/lib/dirtyRegistry'
-import { getErrorMessage, subscribeSessionExpired } from '@/shared/lib/http'
+import { focusAndReveal } from '@/shared/lib/focusAndReveal'
+import { getErrorMessage, hasErrorCode, subscribeSessionExpired } from '@/shared/lib/http'
 import { usePersonalInfoCheck } from '@/shared/lib/usePersonalInfoCheck'
 import { Button, ButtonLink } from '@/shared/ui/Button'
 import { ChatCircleDots, Check, ClockCounterClockwise, LockSimple, WarningCircle } from '@/shared/ui/icons'
@@ -234,16 +235,15 @@ export function CommentSection({
         {thread.hasNextPage && remaining > 0 ? (
           <div className={styles.more}>
             <Button
-              aria-disabled={thread.isFetchingNextPage || undefined}
+              pending={thread.isFetchingNextPage}
+              pendingLabel="댓글을 불러오는 중"
               onClick={() => void loadMore()}
               className={styles.moreButton}
             >
-              {thread.isFetchingNextPage ? '불러오는 중…' : `댓글 더 보기`}
-              {thread.isFetchingNextPage ? null : (
-                <span className={styles.moreCount} data-numeric>
-                  {remaining.toLocaleString('ko-KR')}개
-                </span>
-              )}
+              댓글 더 보기
+              <span className={styles.moreCount} data-numeric>
+                {remaining.toLocaleString('ko-KR')}개
+              </span>
             </Button>
             {thread.isFetchNextPageError ? (
               <p className={styles.error} role="alert">
@@ -428,7 +428,7 @@ function CommentComposer({
     const problem = checkCommentContent(value)
     if (problem) {
       setError(problem)
-      inputRef.current?.focus()
+      focusAndReveal(inputRef.current)
       return
     }
     create.mutate(
@@ -440,8 +440,11 @@ function CommentComposer({
           setRestored(false)
           onCreated(comment)
         },
-        // 입력은 지우지 않는다 — 고쳐서 다시 보낸다
-        onError: (failure) => setError(getErrorMessage(failure)),
+        // 입력은 지우지 않는다 — 고쳐서 다시 보낸다. 서버가 칸 문제로 막았으면(400) 그 칸으로 간다(보내기 전 검사와 같은 규칙)
+        onError: (failure) => {
+          setError(getErrorMessage(failure))
+          if (hasErrorCode(failure, 'INVALID_INPUT')) focusAndReveal(inputRef.current)
+        },
       },
     )
   }
@@ -499,8 +502,8 @@ function CommentComposer({
       {stranded ? null : (
         <div className={styles.composerActions}>
           <PersonalInfoNotice id={noticeId} notice={personal.notice} />
-          <Button type="submit" variant="primary" aria-disabled={create.isPending || undefined} className={styles.submit}>
-            {create.isPending ? '남기는 중…' : '댓글 남기기'}
+          <Button type="submit" variant="primary" pending={create.isPending} pendingLabel="남기는 중" className={styles.submit}>
+            댓글 남기기
           </Button>
         </div>
       )}

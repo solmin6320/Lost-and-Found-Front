@@ -158,6 +158,12 @@
 
 .dateInput {
   font-variant-numeric: tabular-nums;
+  /* 칸 어디를 눌러도 달력이 열린다(`openDatePicker`) — 글자 칸이 아니라 누르는 칸으로 보이게 */
+  cursor: pointer;
+}
+
+.dateInput::-webkit-calendar-picker-indicator {
+  cursor: pointer;
 }
 
 /*

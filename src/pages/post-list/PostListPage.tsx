@@ -1,6 +1,6 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
-import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useEffect, useRef, useState, type RefObject } from 'react'
+import { Link, useNavigate, type To } from 'react-router-dom'
 
 import { POST_DETAIL_FROM_LIST, paths } from '@/app/paths'
 import { useAuth } from '@/features/auth'
@@ -12,16 +12,16 @@ import {
   PostFilterBar,
   PostIntentNext,
   PostIntentPicker,
+  POST_LIST_PAGE_GROUP,
+  POST_LIST_PAGE_SIZE,
   PostSearchBar,
   anyIntentNextTitle,
   hasActiveFilters,
   intentShowing,
   postListConditionKey,
   postListHeading,
-  postListProgress,
   postListQueryOptions,
   postListSearchKey,
-  postListShownLimit,
   suggestionParams,
   toPostListParams,
   usePostListSearch,
@@ -33,14 +33,18 @@ import {
   type PostListSearch,
   type PostType,
 } from '@/features/posts'
+import { isPlainClick } from '@/shared/lib/events'
 import { getErrorMessage } from '@/shared/lib/http'
+import { pageAnnouncement } from '@/shared/lib/pageAnnouncement'
+import { useDropPageWhenEmpty } from '@/shared/lib/pageParam'
 import { useDocumentTitle } from '@/shared/lib/useDocumentTitle'
 import type { PagedModel } from '@/shared/types/api'
-import { Button } from '@/shared/ui/Button'
+import { Button, ButtonLink } from '@/shared/ui/Button'
 import { EmptyState } from '@/shared/ui/EmptyState'
 import { ErrorState } from '@/shared/ui/ErrorState'
-import { ArrowClockwise, MagnifyingGlass, Plus, WarningCircle } from '@/shared/ui/icons'
-import { Skeleton } from '@/shared/ui/Skeleton'
+import { MagnifyingGlass, Plus } from '@/shared/ui/icons'
+import { LoadingDots } from '@/shared/ui/LoadingDots'
+import { Pagination } from '@/shared/ui/Pagination'
 
 import styles from './PostListPage.module.css'
 
@@ -54,31 +58,23 @@ const WRITE_LINK_MIN = 5
 
 type PostList = PagedModel<PostListResponse>
 
-/** [더 보기]를 누른 순간의 기준 — 이미 본 마지막 카드와 그 화면 위치 */
-interface ExpandAnchor {
-  condition: string
-  id: number
-  top: number
-  count: number
-}
-
 /**
  * SCR-01 게시글 목록 · `/`
  *
  * 맨 위에서 글 종류를 고른다(`잃어버린 물건` = 분실 글, `주운 물건` = 습득 글 — 칸 이름 = 보여 주는 글, 본인 결정 2026-10-07).
  * 그 아래 검색 · 필터 칩 · 사진 피드. 상태를 고르지 않으면 "진행 중"(게시중 + 연락중)만 보여 준다(회의 ⑧).
- * 종류 · 검색 · 필터 · 펼친 수는 전부 URL 에 있다. 이 화면은 주소를 읽어 그리고, 바꿀 때는 주소를 바꾼다.
- * 조건을 바꾸는 동안에는 직전 목록을 흐리게 남겨 둔다(`keepPreviousData`) — 빈 화면으로 깜빡이지 않는다.
+ * 종류 · 검색 · 필터 · 페이지 번호는 전부 URL 에 있다. 이 화면은 주소를 읽어 그리고, 바꿀 때는 주소를 바꾼다.
+ * 조건 · 페이지를 바꾸는 동안에는 직전 목록을 흐리게 남겨 둔다(`keepPreviousData`) — 빈 화면으로 깜빡이지 않는다.
  *
- * 목록은 **[더 보기]로 이어진다**(모든 폭, 2026-10-03 회의 ⑥). 누를 때마다 24건 묶음을 하나 더 펼쳐 처음부터 한 번에
- * 다시 받는다(최대 96건). 이미 본 카드는 흐리게 하지 않고 제자리에 둔다 — 그사이 맨 위에 새 글이 끼어도 보던 자리가
- * 움직이지 않게 마지막 카드 위치를 맞춘다. 포커스는 새로 붙은 첫 카드로 간다. 자동으로 이어 붙이지 않는다.
+ * 목록은 **페이지 번호로 넘긴다**(본인 결정 2026-10-16 — 예전 [더 보기] · 96건 상한을 바꿨다). 한 페이지 20건, 글이 21 · 41 · 61 … 건이 되면
+ * 페이지가 하나씩 는다. 번호는 다섯 개씩(`1 2 3 4 5`), 전체가 다섯 페이지보다 많으면(6페이지부터, 2026-10-17) 이전 · 다음 묶음 화살표. 페이지를 넘기면 결과 제목
+ * 줄로 스크롤하고 제목에 포커스 — 새 페이지를 위에서부터 읽는다. 뒤로가기는 보던 페이지로 돌아온다. 조건을 바꾸면 1페이지로.
  *
  * 누른 버튼이 사라지는 동작(검색 · 지우기 · 필터 모두 지우기 · 다시 시도)은 전부 결과 제목으로 포커스를 옮긴다.
  * 그냥 두면 포커스가 문서 맨 앞(body)으로 빠져, 키보드 · 스크린리더 사용자가 처음부터 다시 찾아 내려와야 한다.
  */
 export function PostListPage() {
-  const { search, apply, expand, hrefWith } = usePostListSearch()
+  const { search, apply, hrefForPage, hrefWith } = usePostListSearch()
   const navigate = useNavigate()
   const query = useQuery({
     ...postListQueryOptions(toPostListParams(search)),
@@ -99,22 +95,26 @@ export function PostListPage() {
   const searchKey = postListSearchKey(search)
   const condition = postListConditionKey(search)
 
+  const view: PostList | undefined = query.data
+  /** 조건 · 페이지를 바꿔 직전 목록을 흐리게 남겨 둔 동안 */
+  const stale = query.isPlaceholderData
+
   /**
-   * 마지막으로 **다 받은** 목록. [더 보기]를 받는 동안 · 실패했을 때 이것을 그대로 그린다 —
-   * 받아 둔 카드는 사라지지 않는다. 조건이 바뀌면 새 조건의 목록이 들어올 때 바뀐다
+   * 페이지를 넘긴 결과를 한 번 알린다 — "2페이지예요. 58건 중 21~40번째 글이에요."(조건을 바꾼 결과는 건수 알림이 맡는다).
+   * 마지막으로 다 받은 조건 · 페이지와 견준다
    */
-  const [settled, setSettled] = useState<{ condition: string; data: PostList } | null>(null)
-  if (query.data && !query.isPlaceholderData && settled?.data !== query.data) {
-    setSettled({ condition, data: query.data })
+  const [shown, setShown] = useState<{ condition: string; page: number } | null>(null)
+  const [announcement, setAnnouncement] = useState('')
+  if (query.data && !query.isPlaceholderData && (shown?.condition !== condition || shown.page !== search.page)) {
+    // 글이 없는 쪽(끝을 넘은 번호)은 알리지 않는다 — 빈 상태 제목이 말한다. 예전엔 "99페이지예요. 1,961~1,960번째"라고 읽었다(QA-P-17)
+    const turned = shown !== null && shown.condition === condition && query.data.content.length > 0
+    setShown({ condition, page: search.page })
+    setAnnouncement(
+      turned
+        ? pageAnnouncement(search.page, POST_LIST_PAGE_SIZE, query.data.content.length, query.data.page.totalElements)
+        : '',
+    )
   }
-  const sameCondition = settled?.condition === condition
-  /** 펼친 수만 늘어 다시 받는 중 — 조건이 바뀐 것과 달리 이미 본 카드를 흐리게 하지 않는다 */
-  const expanding = query.isPlaceholderData && sameCondition
-  /** 펼치다 실패했다. 받아 둔 카드는 두고 버튼 자리에 서버 문장 + [다시 시도] */
-  const expandFailed = query.isError && sameCondition && settled !== null
-  const view: PostList | undefined = query.data ?? (expandFailed ? settled?.data : undefined)
-  /** 조건이 바뀌어 직전 목록을 흐리게 남겨 둔 동안 */
-  const stale = query.isPlaceholderData && !expanding
 
   /**
    * 조건이 바뀌어 다시 그려진 **뒤에** 결과 제목으로 포커스를 준다.
@@ -144,78 +144,66 @@ export function PostListPage() {
     apply(next)
   }
 
+  /** 처음 목록으로 — 주소는 링크가 `/` 로 바꾼다. 검색칸은 다시 그려 치다 만 글자까지 비우고, 맨 위로 올린다 */
+  const [resetCount, setResetCount] = useState(0)
+  function resetToStart() {
+    setResetCount((count) => count + 1)
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    window.scrollTo({ top: 0, left: 0, behavior: reduce ? 'instant' : 'smooth' })
+  }
+
   const clearFilters = () => applyThenFocusResults(withoutFilters(search))
   const clearKeyword = () => applyThenFocusResults({ ...search, keyword: '' })
 
-  /* ── [더 보기] ── */
-
-  const anchor = useRef<ExpandAnchor | null>(null)
-  const [announcement, setAnnouncement] = useState('')
-
-  function handleExpand() {
-    if (expanding || !view) return
-    const last = view.content[view.content.length - 1]
-    if (!last) return
-    const card = gridRef.current?.querySelector(`[data-post-id="${last.id}"]`)
-    anchor.current = { condition, id: last.id, top: card?.getBoundingClientRect().top ?? 0, count: view.content.length }
-    setAnnouncement('')
-    expand()
+  /**
+   * 페이지를 넘겼다 — 결과 제목 줄로 스크롤하고 제목에 포커스(새 페이지를 위에서부터 읽는다). 직전 카드는 흐리게 남아 있다.
+   * 주소가 그려진 **뒤에** 옮긴다 — 누른 직후에 옮기면 그 스크롤이 떠나는 페이지의 기록으로 남아(ScrollMemory) 뒤로가기가
+   * 보던 자리(페이지 번호 줄)가 아니라 결과 제목으로 돌아왔다
+   */
+  const turnedPage = useRef(false)
+  function handlePageNavigate() {
+    turnedPage.current = true
   }
-
-  // 새 묶음이 그려진 직후(칠하기 전): 보던 카드를 제자리에 두고, 새로 붙은 첫 카드로 포커스를 옮긴다.
-  // 브라우저의 스크롤 고정(overflow-anchor)을 지원하지 않는 곳도 있어 직접 맞춘다. 이미 맞았으면 차이가 0이다
-  useLayoutEffect(() => {
-    const at = anchor.current
-    if (!at || !query.data || query.isPlaceholderData) return
-    anchor.current = null
-    if (at.condition !== condition) return
-    const grid = gridRef.current
-    const { content, page } = query.data
-    const card = grid?.querySelector(`[data-post-id="${at.id}"]`)
-    if (card) {
-      const shift = card.getBoundingClientRect().top - at.top
-      if (Math.abs(shift) >= 1) window.scrollBy({ top: shift, behavior: 'instant' })
-    }
-    const index = content.findIndex((post) => post.id === at.id)
-    const first = content[index >= 0 ? index + 1 : at.count]
-    const firstCard = first ? grid?.querySelector<HTMLElement>(`[data-post-id="${first.id}"]`) : null
-    if (firstCard) {
-      firstCard.querySelector<HTMLElement>('a')?.focus({ preventScroll: true })
-      // 엄지 자리에서 눌렀으면 새 첫 카드는 화면 맨 아래에 걸쳐 있다. 그 카드가 다 들어올 만큼만 내린다 —
-      // 이미 보이면 움직이지 않고, 보던 줄은 위로 조금 밀릴 뿐 화면에 남는다. 모션 줄이기면 즉시
-      const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-      firstCard.scrollIntoView({ block: 'nearest', behavior: reduce ? 'instant' : 'smooth' })
-    }
-    const added = Math.max(content.length - at.count, 0)
-    // 화면의 "N건 중 M건을 봤어요"와 같은 말로 읽는다 — "48 / 58"은 스크린리더가 빗금까지 읽는다
-    setAnnouncement(
-      `${added.toLocaleString('ko-KR')}건을 더 불러왔어요. ${page.totalElements.toLocaleString('ko-KR')}건 중 ${content.length.toLocaleString('ko-KR')}건을 봤어요.`,
-    )
-  }, [query.data, query.isPlaceholderData, condition])
-
-  /** 96건을 넘으면 — 필터로 데려간다. 칩 줄이 위에 붙어 있으면 이미 보인다 */
-  function goToFilters() {
-    const chips = chipsRef.current
-    if (!chips) return
-    if (!stuck) chips.scrollIntoView({ block: 'nearest' })
-    chips.querySelector<HTMLElement>('[data-filter-field]')?.focus({ preventScroll: true })
-  }
+  useEffect(() => {
+    if (!turnedPage.current) return
+    turnedPage.current = false
+    const summary = summaryRef.current
+    if (!summary) return
+    // 결과 제목 줄 위끝을 붙은 헤더 · 칩 줄 바로 아래에(문서의 scroll-padding-top 이 그 높이 + 16px).
+    // scrollIntoView 는 줄의 scroll-margin 까지 더해 두 배로 내려 놓는다
+    const pad = parseFloat(getComputedStyle(document.documentElement).scrollPaddingTop) || 0
+    window.scrollTo({ top: summary.getBoundingClientRect().top + window.scrollY - pad, behavior: 'instant' })
+    headingRef.current?.focus({ preventScroll: true })
+  }, [searchKey])
 
   const total = view?.page.totalElements
   const empty = view ? emptyKindOf(search, view) : null
   const filtered = hasActiveFilters(search)
   // 확정된 데이터로만 판정한다. 조건을 바꾸는 동안의 앞 목록 숫자로 판정하면 입구가 한 번 떴다 사라진다
-  const confirmedTotal = view && (!query.isPlaceholderData || expanding) ? view.page.totalElements : undefined
-  const progress = view && !empty ? postListProgress(search, view.content.length, view.page.totalElements) : null
+  const confirmedTotal = view && !query.isPlaceholderData ? view.page.totalElements : undefined
+  // 0건이면 ?page=4 를 지운다 — 갈 페이지가 없다(QA-P-28)
+  useDropPageWhenEmpty(confirmedTotal)
+  const totalPages = view?.page.totalPages ?? 0
+  /** 뒤 페이지가 남았나(확정된 목록 기준) */
+  const morePages = view !== undefined && !stale && search.page < totalPages
+  /*
+   * 결과 제목 아래 글쓰기 입구 줄. 칸(유형)은 주소로 알 수 있어 **받기 전부터 그린다**(QA-P-30 · D-29) — 받은 뒤에야 줄이 서면
+   * 카드 전체가 35px 내려갔다(375 `?type=LOST`). 처음 받는 동안(스켈레톤), 그리고 다시 받는 동안 직전 화면에 줄이 있었으면 그대로 둔다
+   * (없던 줄이 생겼다 사라지지 않게). 확정 건수가 4건 이하면 그때 거둔다(그 경우만 카드가 35px 올라온다 — 목록 끝의 입구가 같은 화면에 보여 둘이 되지 않게)
+   */
+  const writeDecided = confirmedTotal === undefined ? undefined : intent !== undefined && confirmedTotal >= WRITE_LINK_MIN
+  /** 마지막으로 확정된 화면에 줄이 있었나 */
+  const [writeShown, setWriteShown] = useState(false)
+  if (writeDecided !== undefined && writeDecided !== writeShown) setWriteShown(writeDecided)
+  const showWrite =
+    intent !== undefined && !query.isError && (writeDecided ?? (query.isPending || writeShown))
+
   // 목록 끝의 "내 글을 올려 두기".
-  //  칸을 골랐으면 그 종류 하나. 더 펼칠 수 있으면 아직 끝이 아니다 — 결과 제목 아래 한 줄이 이미 입구다(5건 이상)
+  //  칸을 골랐으면 그 종류 하나, **마지막 페이지에서만**(본인 결정 2026-10-16) — 그 전 페이지는 결과 제목 아래 한 줄이 이미 입구다(5건 이상)
   //  칸 · 검색어 · 필터가 없는 처음 목록이면 두 종류를 나란히(QA P-1). 휴대폰 헤더의 [+]는 글자가 없어 본문에 글로 된 입구가
-  //  이것 하나뿐이라, 더 펼칠 수 있어도 [더 보기] 아래에 늘 둔다
+  //  이것 하나뿐이라 모든 페이지에 둔다 — 제목만 갈린다(뒤 페이지가 남았으면 "올릴 물건이 있나요?", 마지막이면 "찾는 물건이 없나요?")
   const plainList = intent === undefined && !search.keyword && !filtered
-  const showNext =
-    view !== undefined &&
-    !empty &&
-    (intent !== undefined ? !expanding && !expandFailed && progress?.kind !== 'more' : plainList)
+  const showNext = view !== undefined && !empty && !stale && (intent !== undefined ? !morePages : plainList)
 
   return (
     <div className={styles.page}>
@@ -227,19 +215,18 @@ export function PostListPage() {
         <PostIntentPicker
           selected={search.type}
           hrefFor={(type) => hrefWith({ type })}
+          resetTo={paths.postList}
           showCounts={!search.keyword && !filtered}
-          // 같은 의도를 다시 눌렀다. 링크가 첫 묶음으로 이동한다 — 이미 첫 묶음이면 주소가 그대로라 바로 옮긴다
-          onReselect={() => {
-            if (search.page === 1) focusResults()
-            else refocusResults.current = true
-          }}
+          // 고른 칸 → 처음 목록(본인 결정 2026-10-14). 링크가 주소를 `/` 로 바꾼다 — 치다 만 검색칸 글자도 비우고 맨 위로.
+          // [×]는 분실 · 습득 선택만 푼다(검색어 · 필터 그대로, QA-P-6)
+          onReset={resetToStart}
         />
       </section>
 
       {/* 검색은 위에 붙지 않는다(입력칸은 한 벌 — 두 벌이면 치던 글자가 갈린다). 넓은 화면은 칩 줄과 한 줄에 선다 */}
       <div className={styles.search}>
         <PostSearchBar
-          key={search.keyword}
+          key={`${search.keyword}#${resetCount}`}
           keyword={search.keyword}
           // 새 검색어는 분실 · 습득을 함께 찾는다(골라 둔 칸을 푼다). 한쪽만 보려면 위의 칸을 누른다 — 검색어는 남는다
           onSearch={(keyword) => applyThenFocusResults(withKeyword(search, keyword))}
@@ -250,40 +237,65 @@ export function PostListPage() {
       </div>
 
       {/*
-        칩 줄 — 스크롤해도 헤더 아래에 붙는다(높이 40rem · 폭 22.5rem 이상, CSS). 96장 아래에서도 조건을 바로 바꾼다.
+        칩 줄 — 스크롤해도 헤더 아래에 붙는다(높이 40rem · 폭 22.5rem 이상, CSS). 목록 아래에서도 조건을 바로 바꾼다.
         붙어 있는 동안만 아래에 가는 선과 바탕을 깐다(data-stuck)
       */}
-      <div ref={chipsRef} className={styles.chips} data-stuck={stuck || undefined}>
+      <div ref={chipsRef} className={styles.chips} data-stuck={stuck || undefined} data-sticks="top">
         {/* [전체 해제]는 두지 않는다(본인 피드백 2026-10-07) — 걸린 칩마다 [×], 0건이면 빈 상태의 [필터 모두 지우기] */}
         <PostFilterBar search={search} onApply={apply} onRemove={(field) => apply(withoutFilter(search, field))} />
       </div>
 
       <section className={styles.results} aria-labelledby="post-list-heading">
         <div ref={summaryRef} className={styles.summary}>
-          <h2 id="post-list-heading" ref={headingRef} tabIndex={-1} className={styles.heading}>
+          {/* data-page-turn-focus : 같은 경로의 뒤로 · 앞으로에서 고른 자리가 화면 밖이면 여기로(RouteFocus, QA-P-24) */}
+          <h2 id="post-list-heading" ref={headingRef} tabIndex={-1} className={styles.heading} data-page-turn-focus>
             {heading}
           </h2>
-          <p className={styles.count} aria-live="polite" aria-atomic="true" data-stale={stale || undefined}>
-            {total === undefined ? (
-              query.isPending ? (
-                <>
-                  <span className="sr-only">게시글을 불러오는 중이에요</span>
-                  <Skeleton shape="text" width="2.75rem" />
-                </>
-              ) : null
-            ) : (
-              <>
-                <span className="sr-only">게시글 </span>
-                <strong data-numeric>{total.toLocaleString('ko-KR')}</strong>건
-              </>
-            )}
-          </p>
-          {/* 카드의 이름표가 무엇인지 — 건수 바로 뒤. 누르면 펼친다(온보딩 2층). 알림 영역(건수) 밖 형제로 둔다 */}
-          <BadgeGuide className={styles.badgeGuide} />
+          {/*
+            건수 자리 — 결과를 기다리는 동안 점 셋이 서는 곳도 여기 하나다(첫 로딩 · 다시 받기 모두, QA-P-5 · P-9).
+            다시 받는 중(조건 · 페이지를 바꿈)에는 직전 목록을 흐리게 두고 **건수 자리에 점 셋이 겹쳐 선다**(0.3초 넘을 때만) — 건수 글자는 그동안
+            보이지 않게 둔다(직전 조건의 수다). 점 자리는 늘 잡혀 있고(`reserve`) 건수 상자 위에 겹쳐 서서 줄 · 이름표 안내 · 카드가
+            밀리지 않는다. 예전엔 건수 뒤 흐름 안에 서서 이름표 안내가 ±50px 오갔고(200%에서 첫 카드 +52px), 쉬는 동안에도 빈 자리가
+            칸 하나를 차지해 건수 → 이름표 안내가 8 → 16px 벌어졌다(QA-D-12).
+            건수와 이름표 안내는 한 묶음으로 줄을 바꾼다(countGroup) — 따로 서면 글자 200%에서 기다리는 점(56px)은 제목 옆에 서고 받은 건수(`132건` 69px)는
+            다음 줄로 내려가 결과 제목이 4px · 줄이 9px 움직였다(본인 지시 2026-10-18 "스켈레톤까지")
+          */}
+          <div className={styles.countGroup}>
+            <div className={styles.countSlot}>
+              {/*
+                건수 자리 — 세 자리(`000건`)만큼 늘 잡아 둔다(보이지 않음, QA-P-34). 기다리는 점(26px)보다 숫자(`230건` 46px)가 넓어
+                숫자가 들어오는 순간 이름표 안내가 7px(200% 13px) 오른쪽으로 밀렸다. 한두 자리 수면 그만큼 안내 앞이 넓어진다
+              */}
+              <span className={styles.countReserve} aria-hidden="true">
+                <strong data-numeric>000</strong>건
+              </span>
+              <p className={styles.count} aria-live="polite" aria-atomic="true" data-stale={stale || undefined}>
+                {total === undefined ? (
+                  query.isPending ? (
+                    // 첫 로딩 — 카드 자리는 스켈레톤, 건수 자리에는 점 셋(본인 결정 2026-10-14, QA-P-5).
+                    // 자리(점 셋 폭)를 먼저 잡아 두어 숫자가 들어와도 줄이 밀리지 않는다. 0.3초 전에는 빈 자리
+                    <>
+                      <span className="sr-only">게시글을 불러오는 중이에요</span>
+                      <LoadingDots announce={false} />
+                    </>
+                  ) : null
+                ) : (
+                  <span className={styles.countText}>
+                    <span className="sr-only">게시글 </span>
+                    <strong data-numeric>{total.toLocaleString('ko-KR')}</strong>건
+                  </span>
+                )}
+              </p>
+              {/* 알림 영역(건수) 밖 형제 — 건수 문장을 다시 읽히지 않게. 누름을 받지 않는다 */}
+              <LoadingDots active={stale} label="글을 불러오는 중" reserve className={styles.staleDots} />
+            </div>
+            {/* 카드의 이름표가 무엇인지 — 건수 바로 뒤. 누르면 펼친다(온보딩 2층). 알림 영역(건수) 밖 형제로 둔다 */}
+            <BadgeGuide className={styles.badgeGuide} />
+          </div>
         </div>
 
         {/* 의도를 고른 순간의 글쓰기 입구. 떠 있는 버튼 대신 흐름 안 한 줄 — 결심하는 순간 바로 아래에 있다 */}
-        {intent && confirmedTotal !== undefined && confirmedTotal >= WRITE_LINK_MIN ? (
+        {intent && showWrite ? (
           <p className={styles.write}>
             {intent.write.lead}{' '}
             <Link className={styles.writeLink} to={createHref(intent.concept)}>
@@ -296,8 +308,9 @@ export function PostListPage() {
         <PostListBody
           query={{ isPending: query.isPending, isFetching: query.isFetching, error: query.error }}
           view={view}
-          pages={search.page}
           search={search}
+          lastPageHref={view ? hrefForPage(Math.max(view.page.totalPages, 1)) : undefined}
+          onPageNavigate={handlePageNavigate}
           intent={intent}
           stale={stale}
           gridRef={gridRef}
@@ -310,18 +323,20 @@ export function PostListPage() {
           onClearKeyword={clearKeyword}
         />
 
-        {view && progress && !empty ? (
-          <PostListMore
-            progress={progress}
-            loaded={view.content.length}
-            total={view.page.totalElements}
-            expanding={expanding}
-            failed={expandFailed ? getErrorMessage(query.error) : null}
-            retrying={query.isFetching}
-            onExpand={handleExpand}
-            onRetry={() => void query.refetch()}
-            onGoToFilters={goToFilters}
-          />
+        {/*
+          페이지 번호 — 마지막 카드 줄 바로 아래. 다섯 개씩, 6페이지부터 이전 · 다음 묶음 화살표(본인 결정 2026-10-16 · 10-17).
+          한 페이지뿐이면 그리지 않는다. 넘기는 동안에도 자리는 그대로(직전 카드가 흐리게 남는다)
+        */}
+        {view && !empty && totalPages > 1 ? (
+          <div className={styles.pagination}>
+            <Pagination
+              page={search.page}
+              totalPages={totalPages}
+              hrefFor={hrefForPage}
+              onNavigate={handlePageNavigate}
+              groupSize={POST_LIST_PAGE_GROUP}
+            />
+          </div>
         ) : null}
 
         <p className="sr-only" aria-live="polite" aria-atomic="true">
@@ -333,11 +348,11 @@ export function PostListPage() {
             {intent ? (
               <PostIntentNext intent={intent} to={createHref(intent.concept)} />
             ) : (
-              // 제목만 갈린다 — 더 볼 글이 남았으면 "올릴 물건이 있나요?", 다 봤으면 "찾는 물건이 없나요?"(QA-P-14)
+              // 제목만 갈린다 — 뒤 페이지가 남았으면 "올릴 물건이 있나요?", 마지막 페이지면 "찾는 물건이 없나요?"(QA-P-14)
               <PostIntentNext
                 to={createHref()}
                 hrefFor={createHref}
-                title={anyIntentNextTitle(progress?.kind ?? 'end')}
+                title={anyIntentNextTitle(morePages)}
               />
             )}
           </div>
@@ -382,14 +397,15 @@ function useStuck(ref: RefObject<HTMLElement | null>) {
 
 /**
  * 비어 있는 까닭.
+ *   past-end  : 글은 있는데 이 페이지 번호가 끝을 넘었다(지난 주소 · 그사이 글이 줄었다)
  *   filtered  : 검색어나 필터가 걸려 있다
  *   none-yet  : 조건 없이도 글이 없다(의도만 골랐으면 그 유형의 글이 없다)
- * 언제나 처음부터 받으므로 "끝을 넘은 쪽"은 없다
  */
-type EmptyKind = 'filtered' | 'none-yet'
+type EmptyKind = 'past-end' | 'filtered' | 'none-yet'
 
 function emptyKindOf(search: PostListSearch, data: PostList): EmptyKind | null {
   if (data.content.length > 0) return null
+  if (data.page.totalElements > 0) return 'past-end'
   if (hasActiveFilters(search) || search.keyword) return 'filtered'
   return 'none-yet'
 }
@@ -397,9 +413,11 @@ function emptyKindOf(search: PostListSearch, data: PostList): EmptyKind | null {
 interface PostListBodyProps {
   query: { isPending: boolean; isFetching: boolean; error: unknown }
   view: PostList | undefined
-  /** 펼친 묶음 수. 불러오는 동안 이만큼 자리를 잡는다 */
-  pages: number
   search: PostListSearch
+  /** 끝을 넘은 페이지에서 돌아갈 마지막 페이지 주소 */
+  lastPageHref: To | undefined
+  /** [n페이지로]를 눌렀다 — 페이지 번호를 누른 것과 같이 결과 제목으로 데려가고 알린다(QA-P-17 · D-14 — 누른 버튼이 사라져 포커스가 body 로 빠졌다) */
+  onPageNavigate: () => void
   intent: PostIntent | undefined
   stale: boolean
   gridRef: RefObject<HTMLUListElement | null>
@@ -413,8 +431,9 @@ interface PostListBodyProps {
 function PostListBody({
   query,
   view,
-  pages,
   search,
+  lastPageHref,
+  onPageNavigate,
   intent,
   stale,
   gridRef,
@@ -424,12 +443,14 @@ function PostListBody({
   onClearKeyword,
 }: PostListBodyProps) {
   if (!view && query.isPending) {
-    // 펼친 수만큼 자리를 잡는다. 새로고침 · 오래된 뒤로가기에서도 문서 높이가 응답 전에 거의 맞아,
+    // 한 페이지(20건)만큼 자리를 잡는다. 새로고침 · 오래된 뒤로가기에서도 문서 높이가 응답 전에 거의 맞아,
     // 스크롤 기억이 보던 자리로 데려가고 카드가 같은 자리에서 스켈레톤을 대신한다
     return (
       <ul className={styles.grid} role="list" aria-busy="true">
-        {Array.from({ length: postListShownLimit({ page: pages }) }, (_, i) => (
-          <li key={i}>
+        {Array.from({ length: POST_LIST_PAGE_SIZE }, (_, i) => (
+          // 키를 글 id 와 겹치지 않게 — 같은 목록(ul) 자리라 React 가 `key=19` 자리표시를 글 19 의 카드로 옮겨 쓰면,
+          // 화면 밖(맨 아래)에 있던 칸이 둘째 카드 자리로 와 레이아웃 이동(CLS 0.15)으로 잡혔다(QA-D-28)
+          <li key={`skeleton-${i}`}>
             <PostCardSkeleton />
           </li>
         ))}
@@ -446,6 +467,33 @@ function PostListBody({
   }
 
   const empty = emptyKindOf(search, view)
+
+  if (empty === 'past-end') {
+    // 지난 주소의 페이지 번호가 끝을 넘었다 — 막다른 길 대신 마지막 페이지로
+    const last = view.page.totalPages.toLocaleString('ko-KR')
+    return (
+      <div className={styles.empty}>
+        <EmptyState
+          titleAs="h3"
+          icon={<MagnifyingGlass />}
+          title="이 페이지에는 글이 없어요."
+          description={`글은 ${last}페이지까지 있어요.`}
+          action={
+            lastPageHref ? (
+              <ButtonLink
+                to={lastPageHref}
+                onClick={(event) => {
+                  if (isPlainClick(event)) onPageNavigate()
+                }}
+              >
+                {`${last}페이지로`}
+              </ButtonLink>
+            ) : null
+          }
+        />
+      </div>
+    )
+  }
 
   if (empty === 'filtered') {
     // 검색어는 제목에 넣지 않는다 — 주소로 남의 화면에 문장을 심는 통로가 된다. 검색칸에 이미 보인다
@@ -499,95 +547,4 @@ function PostListBody({
       ))}
     </ul>
   )
-}
-
-interface PostListMoreProps {
-  progress: ReturnType<typeof postListProgress>
-  loaded: number
-  total: number
-  expanding: boolean
-  /** 펼치다 실패한 서버 문장 */
-  failed: string | null
-  retrying: boolean
-  onExpand: () => void
-  onRetry: () => void
-  onGoToFilters: () => void
-}
-
-/**
- * 목록 끝 — [24건 더 보기] · 상한(96건) 안내 · 실패. 다 보여 줬으면 아무것도 두지 않는다(바로 아래 "찾는 물건이 없나요?").
- * 버튼은 마지막 카드 줄 바로 아래, 좁은 화면은 폭 전체(엄지가 닿는 넓은 면).
- */
-function PostListMore({
-  progress,
-  loaded,
-  total,
-  expanding,
-  failed,
-  retrying,
-  onExpand,
-  onRetry,
-  onGoToFilters,
-}: PostListMoreProps) {
-  const seen = (
-    <>
-      <span data-numeric>{total.toLocaleString('ko-KR')}</span>건 중{' '}
-      <span data-numeric>{loaded.toLocaleString('ko-KR')}</span>건을 봤어요
-    </>
-  )
-
-  if (failed) {
-    return (
-      <div className={styles.more}>
-        <p className={styles.moreError} role="alert">
-          <WarningCircle />
-          {failed}
-        </p>
-        <Button
-          className={styles.moreButton}
-          aria-disabled={retrying || undefined}
-          onClick={() => {
-            if (!retrying) onRetry()
-          }}
-        >
-          <ArrowClockwise />
-          다시 시도
-        </Button>
-      </div>
-    )
-  }
-
-  if (expanding || progress.kind === 'more') {
-    const next = progress.kind === 'more' ? progress.next : 0
-    return (
-      <div className={styles.more}>
-        <Button
-          className={styles.moreButton}
-          aria-disabled={expanding || undefined}
-          aria-describedby="post-list-seen"
-          onClick={onExpand}
-        >
-          {expanding ? '불러오는 중…' : `${next.toLocaleString('ko-KR')}건 더 보기`}
-        </Button>
-        <p id="post-list-seen" className={styles.seen}>
-          {seen}
-        </p>
-      </div>
-    )
-  }
-
-  if (progress.kind === 'capped') {
-    return (
-      <div className={styles.cap}>
-        <p className={styles.capText}>
-          {seen}. 더 보려면 조건을 좁혀 보세요.
-        </p>
-        <button type="button" className={styles.capAction} onClick={onGoToFilters}>
-          필터로 좁히기
-        </button>
-      </div>
-    )
-  }
-
-  return null
 }

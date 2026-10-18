@@ -21,7 +21,8 @@
 .bar {
   display: flex;
   align-items: center;
-  gap: var(--space-1-5);
+  /* 칩 사이 8px — [×]의 누르는 면(보이는 36 + 오른쪽 8)이 다음 칩 밑으로 들어가지 않고, 줄을 바꿀 때 위아래 44px 도 다 남는다(QA-P-7) */
+  gap: var(--space-2);
   margin-inline: calc(-1 * var(--gutter));
   padding: var(--space-1) var(--gutter);
   overflow-x: auto;
@@ -44,6 +45,16 @@
     margin-inline: 0;
     padding-inline: 0;
     overflow: visible;
+  }
+
+  /*
+   * 줄을 바꾸는 폭에서는 칩 하나가 줄보다 넓어질 수 없다 — 값(`지갑`)이 말줄임으로 줄어든다.
+   * 320 · 글자 200%에서 `카테고리: 지갑 [×]`(275px)가 줄(256px)을 넘어 여백까지 나가고, [×]의 누르는 면이 화면 밖으로 2px 넘쳤다
+   */
+  .trigger {
+    flex: 0 1 auto;
+    max-width: 100%;
+    min-width: 0;
   }
 }
 
@@ -150,6 +161,16 @@ button.trigger[aria-expanded='true'] {
   vertical-align: bottom;
 }
 
+/* 기간 값은 말줄임하지 않는다 — 해 넘는 기간(`2025. 12. 20. ~ 2026. 1. 10.`)도 끝 날짜까지(QA-D-34, 연도를 늘 넣는 본인 결정 2026-10-18) */
+.valuePeriod {
+  max-width: none;
+}
+
+/* 기간 칩의 날짜 하나 — 날짜 가운데서 줄을 바꾸지 않는다(QA-D-26) */
+.date {
+  white-space: nowrap;
+}
+
 .triggerClear {
   justify-content: center;
   min-width: 2.25rem;
@@ -158,13 +179,23 @@ button.trigger[aria-expanded='true'] {
 }
 
 /*
- * [×] 는 보이는 폭 36px, 누르는 폭 44px. 늘린 8px 은 오른쪽(칩 사이 틈)으로만 낸다 —
+ * [×] 는 보이는 폭 36px, 누르는 폭 44px. 늘린 8px 은 오른쪽(칩 사이 틈 8px)으로만 낸다 —
  * 왼쪽으로 늘리면 바로 옆 [값 고치기]를 누르려던 손가락이 조건을 지운다.
- * 틈(6px)을 넘는 2px 은 다음 칩 아래로 들어가고, 뒤에 그려지는 다음 칩이 그 자리를 가져간다
+ * (예전 틈 6px 에서는 넘친 2px 을 다음 칩이 가져가 누르는 폭이 43px 였다 — 2026-10-14 틈을 8px 로)
  */
 .triggerClear::after {
   inset-inline: 0 auto;
   width: max(100%, var(--tap-min));
+}
+
+/*
+ * [×] 그림은 검색칸 지우기 [X]와 같은 크기(24px 상자 — 그려진 X 약 16px, QA-P-7 2026-10-14). 칩 높이(36px) 안에 들어가고
+ * 보이는 폭 36px 는 그대로다(왼쪽 4 + 그림 24 + 오른쪽 8). 색은 칩 글자색을 따른다
+ */
+.trigger .triggerClear svg {
+  width: var(--icon-lg);
+  height: var(--icon-lg);
+  color: inherit;
 }
 
 .triggerMain:focus-visible,
@@ -176,5 +207,56 @@ button.trigger[aria-expanded='true'] {
 @media (hover: hover) {
   button.trigger:hover {
     border-color: var(--border-hover);
+  }
+}
+
+/* 320 폭(22.5rem 미만)의 칩 글자 줄바꿈 — 위 기본 규칙(한 줄 · 알약 · 값 12em 말줄임)보다 뒤에 둬야 이긴다 */
+@media not all and (min-width: 22.5rem) {
+  /*
+   * 줄보다 긴 칩은 글자가 줄을 바꾼다(QA-D-19) — 말줄임만 하면 320 · 글자 200%에서 `카테고리: 지.`처럼 값이 한 글자로 잘려
+   * 무엇이 걸렸는지 잃었다. 이름(`카테고리:`)과 값이 각각 한 덩어리로 줄을 갈아 서고, 값도 띄어쓰기에서 줄을 바꾼다.
+   * 아주 긴 값(장소 100자)은 세 줄에서 말줄임 — 전체 값은 title · 칩을 눌러 연 칸에 있다. 칩이 두 줄이 되면 위아래 4px 를 더 둔다
+   */
+  .trigger,
+  .triggerMain {
+    white-space: normal;
+  }
+
+  /*
+   * 모서리는 한 줄 칩 높이의 절반(1.125rem) — 한 줄이면 지금과 같은 알약, 두 줄 이상이면 둥근 네모가 된다.
+   * 알약 반지름(999px)을 그대로 두면 두 줄 칩이 타원이 되어 첫 글자 · 끝 글자가 곡선에 붙었다
+   */
+  .trigger {
+    border-radius: 1.125rem;
+  }
+
+  .triggerMain {
+    flex-wrap: wrap;
+    row-gap: 0;
+    padding-block: var(--space-1);
+    border-radius: 1.125rem 0 0 1.125rem;
+    text-align: start;
+  }
+
+  .triggerClear {
+    border-radius: 0 1.125rem 1.125rem 0;
+  }
+
+  .value {
+    display: -webkit-box;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    word-break: keep-all;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+  }
+
+  /* 기간은 줄 제한도 없다 — 320 · 글자 200%에서 다섯 줄(206px)까지 늘어 끝 날짜를 다 보인다(QA-D-34) */
+  .valuePeriod {
+    display: inline-block;
+    max-width: 100%;
+    overflow: visible;
+    -webkit-line-clamp: none;
+    line-clamp: none;
   }
 }

@@ -116,7 +116,11 @@
   text-decoration: none;
 }
 
-/* 로그아웃하는 중 — 글자가 바뀌어 알린다. 포커스는 남기고 누름만 무시한다 */
+/* 로그아웃하는 중 — 글자 뒤 점 셋이 알린다(이름은 "로그아웃하는 중"). 포커스는 남기고 누름만 무시한다 */
+.itemDots {
+  margin-left: var(--space-2);
+}
+
 .item[aria-disabled='true'] {
   color: var(--text-muted);
   cursor: progress;

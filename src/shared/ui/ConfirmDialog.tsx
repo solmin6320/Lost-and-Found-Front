@@ -161,12 +161,13 @@ export function ConfirmDialog({
           </Button>
           <Button
             variant={tone}
-            aria-disabled={pending || undefined}
+            pending={pending}
+            pendingLabel={pendingLabel}
             onClick={(event) => {
               if (!pending && pressGuard.allows(event)) onConfirm()
             }}
           >
-            {pending && pendingLabel ? pendingLabel : confirmLabel}
+            {confirmLabel}
           </Button>
         </div>
       </div>

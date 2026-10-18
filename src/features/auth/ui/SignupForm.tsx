@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type FormEvent } from 'react'
 
 import { NICKNAME_MAX_LENGTH } from '@/features/members'
 import { useDirtyField, type LeaveCopy } from '@/shared/lib/dirtyRegistry'
+import { focusAndReveal } from '@/shared/lib/focusAndReveal'
 import { getErrorMessage, hasErrorCode } from '@/shared/lib/http'
 import { Button } from '@/shared/ui/Button'
 import { FormAlert } from '@/shared/ui/FormAlert'
@@ -9,7 +10,14 @@ import { TextField } from '@/shared/ui/TextField'
 
 import { EMAIL_MAX_LENGTH } from '../api/types'
 import type { useSignup } from '../model/useSignup'
-import { checkEmail, checkNickname, checkPassword, fieldOfMessage, type AuthField } from '../model/validation'
+import {
+  checkEmail,
+  checkNickname,
+  checkPassword,
+  checkPasswordConfirm,
+  fieldOfMessage,
+  type SignupField,
+} from '../model/validation'
 import styles from './AuthForm.module.css'
 import { PasswordInput } from './PasswordChangeForm'
 
@@ -23,7 +31,7 @@ interface SignupFormProps {
   onSignedUpWithoutLogin: (email: string) => void
 }
 
-type Errors = Partial<Record<AuthField | 'form', string>>
+type Errors = Partial<Record<SignupField | 'form', string>>
 
 /** 쓴 것이 있는데 떠나려 할 때(헤더 · 로고 · 뒤로가기 · 로그인으로 건너가기 · 새로고침). "글"이 아니라 가입 칸이다 */
 const SIGNUP_LEAVE_COPY: LeaveCopy = {
@@ -32,8 +40,9 @@ const SIGNUP_LEAVE_COPY: LeaveCopy = {
 }
 
 /**
- * [3.1] 회원가입 폼 — 이메일 · 비밀번호(8~20자, 보기/숨기기) · 닉네임(20자, 글자 수). 세 칸뿐이다.
- * 비밀번호 확인 칸은 두지 않는다 — 보기 버튼이 같은 일을 하고, 필수 입력을 늘리지 않는다(화면정의서 SCR-06).
+ * [3.1] 회원가입 폼 — 이메일 · 비밀번호(8~20자, 보기/숨기기) · 비밀번호 확인(보기/숨기기) · 닉네임(20자, 글자 수).
+ * 비밀번호 확인 칸은 본인 피드백(2026-10-14)으로 더했다 — 같은 값을 한 번 더 쳐서 오타 난 비밀번호로 가입하지 않게 한다.
+ * 서버로는 보내지 않는다(백엔드 `SignupRequest` 는 그대로). 다르면 그 칸 아래 오류, 같아야 보낸다(화면정의서 SCR-06).
  *
  * 칸을 벗어날 때 검사하고 오류는 그 칸 아래에 둔다. 제출이 실패하면 첫 번째로 틀린 칸으로 간다.
  *   409 `DUPLICATE_EMAIL` → 이메일 아래 · 409 `DUPLICATE_NICKNAME` → 닉네임 아래 · 400 → 문구가 가리키는 칸 아래
@@ -46,21 +55,23 @@ const SIGNUP_LEAVE_COPY: LeaveCopy = {
 export function SignupForm({ signup, onSignedUpWithoutLogin }: SignupFormProps) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [passwordConfirm, setPasswordConfirm] = useState('')
   const [nickname, setNickname] = useState('')
   const [errors, setErrors] = useState<Errors>({})
   /** 칸을 벗어나며 생긴 오류만 바로 읽어 준다. 제출 때 한꺼번에 붙은 것은 포커스가 간 첫 칸이 읽는다(회의 UI2-9) */
-  const [liveField, setLiveField] = useState<AuthField | null>(null)
+  const [liveField, setLiveField] = useState<SignupField | null>(null)
   const emailRef = useRef<HTMLInputElement>(null)
   const passwordRef = useRef<HTMLInputElement>(null)
+  const passwordConfirmRef = useRef<HTMLInputElement>(null)
   const nicknameRef = useRef<HTMLInputElement>(null)
   // 제출이 막혀 첫 칸으로 포커스를 옮기는 동안 생기는 blur 는 "칸을 벗어난 것"이 아니다 — 그 칸 오류를 따로 읽어 주지 않는다
   // (iOS 처럼 버튼이 포커스를 받지 않거나 Enter 로 제출하면, 쓰던 칸의 blur 가 제출 뒤에 온다)
   const movingFocus = useRef(false)
-  const focusField = (field: AuthField) => {
-    const refs = { email: emailRef, password: passwordRef, nickname: nicknameRef }
+  const focusField = (field: SignupField) => {
+    const refs = { email: emailRef, password: passwordRef, passwordConfirm: passwordConfirmRef, nickname: nicknameRef }
     movingFocus.current = true
     try {
-      refs[field].current?.focus()
+      focusAndReveal(refs[field].current)
     } finally {
       movingFocus.current = false
     }
@@ -75,9 +86,12 @@ export function SignupForm({ signup, onSignedUpWithoutLogin }: SignupFormProps) 
 
   // 성공한 뒤에도 잠가 둔다 — 화면이 넘어가기 전 한 번 더 눌려 DUPLICATE_EMAIL 을 받지 않게
   const busy = signup.isPending || signup.isSuccess
-  useDirtyField(!busy && (email.length > 0 || password.length > 0 || nickname.length > 0), SIGNUP_LEAVE_COPY)
+  useDirtyField(
+    !busy && (email.length > 0 || password.length > 0 || passwordConfirm.length > 0 || nickname.length > 0),
+    SIGNUP_LEAVE_COPY,
+  )
 
-  function clear(field: AuthField) {
+  function clear(field: SignupField) {
     if (errors[field] || errors.form) setErrors((prev) => ({ ...prev, [field]: undefined, form: undefined }))
   }
 
@@ -88,9 +102,10 @@ export function SignupForm({ signup, onSignedUpWithoutLogin }: SignupFormProps) 
     const found: Errors = {
       email: checkEmail(email, { signup: true }),
       password: checkPassword(password, { signup: true }),
+      passwordConfirm: checkPasswordConfirm(password, passwordConfirm),
       nickname: checkNickname(nickname),
     }
-    const firstInvalid = (['email', 'password', 'nickname'] as const).find((field) => found[field])
+    const firstInvalid = (['email', 'password', 'passwordConfirm', 'nickname'] as const).find((field) => found[field])
     setLiveField(null)
     if (firstInvalid) {
       setErrors(found)
@@ -180,8 +195,33 @@ export function SignupForm({ signup, onSignedUpWithoutLogin }: SignupFormProps) 
         onBlur={(value) => {
           if (!value) return
           const message = checkPassword(value, { signup: true })
-          setErrors((prev) => ({ ...prev, password: message }))
+          // 확인 칸을 이미 채웠으면 함께 다시 견준다 — 위 칸을 고쳐 같아졌으면 확인 칸 오류도 걷힌다.
+          // 새로 생긴 확인 칸 오류는 읽어 주지 않는다(벗어난 칸은 비밀번호다 — 알림은 한 번만)
+          const confirmMessage = passwordConfirm ? checkPasswordConfirm(value, passwordConfirm) : undefined
+          setErrors((prev) => ({ ...prev, password: message, passwordConfirm: confirmMessage }))
           if (message && !movingFocus.current) setLiveField('password')
+        }}
+      />
+
+      {/* 위 칸과 같은 모양(보기 버튼 · maxLength 없음). 비밀번호 관리자가 새 비밀번호를 두 칸에 함께 채운다 */}
+      <PasswordInput
+        ref={passwordConfirmRef}
+        label="비밀번호 확인"
+        name="new-password-confirm"
+        autoComplete="new-password"
+        value={passwordConfirm}
+        readOnly={busy}
+        error={errors.passwordConfirm}
+        announceError={liveField === 'passwordConfirm'}
+        onChange={(value) => {
+          setPasswordConfirm(value)
+          clear('passwordConfirm')
+        }}
+        onBlur={(value) => {
+          if (!value) return
+          const message = checkPasswordConfirm(password, value)
+          setErrors((prev) => ({ ...prev, passwordConfirm: message }))
+          if (message && !movingFocus.current) setLiveField('passwordConfirm')
         }}
       />
 
@@ -212,8 +252,8 @@ export function SignupForm({ signup, onSignedUpWithoutLogin }: SignupFormProps) 
       />
 
       {/* 잠그지 않고 누름만 무시한다 — 누르던 버튼에서 포커스가 빠지지 않게 */}
-      <Button type="submit" variant="primary" block className={styles.submit} aria-disabled={busy || undefined}>
-        {busy ? '가입하는 중…' : '가입하기'}
+      <Button type="submit" variant="primary" block className={styles.submit} pending={busy} pendingLabel="가입하는 중">
+        가입하기
       </Button>
     </form>
   )

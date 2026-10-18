@@ -2,6 +2,7 @@ import { useId, type KeyboardEvent } from 'react'
 
 import { cx } from '@/shared/lib/cx'
 import { todayIsoDate } from '@/shared/lib/date'
+import { openDatePickerOnClick } from '@/shared/lib/datePicker'
 import { WarningCircle } from '@/shared/ui/icons'
 
 import { POST_CATEGORIES, POST_STATUSES } from '../api/types'
@@ -188,6 +189,7 @@ export function PeriodFields({ value, onChange, error }: PeriodFieldsProps) {
             name="period-from"
             value={value.from}
             max={value.to || today}
+            onClick={openDatePickerOnClick}
             onChange={(event) => onChange({ from: event.target.value })}
           />
         </label>
@@ -202,6 +204,7 @@ export function PeriodFields({ value, onChange, error }: PeriodFieldsProps) {
             max={today}
             aria-invalid={error ? true : undefined}
             aria-describedby={error ? errorId : undefined}
+            onClick={openDatePickerOnClick}
             onChange={(event) => onChange({ to: event.target.value })}
           />
         </label>

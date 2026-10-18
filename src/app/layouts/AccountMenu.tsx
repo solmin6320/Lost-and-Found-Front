@@ -4,6 +4,7 @@ import { NavLink } from 'react-router-dom'
 import { paths } from '@/app/paths'
 import type { MemberResponse } from '@/features/members'
 import { CaretDown, User } from '@/shared/ui/icons'
+import { LoadingDots } from '@/shared/ui/LoadingDots'
 
 import styles from './AccountMenu.module.css'
 import { STAY_SIGNED_IN_NOTE, useGuardedLogout } from './useGuardedLogout'
@@ -110,7 +111,16 @@ export function AccountMenu({ me, onLogout }: AccountMenuProps) {
             aria-disabled={loggingOut || undefined}
             aria-describedby={noteId}
           >
-            {loggingOut ? '로그아웃하는 중…' : '로그아웃'}
+            {loggingOut ? (
+              // 기다리는 동안 — 글자는 그대로, 0.3초가 넘으면 뒤에 점 셋(버튼과 같은 표시). 이름은 "로그아웃하는 중"
+              <>
+                <span aria-hidden="true">로그아웃</span>
+                <span className="sr-only">로그아웃하는 중</span>
+                <LoadingDots announce={false} className={styles.itemDots} />
+              </>
+            ) : (
+              '로그아웃'
+            )}
           </button>
           <p id={noteId} className={styles.note}>
             {STAY_SIGNED_IN_NOTE}

@@ -1,12 +1,17 @@
-import { keepPreviousData, useQueries, useQuery, type UseQueryResult } from '@tanstack/react-query'
+import { keepPreviousData, useQueries, useQuery, useQueryClient, type UseQueryResult } from '@tanstack/react-query'
 import { useEffect, useRef, useState } from 'react'
 import { Navigate, useLocation, type To } from 'react-router-dom'
 
 import { loginPath } from '@/app/authRedirect'
+import { PAGE_TURN_FOCUS_ATTR } from '@/app/RouteFocus'
 import { paths, postDetailFromMine, type LoginNoticeState } from '@/app/paths'
 import { subscribeSignedOutElsewhere, useAuth } from '@/features/auth'
 import {
+  cachedMyPostCounts,
   ConceptButtonLink,
+  MY_POSTS_PAGE_GROUP,
+  MY_POSTS_PAGE_SIZE,
+  myPostsSkeletonCount,
   POST_STATUSES,
   POST_STATUS_LABEL,
   PostCard,
@@ -19,17 +24,24 @@ import {
   type PostStatus,
   type PostStatusCounts,
 } from '@/features/posts'
+import { isPlainClick } from '@/shared/lib/events'
 import { getErrorMessage, subscribeSessionExpired } from '@/shared/lib/http'
+import { pageAnnouncement } from '@/shared/lib/pageAnnouncement'
+import { useDropPageWhenEmpty } from '@/shared/lib/pageParam'
 import { useDocumentTitle } from '@/shared/lib/useDocumentTitle'
 import type { PagedModel } from '@/shared/types/api'
 import { ButtonLink } from '@/shared/ui/Button'
 import { EmptyState } from '@/shared/ui/EmptyState'
 import { ErrorState } from '@/shared/ui/ErrorState'
 import { Archive, MagnifyingGlass } from '@/shared/ui/icons'
+import { LoadingDots } from '@/shared/ui/LoadingDots'
 import { Pagination } from '@/shared/ui/Pagination'
 
 import styles from './MyPage.module.css'
 import { MyPostsGridSkeleton } from './MyPageSkeleton'
+
+/** 페이지를 넘긴 뒤 포커스 자리 표시(RouteFocus 가 뒤로 · 앞으로의 대체 자리로 찾는다) */
+const PAGE_TURN_FOCUS = { [PAGE_TURN_FOCUS_ATTR]: true } as const
 
 /** 첫 줄 카드 수(가장 넓은 4열). 이 카드들의 사진은 미루지 않는다 */
 const FIRST_ROW = 4
@@ -102,51 +114,123 @@ function MyPosts({ enabled }: { enabled: boolean }) {
     queries: POST_STATUSES.map((status) => ({ ...myPostsQueryOptions({ status, size: 1 }), enabled })),
   })
   const counts = countsOf(countQueries, search, query)
+  /*
+   * 이번 방문에 받은 건수(쿼리 캐시). 탭의 자리 폭은 **화면을 연 순간의 값으로 고정**한다(QA-P-31) — 매번 다시 읽으면 카드 응답이
+   * 먼저 와 `전체`의 자릿수가 바뀐 순간 탭이 한 번, 숫자가 들어올 때 또 한 번 움직였다. 고정하면 탭 x가 바뀌는 것은 숫자를 그리는 한 프레임뿐이다.
+   * 카드 자리표시 수는 탭을 바꿀 때마다 그때 아는 건수로 센다(완료 0건 → 연락중 3건이면 3장)
+   */
+  const queryClient = useQueryClient()
+  const [knownCounts] = useState(() => cachedMyPostCounts(queryClient))
+  const liveCounts = cachedMyPostCounts(queryClient)
 
   const tabsRef = useRef<HTMLDivElement>(null)
   const noPostsYet = counts.ALL === 0
 
-  // 쪽을 넘기면 탭 줄부터 다시 읽는다. 포커스는 지금 탭에 — 거기서 Tab 한 번이면 첫 카드다
+  /*
+   * 쪽을 넘기면 탭 줄부터 다시 읽는다. 포커스는 **지금 탭**(`aria-current="true"`)에 — 보이는 자리라 키보드 사용자에게 링이 서고,
+   * 스크린리더는 `전체 230건, 현재` 다음에 결과 알림(`3페이지예요. 230건 중 41~60번째 글이에요.`)을 듣는다(QA-P-29).
+   * 거기서 Tab 은 뒤 탭들을 지나 첫 카드다(전체 4 · 게시중 3 · 연락중 2 · 완료 1번). 10차엔 화면에 없는 결과 제목(1px)에 두어
+   * 키보드 사용자가 포커스를 볼 수 없었고 첫 카드까지 Tab 이 한 번 더 들었다(QA-P-23 → P-29)
+   *
+   * 주소가 그려진 **뒤에** 옮긴다(목록과 같다, QA-P-25 · D-21). 누른 직후(다음 프레임)에 옮기면 주소가 아직 그려지기 전이라
+   * 그 스크롤이 떠나는 페이지의 기록으로 남아(ScrollMemory) 뒤로가기가 누르던 번호 줄이 아니라 맨 위(탭 줄)로 돌아왔다
+   */
+  const turnedPage = useRef(false)
   function handlePageNavigate() {
-    requestAnimationFrame(() => {
-      tabsRef.current?.scrollIntoView({ block: 'start' })
-      tabsRef.current?.querySelector<HTMLElement>('[aria-current="page"]')?.focus({ preventScroll: true })
-    })
+    turnedPage.current = true
   }
+  useEffect(() => {
+    if (!turnedPage.current) return
+    turnedPage.current = false
+    const tabs = tabsRef.current
+    if (!tabs) return
+    tabs.scrollIntoView({ block: 'start' })
+    tabs.querySelector<HTMLElement>('a[aria-current="true"]')?.focus({ preventScroll: true })
+  }, [search.status, search.page])
 
   const tabLabel = search.status ? POST_STATUS_LABEL[search.status] : '전체'
   const settled = query.data && !query.isPlaceholderData ? query.data : null
+  // 이 탭이 0건이면 ?page=4 를 지운다 — 갈 페이지가 없다(QA-P-28, 목록과 같다)
+  useDropPageWhenEmpty(settled?.page.totalElements)
+
+  /*
+   * 결과 알림. 같은 탭에서 쪽을 넘긴 결과는 목록과 같은 문장(`3페이지예요. 230건 중 41~60번째 글이에요.`, QA-P-23),
+   * 탭을 바꾼 결과 · 처음 받은 결과는 건수(`연락중 글 3건`). 마지막으로 다 받은 탭 · 쪽과 견준다
+   */
+  const [shown, setShown] = useState<{ status: PostStatus | undefined; page: number } | null>(null)
+  const [announcement, setAnnouncement] = useState('')
+  if (settled && (shown === null || shown.status !== search.status || shown.page !== search.page)) {
+    const turned = shown !== null && shown.status === search.status && settled.content.length > 0
+    setShown({ status: search.status, page: search.page })
+    setAnnouncement(
+      turned
+        ? pageAnnouncement(search.page, MY_POSTS_PAGE_SIZE, settled.content.length, settled.page.totalElements)
+        : `${tabLabel} 글 ${settled.page.totalElements.toLocaleString('ko-KR')}건`,
+    )
+  }
 
   return (
     <div className={styles.page}>
       <header className={styles.head}>
         <h1 className={styles.title}>내가 쓴 글</h1>
-        {/* 관리하는 곳을 알린다 — 카드에는 동작을 두지 않고 상세의 `내 글 관리` 한 곳에 모았다 */}
-        {noPostsYet ? null : (
-          <p className={styles.hint}>글을 열면 ‘내 글 관리’에서 상태를 바꾸거나 고칠 수 있어요.</p>
-        )}
+        {/*
+          관리하는 곳을 알린다 — 카드에는 동작을 두지 않고 상세의 `내 글 관리` 한 곳에 모았다.
+          올린 글이 없으면 읽히지 않게 하되 자리는 둔다 — 건수를 받기 전(스켈레톤)에는 이 줄이 있어, 거두면 빈 상태가 26px 올라왔다(QA-D-38)
+        */}
+        <p className={styles.hint} data-idle={noPostsYet || undefined} aria-hidden={noPostsYet || undefined}>
+          글을 열면 ‘내 글 관리’에서 상태를 바꾸거나 고칠 수 있어요.
+        </p>
       </header>
 
-      <section aria-label={`${tabLabel} 글`}>
+      <section aria-labelledby="my-posts-heading">
+        {/* 결과 제목 — 이 구역의 이름(화면에는 탭이 이름이라 읽는 사람에게만). 포커스 자리는 아니다(지금 탭이 받는다, QA-P-29) */}
+        <h2 id="my-posts-heading" className="sr-only">
+          {`${tabLabel} 글`}
+        </h2>
         {/* 올린 글이 하나도 없으면 탭을 두지 않는다 — "0 0 0 0" 은 읽을 거리가 아니라 소음이다. 빈 상태가 첫 글을 권한다 */}
         {noPostsYet ? null : (
           <div ref={tabsRef} className={styles.tabs}>
-            <PostStatusTabs selected={search.status} counts={counts} hrefFor={hrefForStatus} />
+            <PostStatusTabs
+              selected={search.status}
+              counts={counts}
+              knownCounts={knownCounts}
+              hrefFor={hrefForStatus}
+              // 쪽을 넘긴 뒤 · 뒤로 · 앞으로에서 고른 자리가 화면 밖일 때(RouteFocus)의 포커스 자리 — 지금 탭(QA-P-29)
+              currentData={PAGE_TURN_FOCUS}
+              // 탭 · 쪽을 바꿔 다시 받는 중 — 직전 글은 흐리게 두고 **탭 줄 바로 아래(탭 줄과 카드 사이 여백)에 점 셋**(0.3초 넘을 때만, QA-P-9).
+              // 여백 안에 겹쳐 서서 탭 · 카드가 밀리지 않고 카드 이름표도 덮지 않는다. 예전엔 탭 뒤 흐름 안에 서서 자리가 모자라면(320) 줄을 바꿔
+              // 카드가 22px 내려갔다 돌아왔다. 탭 뒤 한 줄에 두면 글자를 키운 폭(125 ~ 200%)에서 탭이 줄을 바꿔 자리가 없다
+              trailing={
+                <LoadingDots
+                  active={query.isPlaceholderData && (query.data?.content.length ?? 0) > 0}
+                  label="글을 불러오는 중"
+                 
+                  reserve
+                  className={styles.tabsDots}
+                />
+              }
+            />
           </div>
         )}
 
-        {/* 탭을 바꿀 때 결과를 알린다. 탭 링크에 포커스가 남아 있어 스크린리더는 목록을 따로 듣지 못한다 */}
+        {/* 탭 · 쪽을 바꿀 때 결과를 알린다. 탭 링크 · 결과 제목에 포커스가 있어 스크린리더는 목록을 따로 듣지 못한다 */}
         <p className="sr-only" aria-live="polite" aria-atomic="true">
-          {settled ? `${tabLabel} 글 ${settled.page.totalElements.toLocaleString('ko-KR')}건` : ''}
+          {announcement}
         </p>
 
-        <div className={styles.body}>
+        {/*
+          올린 글이 없다고 확정되면 이 칸을 새로 그린다(key) — 스켈레톤 카드 칸이 빈 상태로 바뀌는 것은 내용이 갈리는 것이지 같은 칸이 움직이는 것이 아니다.
+          같은 칸을 쓰면 탭 줄이 거둬진 만큼(65px) 칸이 올라가 레이아웃 이동으로 잡혔다(QA-D-38)
+        */}
+        <div key={noPostsYet ? 'no-posts' : 'posts'} className={styles.body}>
           <MyPostsBody
             query={query}
             search={search}
+            skeletonCount={myPostsSkeletonCount(liveCounts[search.status ?? 'ALL'], search.page)}
             noPostsYet={noPostsYet}
             allHref={hrefForStatus(undefined)}
-            firstPageHref={hrefForPage(1)}
+            hrefForPage={hrefForPage}
+            onPageNavigate={handlePageNavigate}
             linkState={postDetailFromMine(location.search)}
           />
         </div>
@@ -158,6 +242,7 @@ function MyPosts({ enabled }: { enabled: boolean }) {
               totalPages={settled.page.totalPages}
               hrefFor={hrefForPage}
               onNavigate={handlePageNavigate}
+              groupSize={MY_POSTS_PAGE_GROUP}
             />
           </div>
         ) : null}
@@ -168,14 +253,18 @@ function MyPosts({ enabled }: { enabled: boolean }) {
 
 /**
  * 탭별 수. 아직 모르면 `undefined`(자리만), 못 불러왔으면 `null`(숫자 없이).
- * 전체는 세 상태의 합이다 — 따로 한 번 더 묻지 않는다. 셋 중 하나라도 비면 지금 보는 전체 탭의 수로 대신한다
+ * 전체는 세 상태의 합이다 — 따로 한 번 더 묻지 않는다. 셋 중 하나라도 비면 지금 보는 전체 탭의 수로 대신한다.
+ * **셋이 다 끝날 때까지(받음 · 실패) 넷 다 기다린다** — 응답이 0.1초 간격으로 나뉘어 오면 탭 줄이 두세 번 나뉘어 움직였다(QA-D-25)
  */
 function countsOf(
   countQueries: UseQueryResult<PagedModel<PostListResponse>>[],
   search: MyPostsSearch,
   query: UseQueryResult<PagedModel<PostListResponse>>,
 ): PostStatusCounts {
-  const byStatus = countQueries.map((q) => (q.data ? q.data.page.totalElements : q.isError ? null : undefined))
+  if (countQueries.some((q) => !q.data && !q.isError)) {
+    return { ALL: undefined, OPEN: undefined, IN_PROGRESS: undefined, DONE: undefined }
+  }
+  const byStatus = countQueries.map((q) => (q.data ? q.data.page.totalElements : null))
   const [open, progress, done] = byStatus
 
   let all: number | null | undefined
@@ -192,18 +281,33 @@ function countsOf(
 interface MyPostsBodyProps {
   query: UseQueryResult<PagedModel<PostListResponse>>
   search: MyPostsSearch
+  /** 받는 동안의 카드 자리표시 수(이번 방문에 받은 건수가 있으면 그 쪽에 남은 만큼, 없으면 20) */
+  skeletonCount: number
   /** 올린 글이 하나도 없다(세 상태의 합이 0) */
   noPostsYet: boolean
   allHref: To
-  firstPageHref: To
+  /** 끝을 넘은 쪽에서 돌아갈 마지막 쪽 주소 */
+  hrefForPage: (page: number) => To
+  /** [n페이지로]를 눌렀다 — 쪽 번호를 누른 것과 같이 탭 줄로 데려간다 */
+  onPageNavigate: () => void
   linkState: unknown
 }
 
 /** 네 가지 상태 — 로딩 · 오류 · 비어 있음(전체 0건 · 이 탭 0건 · 끝을 넘은 쪽) · 목록. 권한은 화면 앞에서 갈랐다 */
-function MyPostsBody({ query, search, noPostsYet, allHref, firstPageHref, linkState }: MyPostsBodyProps) {
+function MyPostsBody({ query, search, skeletonCount, noPostsYet, allHref, hrefForPage, onPageNavigate, linkState }: MyPostsBodyProps) {
+  // 세 상태의 건수가 먼저 와 모두 0이면 카드 응답을 기다리지 않고 바로 첫 글 권유 — 어느 탭 · 쪽이든 글이 없다(QA-P-35).
+  // 스켈레톤 20장이 섰다가 빈 상태로 줄어 문서가 한 번 크게 줄던 것
+  if (noPostsYet && (query.isPending || query.isPlaceholderData)) {
+    return (
+      <div className={styles.stateBox}>
+        {emptyOf(search, { totalElements: 0, totalPages: 0 }, true, allHref, hrefForPage, onPageNavigate)}
+      </div>
+    )
+  }
+
   // 직전 탭이 비어 있었으면 그 빈 상태를 흐리게 남기지 않는다 — 문장이 새 탭과 어긋난다
   if (query.isPending || (query.isPlaceholderData && query.data?.content.length === 0)) {
-    return <MyPostsGridSkeleton />
+    return <MyPostsGridSkeleton count={skeletonCount} />
   }
 
   if (query.isError) {
@@ -222,7 +326,11 @@ function MyPostsBody({ query, search, noPostsYet, allHref, firstPageHref, linkSt
   const { content, page } = query.data
 
   if (content.length === 0) {
-    return <div className={styles.stateBox}>{emptyOf(search, page.totalElements, noPostsYet, allHref, firstPageHref)}</div>
+    return (
+      <div className={styles.stateBox}>
+        {emptyOf(search, page, noPostsYet, allHref, hrefForPage, onPageNavigate)}
+      </div>
+    )
   }
 
   return (
@@ -251,19 +359,31 @@ function MyPostsBody({ query, search, noPostsYet, allHref, firstPageHref, linkSt
 /** 왜 비었는지 + 다음에 할 일. 막다른 길을 만들지 않는다 */
 function emptyOf(
   search: MyPostsSearch,
-  totalElements: number,
+  page: { totalElements: number; totalPages: number },
   noPostsYet: boolean,
   allHref: To,
-  firstPageHref: To,
+  hrefForPage: (page: number) => To,
+  onPageNavigate: () => void,
 ) {
-  // 오래된 링크 · 그사이 글을 지워 쪽이 줄었다
-  if (totalElements > 0) {
+  // 오래된 링크 · 그사이 글을 지워 쪽이 줄었다 — 목록과 같은 문장 · 같은 행선지(마지막 쪽, 본인 결정 2026-10-17)
+  if (page.totalElements > 0) {
+    const last = Math.max(page.totalPages, 1)
+    const lastText = last.toLocaleString('ko-KR')
     return (
       <EmptyState
         icon={<MagnifyingGlass />}
-        title={`${search.page}페이지에는 글이 없어요.`}
-        description={`이 탭의 글 ${totalElements.toLocaleString('ko-KR')}건은 앞 페이지에 있어요.`}
-        action={<ButtonLink to={firstPageHref}>첫 페이지로</ButtonLink>}
+        title="이 페이지에는 글이 없어요."
+        description={`글은 ${lastText}페이지까지 있어요.`}
+        action={
+          <ButtonLink
+            to={hrefForPage(last)}
+            onClick={(event) => {
+              if (isPlainClick(event)) onPageNavigate()
+            }}
+          >
+            {`${lastText}페이지로`}
+          </ButtonLink>
+        }
       />
     )
   }

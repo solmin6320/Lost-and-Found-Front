@@ -110,3 +110,13 @@ table {
   isolation: isolate;
   min-height: 100dvh;
 }
+
+/*
+ * 칸으로 데려갈 때(제출이 막혀 빠뜨린 칸으로 · Tab) 칸 위의 이름까지 보이게 — 칸만 헤더 바로 아래에 붙으면 이름("닉네임")이
+ * 헤더 밑에 숨어 무슨 칸인지 몰랐다(2026-10-16 캡처). 이름 한 줄 + 사이 간격만큼(글자를 키우면 같이 큰다)
+ */
+input,
+textarea,
+select {
+  scroll-margin-top: 2.25rem;
+}

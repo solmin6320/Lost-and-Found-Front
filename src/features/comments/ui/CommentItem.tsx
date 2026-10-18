@@ -2,7 +2,8 @@ import { useId, useRef, useState, type FormEvent, type KeyboardEvent, type Mouse
 
 import { formatDateTime } from '@/shared/lib/date'
 import { isSelfLogout, useDirtyField } from '@/shared/lib/dirtyRegistry'
-import { getErrorMessage } from '@/shared/lib/http'
+import { focusAndReveal } from '@/shared/lib/focusAndReveal'
+import { getErrorMessage, hasErrorCode } from '@/shared/lib/http'
 import { usePressGuard } from '@/shared/lib/pressGuard'
 import { usePersonalInfoCheck } from '@/shared/lib/usePersonalInfoCheck'
 import { Button } from '@/shared/ui/Button'
@@ -110,7 +111,7 @@ export function CommentItem({ postId, comment, mine, byPostAuthor, fresh, onUpda
     const problem = checkCommentContent(draft)
     if (problem) {
       setError(problem)
-      textareaRef.current?.focus()
+      focusAndReveal(textareaRef.current)
       return
     }
     if (draft === comment.content) {
@@ -125,7 +126,11 @@ export function CommentItem({ postId, comment, mine, byPostAuthor, fresh, onUpda
           onUpdated(updated)
           focusLater(editButtonRef)
         },
-        onError: (failure) => setError(getErrorMessage(failure)),
+        // 서버가 칸 문제로 막았으면(400) 고치는 칸으로 간다(보내기 전 검사와 같은 규칙)
+        onError: (failure) => {
+          setError(getErrorMessage(failure))
+          if (hasErrorCode(failure, 'INVALID_INPUT')) focusAndReveal(textareaRef.current)
+        },
       },
     )
   }
@@ -208,8 +213,8 @@ export function CommentItem({ postId, comment, mine, byPostAuthor, fresh, onUpda
               {stranded ? '닫기' : '취소'}
             </Button>
             {stranded ? null : (
-              <Button type="submit" size="sm" variant="primary" aria-disabled={update.isPending || undefined}>
-                {update.isPending ? '저장하는 중…' : '저장'}
+              <Button type="submit" size="sm" variant="primary" pending={update.isPending} pendingLabel="저장하는 중">
+                저장
               </Button>
             )}
           </div>
@@ -242,8 +247,15 @@ export function CommentItem({ postId, comment, mine, byPostAuthor, fresh, onUpda
             <Button ref={cancelDeleteRef} size="sm" aria-disabled={busy || undefined} onClick={cancelDelete}>
               취소
             </Button>
-            <Button size="sm" variant="danger" aria-disabled={busy || undefined} onClick={confirmDelete}>
-              {remove.isPending ? '삭제하는 중…' : '삭제하기'}
+            <Button
+              size="sm"
+              variant="danger"
+              aria-disabled={busy || undefined}
+              pending={remove.isPending}
+              pendingLabel="삭제하는 중"
+              onClick={confirmDelete}
+            >
+              삭제하기
             </Button>
           </div>
         </div>

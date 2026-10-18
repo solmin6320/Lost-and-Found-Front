@@ -1,6 +1,8 @@
 import { useCallback, useMemo } from 'react'
 import { useSearchParams, type To } from 'react-router-dom'
 
+import { parsePageParam, useCanonicalPageParam } from '@/shared/lib/pageParam'
+
 import { isPostStatus, type MyPostsParams, type PostStatus } from '../api/types'
 
 /*
@@ -15,15 +17,28 @@ export interface MyPostsSearch {
   page: number
 }
 
-/** 한 쪽의 글 수. 목록과 같다 — 2 · 3 · 4열 어디서든 줄이 빈 채 끝나지 않는다 */
-export const MY_POSTS_PAGE_SIZE = 24
+/**
+ * 한 쪽의 글 수 · 번호 묶음 — 목록과 같다(20건, 다섯 개씩 · 6페이지부터 ‹ ›, 본인 결정 2026-10-17, QA-D-20).
+ * 예전 24건은 2 · 3 · 4열이 딱 떨어지는 수였지만, 목록과 페이지 모양이 달라 같은 서비스 안에서 번호가 다르게 읽혔다
+ */
+export const MY_POSTS_PAGE_SIZE = 20
+export const MY_POSTS_PAGE_GROUP = 5
+
+/**
+ * 카드 자리표시 수 — 이번 방문에 받은 그 탭의 건수(`known`)가 있으면 그 쪽에 남은 글 수(20장까지), 없으면 한 쪽(20장)(본인 결정 2026-10-18).
+ * 글이 3건인 탭에 20장을 그렸다가 3장으로 줄면 문서가 한 번 크게 줄었다. 그 쪽에 글이 없을 것 같아도(0건 · 끝을 넘은 쪽) 한 장은 둔다 — 기다리는 표시가 사라지지 않게
+ */
+export function myPostsSkeletonCount(known: number | undefined, page: number): number {
+  if (known === undefined) return MY_POSTS_PAGE_SIZE
+  const remaining = known - (page - 1) * MY_POSTS_PAGE_SIZE
+  return Math.min(MY_POSTS_PAGE_SIZE, Math.max(remaining, 1))
+}
 
 export function parseMyPostsSearch(params: URLSearchParams): MyPostsSearch {
   const status = params.get('status')
-  const page = Number(params.get('page'))
   return {
     status: isPostStatus(status) ? status : undefined,
-    page: Number.isSafeInteger(page) && page >= 1 ? page : 1,
+    page: parsePageParam(params.get('page')),
   }
 }
 
@@ -47,6 +62,8 @@ export function toMyPostsParams(search: MyPostsSearch): MyPostsParams {
 export function useMyPostsSearch() {
   const [searchParams] = useSearchParams()
   const search = useMemo(() => parseMyPostsSearch(searchParams), [searchParams])
+  // ?page=0 · abc · 1 처럼 고쳐 읽은 값이 주소와 다르면 주소를 바꿔 쓴다(QA-P-21, 목록과 같다)
+  useCanonicalPageParam(search.page)
 
   const hrefWith = useCallback(
     (patch: Partial<MyPostsSearch>): To => {

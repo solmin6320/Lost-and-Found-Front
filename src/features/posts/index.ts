@@ -10,6 +10,7 @@ export {
   updatePost,
 } from './api/postApi'
 export {
+  cachedMyPostCounts,
   myPostsQueryOptions,
   postDetailQueryOptions,
   postKeys,
@@ -70,23 +71,27 @@ export {
   DEFAULT_STATUS_LABEL,
   POST_FILTER_FIELDS,
   POST_FILTER_FIELD_NAME,
-  POST_LIST_MAX_PAGES,
+  POST_LIST_PAGE_GROUP,
   POST_LIST_PAGE_SIZE,
   hasActiveFilters,
   listStatuses,
   postListConditionKey,
-  postListProgress,
   postListSearchKey,
-  postListShownLimit,
   toPostListParams,
   withKeyword,
   withoutFilter,
   withoutFilters,
 } from './model/postListSearch'
 export { SUGGESTION_LIMIT, highlightParts, suggestionParams } from './model/searchSuggest'
-export type { PostFilterField, PostListProgress, PostListSearch } from './model/postListSearch'
+export type { PostFilterField, PostListSearch } from './model/postListSearch'
 export { usePostListSearch } from './model/usePostListSearch'
-export { MY_POSTS_PAGE_SIZE, toMyPostsParams, useMyPostsSearch } from './model/myPostsSearch'
+export {
+  MY_POSTS_PAGE_GROUP,
+  MY_POSTS_PAGE_SIZE,
+  myPostsSkeletonCount,
+  toMyPostsParams,
+  useMyPostsSearch,
+} from './model/myPostsSearch'
 export type { MyPostsSearch } from './model/myPostsSearch'
 export {
   ALL_POSTS_HEADING,

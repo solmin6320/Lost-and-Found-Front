@@ -167,3 +167,8 @@
   flex-wrap: wrap;
   gap: var(--space-4);
 }
+
+/* 상태를 바꾸는 동안 안내 줄 끝의 점 셋 — 글자 뒤 한 칸 */
+.hintDots {
+  margin-left: var(--space-1-5);
+}

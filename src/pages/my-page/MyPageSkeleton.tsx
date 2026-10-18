@@ -1,18 +1,21 @@
-import { PostCardSkeleton, PostStatusTabs, useMyPostsSearch } from '@/features/posts'
+import { MY_POSTS_PAGE_SIZE, PostCardSkeleton, PostStatusTabs, useMyPostsSearch } from '@/features/posts'
 
 import styles from './MyPage.module.css'
 
-/** 로딩 스켈레톤 개수 — 2 · 4열에서 줄이 채워진다. 내 글은 목록보다 적다 */
-const SKELETON_COUNT = 8
+/**
+ * 로딩 스켈레톤 개수 — 모르면 한 쪽(20건)만큼, 목록과 같다(본인 결정 2026-10-17). 뒤로가기 · 새로고침에서 문서 높이가 응답 전에 거의 맞아
+ * 스크롤 기억이 보던 자리로 데려간다. 이번 방문에 받은 그 탭의 건수가 있으면 그 쪽에 남은 만큼(`myPostsSkeletonCount`, 2026-10-18)
+ */
+const SKELETON_COUNT = MY_POSTS_PAGE_SIZE
 
 /** 아직 숫자를 모르는 탭 — 자리만 잡는다 */
 const UNKNOWN_COUNTS = { ALL: undefined, OPEN: undefined, IN_PROGRESS: undefined, DONE: undefined }
 
 /** 카드 격자 자리표시. 글을 받는 동안(내가 쓴 글 화면 안)과 화면 코드를 받는 동안이 같이 쓴다 */
-export function MyPostsGridSkeleton() {
+export function MyPostsGridSkeleton({ count = SKELETON_COUNT }: { count?: number }) {
   return (
     <ul className={styles.grid} role="list" aria-busy="true">
-      {Array.from({ length: SKELETON_COUNT }, (_, i) => (
+      {Array.from({ length: count }, (_, i) => (
         <li key={i}>
           <PostCardSkeleton />
         </li>

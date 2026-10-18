@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, useState, type FormEvent, type Ref } from 're
 
 import { PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH } from '@/features/members'
 import { useDirtyField } from '@/shared/lib/dirtyRegistry'
+import { focusAndReveal } from '@/shared/lib/focusAndReveal'
 import { getErrorMessage, hasErrorCode } from '@/shared/lib/http'
 import { Button } from '@/shared/ui/Button'
 import { FormAlert } from '@/shared/ui/FormAlert'
@@ -9,6 +10,7 @@ import { Eye, EyeSlash } from '@/shared/ui/icons'
 import { TextField } from '@/shared/ui/TextField'
 
 import { useUpdatePassword } from '../model/useUpdatePassword'
+import { checkPasswordConfirm } from '../model/validation'
 import styles from './PasswordChangeForm.module.css'
 
 /** 결과 고지 — 누르기 전에, 한 번(화면정의서 1.6). [바꾸기] 바로 위에 상시, 버튼의 설명으로도 읽힌다 */
@@ -34,6 +36,8 @@ interface PasswordChangeFormProps {
 interface Errors {
   current?: string
   next?: string
+  /** 새 비밀번호 확인 — 서버로는 보내지 않는다(가입과 같은 판정 `checkPasswordConfirm`) */
+  confirm?: string
   /** 어느 입력의 문제인지 모를 때(네트워크 · 서버 오류) — [바꾸기] 위 한 줄 */
   form?: string
 }
@@ -45,7 +49,20 @@ function checkNext(value: string): string | undefined {
 }
 
 /**
- * [3.6] 비밀번호 바꾸기 — 현재 · 새(8~20자) 두 칸, 각각 보기/숨기기.
+ * 400 `INVALID_INPUT` 이 어느 칸의 문제인지 — 서버 문장의 첫 낱말이 칸 이름이다(`PasswordUpdateRequest`).
+ * `현재 비밀번호는 …` → 현재 칸, `새 비밀번호는 …` · `비밀번호는 8~20자 …` → 새 칸. 모르면 `null`(폼 위 한 줄)
+ */
+function fieldOfPasswordMessage(failure: unknown, message: string): 'current' | 'next' | null {
+  if (!hasErrorCode(failure, 'INVALID_INPUT')) return null
+  if (message.startsWith('현재 비밀번호')) return 'current'
+  if (message.startsWith('새 비밀번호') || message.startsWith('비밀번호')) return 'next'
+  return null
+}
+
+/**
+ * [3.6] 비밀번호 바꾸기 — 현재 · 새(8~20자) · 새 비밀번호 확인 세 칸, 각각 보기/숨기기.
+ * 확인 칸은 본인 결정(2026-10-14, QA-P-3)으로 더했다 — 비밀번호 찾기가 없고 바꾸면 모든 기기에서 로그아웃되니,
+ * 가린 칸에 오타가 나면 그 계정으로 다시 들어올 수 없다. 가입과 같은 판정 · 문구 · 보기 버튼. 다르면 요청을 보내지 않는다.
  * 400 `PASSWORD_MISMATCH` 는 현재 비밀번호 아래에 붙인다. 401 이 아니라 로그아웃도 재발급도 일어나지 않는다.
  * 비밀번호는 앞뒤 공백을 자르지 않는다 — 공백도 비밀번호의 일부일 수 있다.
  */
@@ -53,20 +70,23 @@ export function PasswordChangeForm({ email, onChanged }: PasswordChangeFormProps
   const mutation = useUpdatePassword()
   const [current, setCurrent] = useState('')
   const [next, setNext] = useState('')
+  const [confirm, setConfirm] = useState('')
   const [errors, setErrors] = useState<Errors>({})
   const currentRef = useRef<HTMLInputElement>(null)
   const nextRef = useRef<HTMLInputElement>(null)
+  const confirmRef = useRef<HTMLInputElement>(null)
   const alertRef = useRef<HTMLDivElement>(null)
   const noticeId = useId()
   /** 칸을 벗어나며 생긴 오류만 바로 읽어 준다. 제출 때 한꺼번에 붙은 것은 포커스가 간 칸이 읽는다(회의 UI2-9) */
   const [liveNext, setLiveNext] = useState(false)
+  const [liveConfirm, setLiveConfirm] = useState(false)
   // 제출이 막혀 첫 칸으로 포커스를 옮기는 동안 생기는 blur 는 "칸을 벗어난 것"이 아니다 — 그 칸 오류를 따로 읽어 주지 않는다
   // (iOS 처럼 버튼이 포커스를 받지 않거나 Enter 로 제출하면, 쓰던 칸의 blur 가 제출 뒤에 온다)
   const movingFocus = useRef(false)
 
   // 비밀번호 칸 중 하나라도 글자가 있으면 쓰던 중이다 — 떠나거나 로그아웃할 때 묻는다(회의 AR2-3).
   // 글자는 등록부에 넣지 않는다(있다/없다만)
-  useDirtyField(current.length > 0 || next.length > 0)
+  useDirtyField(current.length > 0 || next.length > 0 || confirm.length > 0)
 
   // 방금 나타난 폼 오류로 포커스를 옮긴다. 그리기 전에는 옮길 요소가 없다
   const focusAfterRender = useRef<(() => void) | null>(null)
@@ -82,13 +102,15 @@ export function PasswordChangeForm({ email, onChanged }: PasswordChangeFormProps
     const found: Errors = {
       current: current ? undefined : MESSAGES.currentRequired,
       next: checkNext(next),
+      confirm: checkPasswordConfirm(next, confirm),
     }
-    if (found.current || found.next) {
+    if (found.current || found.next || found.confirm) {
       setErrors(found)
       setLiveNext(false)
-      const firstInvalid = found.current ? currentRef : nextRef
+      setLiveConfirm(false)
+      const firstInvalid = found.current ? currentRef : found.next ? nextRef : confirmRef
       movingFocus.current = true
-      firstInvalid.current?.focus()
+      focusAndReveal(firstInvalid.current)
       movingFocus.current = false
       return
     }
@@ -99,12 +121,16 @@ export function PasswordChangeForm({ email, onChanged }: PasswordChangeFormProps
       {
         onSuccess: onChanged,
         onError: (failure) => {
-          if (hasErrorCode(failure, 'PASSWORD_MISMATCH')) {
-            setErrors({ current: getErrorMessage(failure) })
-            currentRef.current?.focus()
+          const message = getErrorMessage(failure)
+          const field = hasErrorCode(failure, 'PASSWORD_MISMATCH') ? 'current' : fieldOfPasswordMessage(failure, message)
+          if (field) {
+            // 서버가 칸 문제로 막았다 — 그 칸 아래에 서버 문장, 그 칸으로 포커스(보내기 전 검사와 같은 규칙)
+            setErrors({ [field]: message })
+            const target = field === 'current' ? currentRef : nextRef
+            focusAndReveal(target.current)
           } else {
             // 어느 칸의 문제인지 모른다(연결 실패 · 서버 오류). [바꾸기] 위의 한 줄부터 읽게 한다
-            setErrors({ form: getErrorMessage(failure) })
+            setErrors({ form: message })
             focusAfterRender.current = () => alertRef.current?.focus()
           }
         },
@@ -161,8 +187,31 @@ export function PasswordChangeForm({ email, onChanged }: PasswordChangeFormProps
         onBlur={(value) => {
           if (!value) return
           const message = checkNext(value)
-          setErrors((prev) => ({ ...prev, next: message }))
+          // 확인 칸을 이미 채웠으면 함께 다시 견준다(가입과 같다) — 같아졌으면 걷히고, 달라졌으면 붙되 읽어 주지는 않는다
+          const confirmMessage = confirm ? checkPasswordConfirm(value, confirm) : undefined
+          setErrors((prev) => ({ ...prev, next: message, confirm: confirmMessage }))
           setLiveNext(Boolean(message) && !movingFocus.current)
+        }}
+      />
+
+      <PasswordInput
+        ref={confirmRef}
+        label="새 비밀번호 확인"
+        name="new-password-confirm"
+        autoComplete="new-password"
+        value={confirm}
+        readOnly={mutation.isPending}
+        error={errors.confirm}
+        announceError={liveConfirm}
+        onChange={(value) => {
+          setConfirm(value)
+          if (errors.confirm || errors.form) setErrors((prev) => ({ ...prev, confirm: undefined, form: undefined }))
+        }}
+        onBlur={(value) => {
+          if (!value) return
+          const message = checkPasswordConfirm(next, value)
+          setErrors((prev) => ({ ...prev, confirm: message }))
+          setLiveConfirm(Boolean(message) && !movingFocus.current)
         }}
       />
 
@@ -174,8 +223,15 @@ export function PasswordChangeForm({ email, onChanged }: PasswordChangeFormProps
 
       <div>
         {/* 잠그지 않고 누름만 무시한다 — 누르던 버튼에서 포커스가 빠지지 않게 */}
-        <Button type="submit" variant="primary" className={styles.submit} aria-disabled={mutation.isPending || undefined} aria-describedby={noticeId}>
-          {mutation.isPending ? '바꾸는 중…' : '비밀번호 바꾸기'}
+        <Button
+          type="submit"
+          variant="primary"
+          className={styles.submit}
+          pending={mutation.isPending}
+          pendingLabel="바꾸는 중"
+          aria-describedby={noticeId}
+        >
+          비밀번호 바꾸기
         </Button>
       </div>
     </form>

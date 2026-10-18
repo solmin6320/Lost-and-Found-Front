@@ -117,10 +117,11 @@ function SignOutRow({ logout }: { logout: () => Promise<void> }) {
       <Button
         variant="secondary"
         onClick={guarded.request}
-        aria-disabled={guarded.loggingOut || undefined}
+        pending={guarded.loggingOut}
+        pendingLabel="로그아웃하는 중"
         aria-describedby={noteId}
       >
-        {guarded.loggingOut ? '로그아웃하는 중…' : '로그아웃'}
+        로그아웃
       </Button>
       <p id={noteId} className={styles.signOutNote}>
         {STAY_SIGNED_IN_NOTE}

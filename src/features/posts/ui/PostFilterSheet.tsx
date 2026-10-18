@@ -1,5 +1,6 @@
 import { useId, useRef, useState, type FormEvent, type ReactNode } from 'react'
 
+import { focusAndReveal } from '@/shared/lib/focusAndReveal'
 import { useMediaQuery } from '@/shared/lib/useMediaQuery'
 import { Button } from '@/shared/ui/Button'
 import { Sheet } from '@/shared/ui/Sheet'
@@ -223,7 +224,7 @@ function PeriodFilter({ search, onApply, ...frame }: FieldFilterProps) {
       onSubmit={(event, form) => {
         event.preventDefault()
         if (error) {
-          form?.querySelector<HTMLInputElement>('input[name="period-to"]')?.focus()
+          focusAndReveal(form?.querySelector<HTMLInputElement>('input[name="period-to"]'))
           return
         }
         onApply(applyPeriodDraft(search, draft))

@@ -129,7 +129,15 @@ export function PostFilterBar({ search, onApply, onRemove }: PostFilterBarProps)
                 title={`${name}: ${value}`}
                 onClick={(event) => toggle(field, event.currentTarget)}
               >
-                {name}: <span className={styles.value}>{value}</span>
+                {name}:{' '}
+                {field === 'period' ? (
+                  // 기간은 말줄임 · 줄 제한 없이 값 전부(QA-D-34 — 해 넘는 기간의 끝 날짜가 잘렸다). 줄은 ~ 앞뒤와 연도 뒤에서만 바뀐다
+                  <span className={cx(styles.value, styles.valuePeriod)}>
+                    <PeriodValue value={value} />
+                  </span>
+                ) : (
+                  <span className={styles.value}>{value}</span>
+                )}
               </button>
               <button
                 type="button"
@@ -155,5 +163,30 @@ export function PostFilterBar({ search, onApply, onRemove }: PostFilterBarProps)
         />
       ) : null}
     </div>
+  )
+}
+
+/**
+ * 기간 값 — 줄은 `~` 앞뒤에서 바뀌고, 날짜 안에서는 연도 뒤에서만 바뀐다(`9. 30.` 처럼 월 · 일은 한 덩어리, QA-D-26).
+ * 320 · 글자 200%에서 `2026. 9.` / `1. ~ 2026. 9.` / `30.` 처럼 날짜 가운데서 끊겨 9월 1일이 "9." 과 "1." 로 갈렸다.
+ * 값은 늘 연도까지 온다(`periodRangeLabel` — 카드 날짜와 같은 형식, 본인 결정 2026-10-18)
+ */
+function PeriodValue({ value }: { value: string }) {
+  const [from, to] = value.split(' ~ ')
+  if (to === undefined) return <DateValue text={from ?? value} />
+  return (
+    <>
+      <DateValue text={from ?? ''} /> ~ <DateValue text={to} />
+    </>
+  )
+}
+
+function DateValue({ text }: { text: string }) {
+  const match = /^(\d{4}\.) (.+)$/.exec(text)
+  if (!match) return <span className={styles.date}>{text}</span>
+  return (
+    <>
+      <span className={styles.date}>{match[1]}</span> <span className={styles.date}>{match[2]}</span>
+    </>
   )
 }

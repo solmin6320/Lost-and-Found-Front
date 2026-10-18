@@ -14,6 +14,7 @@ import {
   WarningCircle,
   type Icon,
 } from '@/shared/ui/icons'
+import { LoadingDots } from '@/shared/ui/LoadingDots'
 import { SafetyNote } from '@/shared/ui/SafetyNote'
 
 import type { PostDetailResponse, PostStatus, PostType } from '../api/types'
@@ -208,7 +209,19 @@ export function PostOwnerPanel({ post, editHref, onDeleted }: PostOwnerPanelProp
           </p>
         ) : (
           <p id={hintId} className={styles.hint}>
-            {changeStatus.isPending && !confirm ? '바꾸는 중…' : '게시중과 연락중은 언제든 서로 바꿀 수 있어요.'}
+            게시중과 연락중은 언제든 서로 바꿀 수 있어요.
+            {/*
+              바꾸는 동안 — 문구는 그대로 두고 **줄 끝에 점 셋만**(0.3초 넘을 때, QA-D-7). 문구를 '바꾸는 중'으로 갈면 0.3초 전에 글자가 바뀌고
+              두 줄이 한 줄로 줄며 아래가 당겨졌다(320 : 40.6 → 20.3px). 점 자리는 늘 잡아 두어(`reserve`) 줄이 밀리지 않고,
+              늘 그려 두어 0.45초 붙잡기도 그대로 산다(예전엔 문구와 함께 사라져 점이 53ms 만 번쩍였다). 읽기는 아래 알림 줄이 맡는다
+            */}
+            <LoadingDots
+              active={changeStatus.isPending && !confirm}
+             
+              announce={false}
+              reserve
+              className={styles.hintDots}
+            />
           </p>
         )}
 
@@ -238,7 +251,7 @@ export function PostOwnerPanel({ post, editHref, onDeleted }: PostOwnerPanelProp
         open={confirm === 'done'}
         title="완료로 바꿀까요?"
         confirmLabel="완료로 바꾸기"
-        pendingLabel="바꾸는 중…"
+        pendingLabel="바꾸는 중"
         pending={changeStatus.isPending}
         error={confirm === 'done' ? dialogError : null}
         onConfirm={() => submitStatus('DONE')}
@@ -255,7 +268,7 @@ export function PostOwnerPanel({ post, editHref, onDeleted }: PostOwnerPanelProp
         title="이 글을 삭제할까요?"
         tone="danger"
         confirmLabel="삭제하기"
-        pendingLabel="삭제하는 중…"
+        pendingLabel="삭제하는 중"
         pending={deletePost.isPending}
         error={confirm === 'delete' ? dialogError : null}
         onConfirm={submitDelete}

@@ -1,7 +1,9 @@
-import { queryOptions, useQuery } from '@tanstack/react-query'
+import { queryOptions, useQuery, type QueryClient } from '@tanstack/react-query'
+
+import type { PagedModel } from '@/shared/types/api'
 
 import { getMyPosts, getPost, getPosts, normalizeMyPostsParams, normalizePostListParams } from '../api/postApi'
-import type { MyPostsParams, PostListParams } from '../api/types'
+import type { MyPostsParams, PostListParams, PostListResponse, PostStatus } from '../api/types'
 
 /**
  * 게시글 쿼리 키. 무효화할 때 범위를 고른다.
@@ -44,12 +46,38 @@ export function postListQueryOptions(params: PostListParams = {}) {
   })
 }
 
+/**
+ * 검색 추천(앞 5건) 쿼리 설정 — 목록과 **같은 키**(같은 캐시)지만 **새 말이 와도 앞 요청을 끊지 않는다**(`signal` 을 넘기지 않는다).
+ * 치는 동안 말이 0.12초마다 바뀌면 앞 말의 요청이 응답 직전에 끊겨 캐시에 남지 않았다 — 늦게 온 앞 말의 응답도
+ * 지금 말의 앞부분이면 걸러서 먼저 보여 준다(QA-D-1 · P-1). 5건짜리라 끝까지 받아도 가볍다
+ */
+export function postSuggestionQueryOptions(params: PostListParams) {
+  return queryOptions({
+    queryKey: postKeys.list(params),
+    queryFn: () => getPosts(params),
+  })
+}
+
 /** 내가 쓴 글 쿼리 설정. 로그인했을 때만 켠다(`enabled`) — 비로그인으로 부르면 401 과 재발급 헛걸음이다 */
 export function myPostsQueryOptions(params: MyPostsParams = {}) {
   return queryOptions({
     queryKey: postKeys.mine(params),
     queryFn: ({ signal }) => getMyPosts(params, signal),
   })
+}
+
+/**
+ * 이번 방문에 받은 내 글 건수 — 상태별(`ALL` = 전체), 쿼리 캐시에 남은 아무 응답(탭 숫자용 한 건 · 카드 페이지)의 `totalElements`.
+ * 숫자가 아직 없을 때 자리 폭(자릿수)과 카드 자리표시 수를 잡는 데만 쓴다(QA-P-26). 화면에 숫자로 내지 않는다
+ */
+export function cachedMyPostCounts(client: QueryClient): Partial<Record<PostStatus | 'ALL', number>> {
+  const counts: Partial<Record<PostStatus | 'ALL', number>> = {}
+  for (const [key, data] of client.getQueriesData<PagedModel<PostListResponse>>({ queryKey: postKeys.mines() })) {
+    if (!data) continue
+    const params = key[key.length - 1] as MyPostsParams | undefined
+    counts[params?.status ?? 'ALL'] = data.page.totalElements
+  }
+  return counts
 }
 
 /** [6.1] 내가 쓴 글. `page` 는 0부터 센다 */

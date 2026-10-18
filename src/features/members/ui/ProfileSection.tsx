@@ -2,6 +2,7 @@ import { useId, useRef, useState, type FormEvent } from 'react'
 
 import { formatDate } from '@/shared/lib/date'
 import { useDirtyField } from '@/shared/lib/dirtyRegistry'
+import { focusAndReveal } from '@/shared/lib/focusAndReveal'
 import { getErrorMessage } from '@/shared/lib/http'
 import { Button } from '@/shared/ui/Button'
 import { Check } from '@/shared/ui/icons'
@@ -85,7 +86,7 @@ function NicknameForm({ current }: { current: string }) {
     const problem = validate(value)
     if (problem) {
       setError(problem)
-      inputRef.current?.focus()
+      focusAndReveal(inputRef.current)
       return
     }
     if (!changed) return
@@ -101,7 +102,7 @@ function NicknameForm({ current }: { current: string }) {
         // 409 DUPLICATE_NICKNAME · 400 INVALID_INPUT — 입력이 하나뿐이라 전부 이 입력 아래에 붙인다
         onError: (failure) => {
           setError(getErrorMessage(failure))
-          inputRef.current?.focus()
+          focusAndReveal(inputRef.current)
         },
       },
     )
@@ -127,7 +128,8 @@ function NicknameForm({ current }: { current: string }) {
           setSaved(false)
           if (error) setError(null)
         }}
-        onBlur={(event) => setError(validate(event.currentTarget.value))}
+        // 벗어날 때는 검사하지 않는다 — 검사할 것이 "비었나" 하나뿐인데, 비어 있으면 지나가는 중일 수 있다(로그인 · 가입과 같은 규칙).
+        // 비운 채 [닉네임 저장]을 누르면 제출 검사가 같은 문장을 띄우고 이 칸으로 데려간다(QA-P-15)
       />
       <div className={styles.actions}>
         <Button
@@ -135,10 +137,11 @@ function NicknameForm({ current }: { current: string }) {
           variant="primary"
           className={styles.submit}
           unavailable={!changed && !mutation.isPending}
-          aria-disabled={mutation.isPending || undefined}
+          pending={mutation.isPending}
+          pendingLabel="저장하는 중"
           aria-describedby={`${inputId}-note`}
         >
-          {mutation.isPending ? '저장하는 중…' : '닉네임 저장'}
+          닉네임 저장
         </Button>
         <p className={styles.saved} role="status">
           {saved ? (

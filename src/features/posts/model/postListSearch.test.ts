@@ -6,20 +6,19 @@ import {
   EMPTY_PERIOD_DRAFT,
   EMPTY_POST_LIST_SEARCH,
   POST_FILTER_FIELDS,
-  POST_LIST_MAX_PAGES,
   POST_LIST_PAGE_SIZE,
   applyLocation,
   applyPeriodDraft,
   conditionNavigation,
-  expandNavigation,
   filterDefaultLabel,
   filterValueLabel,
+  periodRangeLabel,
   hasActiveFilters,
+  pageNavigation,
   parsePostListSearch,
   periodDraftFromSearch,
   periodError,
   postListConditionKey,
-  postListProgress,
   toPostListParams,
   toSearchParams,
   withChoice,
@@ -84,12 +83,8 @@ describe('parsePostListSearch — 주소는 사용자가 고칠 수 있는 입�
     },
   )
 
-  it('page=3 은 묶음 셋을 펼친 것', () => {
-    expect(parse('page=3').page).toBe(3)
-  })
-
-  it.each([['page=5'], ['page=9'], ['page=100']])('상한을 넘는 예전 쪽 번호(%s)는 펼칠 수 있는 끝(4)으로 읽는다', (query) => {
-    expect(parse(query).page).toBe(POST_LIST_MAX_PAGES)
+  it.each([['page=3', 3], ['page=7', 7], ['page=100', 100]])('%s 는 그 페이지 번호 그대로(상한 없음 — 넘으면 화면이 받는다)', (query, page) => {
+    expect(parse(query).page).toBe(page)
   })
 
   it('검색어 · 장소는 앞뒤 공백을 지우고 100자로 자른다', () => {
@@ -119,82 +114,51 @@ describe('toSearchParams — 조건 → 주소', () => {
   })
 })
 
-describe('toPostListParams — 펼친 수 n → 처음부터 24n 건을 한 번에', () => {
+describe('toPostListParams — 화면의 n 페이지 → 서버의 n−1 쪽, 20건', () => {
   const at = (page: number): PostListSearch => ({ ...EMPTY_POST_LIST_SEARCH, page })
 
   it.each([
-    [1, 24],
-    [2, 48],
-    [3, 72],
-    [4, 96],
-  ])('n=%i → page=0 · size=%i', (page, size) => {
-    expect(toPostListParams(at(page))).toMatchObject({ page: 0, size })
+    [1, 0],
+    [2, 1],
+    [3, 2],
+    [7, 6],
+  ])('%i 페이지 → page=%i · size=20', (page, serverPage) => {
+    expect(toPostListParams(at(page))).toMatchObject({ page: serverPage, size: POST_LIST_PAGE_SIZE })
+    expect(POST_LIST_PAGE_SIZE).toBe(20)
   })
 
-  it('서버 상한(100)을 넘지 않는다 — n 이 4를 넘어도 96건', () => {
-    expect(toPostListParams(at(9)).size).toBe(POST_LIST_PAGE_SIZE * POST_LIST_MAX_PAGES)
-    expect(POST_LIST_PAGE_SIZE * POST_LIST_MAX_PAGES).toBeLessThanOrEqual(100)
-  })
-
-  it('예전 쪽 번호 링크(?page=3 = 49~72번째)는 1~72번째를 받아 그 쪽의 글이 다 들어 있다', () => {
-    const params = toPostListParams(parse('page=3'))
-    expect(params.page).toBe(0)
-    expect(params.size).toBeGreaterThanOrEqual(72)
-  })
-
-  it('page=0 주소는 첫 묶음', () => {
+  it('page=0 주소는 1페이지', () => {
     expect(toPostListParams(parse('page=0'))).toMatchObject({ page: 0, size: POST_LIST_PAGE_SIZE })
   })
 
   it('조건은 그대로 싣는다', () => {
     const params = toPostListParams(parse('keyword=%EC%A7%80%EA%B0%91&type=FOUND&category=WALLET&page=2'))
-    expect(params).toMatchObject({ keyword: '지갑', type: 'FOUND', category: 'WALLET', size: 48 })
+    expect(params).toMatchObject({ keyword: '지갑', type: 'FOUND', category: 'WALLET', page: 1, size: 20 })
   })
 })
 
-describe('[더 보기] — 펼치기는 바꿔 쓰고(replace), 조건은 기록을 쌓는다', () => {
+describe('페이지 번호 — 넘겨도 조건을 바꿔도 기록을 쌓는다(뒤로가기로 돌아온다)', () => {
   const search: PostListSearch = { ...EMPTY_POST_LIST_SEARCH, keyword: '지갑', type: 'LOST', page: 1 }
 
-  it('펼치면 묶음이 하나 늘고 주소를 바꿔 쓴다', () => {
-    expect(expandNavigation(search)).toEqual({ search: { ...search, page: 2 }, replace: true })
+  it('페이지를 넘기면 조건은 그대로, 기록을 쌓는다', () => {
+    expect(pageNavigation(search, 3)).toEqual({ search: { ...search, page: 3 }, replace: false })
   })
 
-  it('상한(4)에서는 더 늘지 않는다', () => {
-    expect(expandNavigation({ ...search, page: 4 }).search.page).toBe(4)
+  it('1 아래 · 정수가 아닌 번호는 1페이지', () => {
+    expect(pageNavigation(search, 0).search.page).toBe(1)
+    expect(pageNavigation(search, Number.NaN).search.page).toBe(1)
   })
 
-  it('조건을 바꾸면 첫 묶음으로 돌아가고 기록을 쌓는다', () => {
+  it('조건을 바꾸면 1페이지로 돌아가고 기록을 쌓는다', () => {
     expect(conditionNavigation({ ...search, page: 3, category: 'CARD' })).toEqual({
       search: { ...search, page: 1, category: 'CARD' },
       replace: false,
     })
   })
 
-  it('펼친 수만 다르면 조건 지문이 같다(이미 본 카드를 흐리지 않는 판정)', () => {
+  it('페이지만 다르면 조건 지문이 같다', () => {
     expect(postListConditionKey({ ...search, page: 3 })).toBe(postListConditionKey(search))
     expect(postListConditionKey({ ...search, keyword: '카드' })).not.toBe(postListConditionKey(search))
-  })
-})
-
-describe('postListProgress — 목록 끝에서 할 일', () => {
-  const at = (page: number) => ({ page })
-
-  it('더 받을 글이 있으면 다음 묶음 수와 함께 [더 보기]', () => {
-    expect(postListProgress(at(1), 24, 57)).toEqual({ kind: 'more', next: 24 })
-    expect(postListProgress(at(2), 48, 57)).toEqual({ kind: 'more', next: 9 })
-  })
-
-  it('다 보여 줬으면 끝', () => {
-    expect(postListProgress(at(3), 57, 57)).toEqual({ kind: 'end' })
-    expect(postListProgress(at(1), 0, 0)).toEqual({ kind: 'end' })
-  })
-
-  it('96건에 닿았는데 더 있으면 "조건을 좁혀 보세요"', () => {
-    expect(postListProgress(at(4), 96, 120)).toEqual({ kind: 'capped' })
-  })
-
-  it('딱 96건이면 상한이 아니라 끝', () => {
-    expect(postListProgress(at(4), 96, 96)).toEqual({ kind: 'end' })
   })
 })
 
@@ -363,5 +327,15 @@ describe('withKeyword — 새 검색어는 분실 · 습득을 함께 찾는다(
 
   it('검색어는 100자로 자른다', () => {
     expect(withKeyword(EMPTY_POST_LIST_SEARCH, '가'.repeat(150)).keyword).toHaveLength(100)
+  })
+})
+
+describe('periodRangeLabel — 기간 칩 값(QA-D-26 · 본인 결정 2026-10-18)', () => {
+  it('같은 해여도 연도까지 — 카드 날짜와 같은 형식', () => {
+    expect(periodRangeLabel('2026-09-01', '2026-09-30')).toBe('2026. 9. 1. ~ 2026. 9. 30.')
+  })
+
+  it('해가 다르면 둘 다 연도까지', () => {
+    expect(periodRangeLabel('2025-12-20', '2026-01-05')).toBe('2025. 12. 20. ~ 2026. 1. 5.')
   })
 })

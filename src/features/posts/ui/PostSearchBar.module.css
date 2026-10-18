@@ -44,7 +44,8 @@
 .input {
   width: 100%;
   min-height: 3.25rem;
-  padding: 0 var(--tap-min) 0 calc(var(--space-4) + var(--icon-md) + var(--space-3));
+  /* 오른쪽은 지우기 버튼(44px, 끝에서 4px) 자리 — 글자가 버튼 밑으로 들어가지 않게 */
+  padding: 0 calc(var(--tap-min) + var(--space-1)) 0 calc(var(--space-4) + var(--icon-md) + var(--space-3));
   border: 1.5px solid transparent;
   border-radius: var(--radius-sm);
   background-color: var(--surface-sunken);
@@ -86,11 +87,34 @@
   }
 }
 
+/*
+ * 추천을 찾는 점 셋(QA-D-18) — 칸 안, 친 글자 첫머리(왼쪽 여백과 같은 x) 아래 4px 위에 겹쳐 선다. 세 후보를 캡처로 비교해 골랐다 :
+ *   ① 칸 오른쪽 [X] 왼쪽 — 검색칸 흔한 자리지만 여백을 늘리지 않으면 긴 글자 끝을 덮는다(늘리면 D-10 — 320 · 200%에서 친 글자가 다 가려졌다)
+ *   ② 칸 바로 아래 틈 — 375 에서 틈이 12px 라 칩 줄 위 선에 붙고, 추천 칸이 열리면 그 밑에 깔린다
+ *   ③ 칸 안 글자 아래(이것) — 기다리는 대상(친 말) 바로 곁, 폭 · 높이 · 추천 칸 어느 것도 바꾸지 않는다
+ * 점은 4px(셋 17px) — 글자(16px) 아래 틈에 들어가는 크기. 색은 본문 잉크, 강제 색상에서는 CanvasText(LoadingDots 기본). 누름은 칸이 받는다.
+ * 높이는 **글자 아래 끝 + 4px** 에 맞춘다(칸 가운데 + 글자 크기 반 + 4px, QA-D-27). 예전엔 칸 아래 끝 − 4px 에 맞춰 375(칸 52px)에서
+ * 글자 → 점 10px · 점 → 테두리 4px 라 점이 글자보다 테두리 것으로 보였다(근접성)
+ */
+.fieldDots {
+  --loading-dot: 0.25rem;
+
+  position: absolute;
+  top: calc(50% + var(--text-base) / 2 + var(--space-1));
+  left: calc(var(--space-4) + var(--icon-md) + var(--space-3));
+  z-index: 1;
+}
+
 /* 브라우저마다 다른 기본 지우기 버튼 대신 같은 모양의 버튼을 둔다 */
 .input::-webkit-search-cancel-button {
   appearance: none;
 }
 
+/*
+ * 지우기 [X] — 누르는 면 44px, 아이콘 24px(본인 피드백 2026-10-14 "X 모양 크기 키워" — 16px 은 눈에 잘 안 띄고 맞히기 어려웠다).
+ * Phosphor X 는 그림이 상자보다 작아 24px 상자에서 보이는 크기가 왼쪽 돋보기(20px 상자)와 비슷하다 — 양 끝이 같은 무게로 선다.
+ * 글자색은 돋보기와 같은 본문 잉크(흐린 회색이면 "누를 수 있다"가 약하다)
+ */
 .clear {
   position: absolute;
   top: 50%;
@@ -100,13 +124,17 @@
   width: var(--tap-min);
   height: var(--tap-min);
   border-radius: var(--radius-sm);
-  color: var(--text-muted);
+  color: var(--text-body);
   transform: translateY(-50%);
 }
 
 .clear svg {
-  width: var(--icon-sm);
-  height: var(--icon-sm);
+  width: var(--icon-lg);
+  height: var(--icon-lg);
+}
+
+.clear:active {
+  opacity: var(--press-opacity);
 }
 
 @media (hover: hover) {

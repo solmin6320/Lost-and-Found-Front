@@ -11,6 +11,8 @@
 .intents {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
+  /* 위아래로 쌓여도(아래 16rem 규칙) 두 칸 높이가 같다 — 고른 칸만 경고 줄로 길어지지 않게(QA-P-11) */
+  grid-auto-rows: 1fr;
   gap: var(--space-2);
 }
 
@@ -31,8 +33,10 @@
   }
 }
 
+/* 칸(링크)이 줄 높이를 다 채운다 — 한쪽 둘째 줄이 길어져도(고른 칸의 경고) 두 칸 높이가 같다(QA-P-11) */
 .item {
   position: relative;
+  display: grid;
   container: intent-item / inline-size;
 }
 
@@ -106,10 +110,15 @@
   letter-spacing: var(--tracking-tight);
 }
 
-/* 좁은 칸에서는 "분실 글 / 12건 보기" 두 줄. 두 선택지가 같은 자리에서 끊겨 나란히 선다 */
+/*
+ * 좁은 칸에서는 "분실 글 / 12건 보기" 두 줄. 두 선택지가 같은 자리에서 끊겨 나란히 선다.
+ * 높이는 두 줄 아래로 줄지 않는다 — 건수가 들어오는 순간 새 글자의 글꼴 조각을 받는 한 프레임 동안 두 줄이 2px 짧아져
+ * 칸 아래 검색 · 칩 · 카드 전체가 한 프레임 2px 올라갔다 내려왔다(2026-10-18 실측 375 · 320)
+ */
 .hint {
   display: grid;
   justify-items: start;
+  min-height: calc(2em * var(--leading-snug));
   font-size: var(--text-xs);
   font-weight: var(--weight-semibold);
   line-height: var(--leading-snug);
@@ -119,17 +128,34 @@
 /* 건수가 없으면 한 줄로 이어 쓴다 — "보기" 한 단어가 둘째 줄에 홀로 남지 않게. 좁으면 글자 단위로 접힌다 */
 .hint[data-single] {
   display: block;
+  min-height: 0;
 }
 
-/* 건수가 들어올 자리. 숫자 두세 자 폭 */
+/*
+ * 고른 칸의 경고 `누르면 처음 목록으로`(검색어 · 필터가 걸렸을 때) — 모든 폭에서 16px/600(QA-P-11, 2026-10-16).
+ * 좁은 칸의 둘째 줄(13px)은 정보(건수)라 작아도 되지만, 이 줄은 누르면 검색어 · 조건까지 풀린다는 경고다. 좁으면 낱말 사이에서 두 줄로
+ */
+.hint[data-reset] {
+  font-size: var(--text-base);
+  word-break: keep-all;
+}
+
+/*
+ * 건수가 들어올 자리 — 점 셋 폭을 먼저 잡고, 0.3초가 넘으면 그 안에 점 셋(본인 결정 2026-10-16, QA-P-12 — 모든 건수 자리가 같은 표시).
+ * 점은 칸 글자색(분실 칸 잉크 · 습득 칸 흰 글자)이고 글자 크기를 따른다(0.3em — 13px 줄 3.9px, 16px 줄 4.8px). 강제 색상에서는 링크 글자색
+ */
 .countPending {
-  display: inline-block;
-  width: 1.75em;
-  height: 0.85em;
-  border-radius: var(--radius-xs);
-  background-color: currentColor;
-  vertical-align: -0.05em;
-  opacity: 0.25;
+  --loading-dot: 0.3em;
+  --loading-dot-color: currentColor;
+  --loading-dot-forced: LinkText;
+  /* 가장 옅을 때도 칸 면과 3:1 — 0.6 이면 어둡게 습득 칸이 2.98 이라 0.7 로(밝게 분실 · 습득 4.09 · 3.93, 어둡게 4.03 · 3.49) */
+  --loading-dot-dim: 0.7;
+
+  display: inline-flex;
+  align-items: center;
+  /* 점 셋 폭(0.3em × 3 + 사이 0.2em × 2) — 더 넓으면 점과 "건" 사이가 벌어져 보였다(2026-10-16 캡처) */
+  width: 1.3em;
+  vertical-align: middle;
 }
 
 @container intent-item (width >= 17rem) {
@@ -139,6 +165,7 @@
 
   .hint {
     display: block;
+    min-height: calc(1em * var(--leading-snug));
     font-size: var(--text-base);
   }
 
@@ -170,9 +197,10 @@
   inset: calc((var(--tap-min) - 2rem) / -2);
 }
 
+/* [×] 그림은 검색칸 지우기 [X]와 같은 크기(24px 상자 — 그려진 X 약 16px, QA-P-7). 보이는 원 32px · 누르는 면 44px 그대로 */
 .reset svg {
-  width: var(--icon-sm);
-  height: var(--icon-sm);
+  width: var(--icon-lg);
+  height: var(--icon-lg);
 }
 
 @container intent-item (width >= 17rem) {

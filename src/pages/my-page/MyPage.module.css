@@ -31,6 +31,11 @@
   word-break: keep-all;
 }
 
+/* 올린 글이 없을 때 — 자리만(QA-D-38) */
+.hint[data-idle] {
+  visibility: hidden;
+}
+
 @media (min-width: 40rem) {
   .title {
     font-size: var(--text-3xl);
@@ -49,6 +54,23 @@
 @media (min-width: 40rem) {
   .tabs {
     margin-bottom: var(--space-6);
+  }
+}
+
+/*
+ * 다시 받는 중의 점 셋 — 탭 줄 아래 가는 선과 첫 카드 사이 여백(20 · 24px) 한가운데, 왼쪽 끝(QA-P-9).
+ * 흐름 밖에 겹쳐 서서 탭 줄 높이 · 카드 자리가 바뀌지 않는다. 누름을 받지 않는다(LoadingDots)
+ */
+.tabsDots {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  height: var(--space-5);
+}
+
+@media (min-width: 40rem) {
+  .tabsDots {
+    height: var(--space-6);
   }
 }
 
