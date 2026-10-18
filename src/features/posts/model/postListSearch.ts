@@ -1,4 +1,4 @@
-import { formatDate, isIsoDate } from '@/shared/lib/date'
+import { formatDate, formatMonthDay, isIsoDate } from '@/shared/lib/date'
 import { parsePageParam } from '@/shared/lib/pageParam'
 
 import {
@@ -209,7 +209,7 @@ export function filterValueLabel(search: PostListSearch, field: PostFilterField)
     case 'location':
       return search.location || null
     case 'period':
-      if (search.from && search.to) return `${formatDate(search.from)} ~ ${formatDate(search.to)}`
+      if (search.from && search.to) return periodRangeLabel(search.from, search.to)
       if (search.from) return `${formatDate(search.from)}부터`
       if (search.to) return `${formatDate(search.to)}까지`
       return null
@@ -300,4 +300,14 @@ export function withKeyword(search: PostListSearch, keyword: string): PostListSe
   const next = keyword.trim().slice(0, KEYWORD_MAX_LENGTH)
   const fresh = next !== '' && next !== search.keyword
   return { ...search, keyword: next, type: fresh ? undefined : search.type, page: 1 }
+}
+
+/**
+ * 기간 칩 값 — 두 날짜가 같은 해면 연도를 뺀다(`9. 1. ~ 9. 30.`, QA-D-26). 해가 다르면 둘 다 연도까지.
+ * 320 · 글자 200%에서 칩 값 칸(142px)보다 `2026. 9. 30.` 한 덩어리(155px)가 넓어 날짜 가운데서 끊겼다 — 연도를 빼면 날짜가 한 덩어리로 들어가
+ * 줄은 `~` 앞뒤에서만 바뀐다. 연도는 칩을 누르면 여는 기간 칸에 그대로 있다
+ */
+export function periodRangeLabel(from: string, to: string): string {
+  if (from.slice(0, 4) === to.slice(0, 4)) return `${formatMonthDay(from)} ~ ${formatMonthDay(to)}`
+  return `${formatDate(from)} ~ ${formatDate(to)}`
 }

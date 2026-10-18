@@ -12,6 +12,7 @@ import {
   conditionNavigation,
   filterDefaultLabel,
   filterValueLabel,
+  periodRangeLabel,
   hasActiveFilters,
   pageNavigation,
   parsePostListSearch,
@@ -326,5 +327,15 @@ describe('withKeyword — 새 검색어는 분실 · 습득을 함께 찾는다(
 
   it('검색어는 100자로 자른다', () => {
     expect(withKeyword(EMPTY_POST_LIST_SEARCH, '가'.repeat(150)).keyword).toHaveLength(100)
+  })
+})
+
+describe('periodRangeLabel — 기간 칩 값(QA-D-26)', () => {
+  it('같은 해면 연도를 뺀다', () => {
+    expect(periodRangeLabel('2026-09-01', '2026-09-30')).toBe('9. 1. ~ 9. 30.')
+  })
+
+  it('해가 다르면 둘 다 연도까지', () => {
+    expect(periodRangeLabel('2025-12-20', '2026-01-05')).toBe('2025. 12. 20. ~ 2026. 1. 5.')
   })
 })

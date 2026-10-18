@@ -16,6 +16,16 @@ export function formatDate(value: string): string {
   return `${year}. ${Number(month)}. ${Number(day)}.`
 }
 
+/** `"2026-09-20"` → `"9. 20."` — 연도 없이. 같은 해의 기간을 짧게 쓸 때(필터 칩, QA-D-26) */
+export function formatMonthDay(value: string): string {
+  const match = ISO_DATE_PREFIX.exec(value)
+  if (!match) {
+    return value
+  }
+  const [, , month, day] = match
+  return `${Number(month)}. ${Number(day)}.`
+}
+
 /** 달력에 실제로 있는 `yyyy-MM-dd` 인지. `2026-02-31` 은 거짓이다 */
 export function isIsoDate(value: unknown): value is string {
   if (typeof value !== 'string') {
