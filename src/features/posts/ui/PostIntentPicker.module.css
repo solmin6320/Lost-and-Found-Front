@@ -110,10 +110,15 @@
   letter-spacing: var(--tracking-tight);
 }
 
-/* 좁은 칸에서는 "분실 글 / 12건 보기" 두 줄. 두 선택지가 같은 자리에서 끊겨 나란히 선다 */
+/*
+ * 좁은 칸에서는 "분실 글 / 12건 보기" 두 줄. 두 선택지가 같은 자리에서 끊겨 나란히 선다.
+ * 높이는 두 줄 아래로 줄지 않는다 — 건수가 들어오는 순간 새 글자의 글꼴 조각을 받는 한 프레임 동안 두 줄이 2px 짧아져
+ * 칸 아래 검색 · 칩 · 카드 전체가 한 프레임 2px 올라갔다 내려왔다(2026-10-18 실측 375 · 320)
+ */
 .hint {
   display: grid;
   justify-items: start;
+  min-height: calc(2em * var(--leading-snug));
   font-size: var(--text-xs);
   font-weight: var(--weight-semibold);
   line-height: var(--leading-snug);
@@ -123,6 +128,7 @@
 /* 건수가 없으면 한 줄로 이어 쓴다 — "보기" 한 단어가 둘째 줄에 홀로 남지 않게. 좁으면 글자 단위로 접힌다 */
 .hint[data-single] {
   display: block;
+  min-height: 0;
 }
 
 /*
@@ -159,6 +165,7 @@
 
   .hint {
     display: block;
+    min-height: calc(1em * var(--leading-snug));
     font-size: var(--text-base);
   }
 
