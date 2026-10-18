@@ -17,19 +17,35 @@
 }
 
 .list {
-  /* 탭 사이 간격. 기다리는 숫자 자리(.countPending)가 이 값으로 점이 다음 탭 이름과 얼마나 떨어지는지 센다 */
+  /* 탭 사이 틈 — 탭마다 같다(자리를 링크 안에 두어 링크 사이가 이 값 하나). 숫자 칸(.countSlot)이 이 값으로 점이 다음 탭 이름과 얼마나 떨어지는지 센다 */
   --tab-gap: clamp(var(--space-3), 0.4rem + 2.6vw, var(--space-8));
 
   display: flex;
-  flex: none;
-  gap: var(--tab-gap);
+  flex: 0 1 auto;
+  flex-wrap: wrap;
+  gap: 0 var(--tab-gap);
+  min-width: 0;
 }
 
-/* 글자를 키워 그릇(`RootLayout` .shell)이 16rem 보다 좁으면 넷이 한 줄에 들지 않는다 — 넘기지 않고 다음 줄로(숨은 탭이 없게) */
+/*
+ * 넷이 한 줄에 들지 않으면 넘기지 않고 다음 줄로(숨은 탭이 없게) — 늘 줄을 바꿀 수 있다(QA-D-36 : 320 에서 세 자리 건수 넷이면 329px 로 9px 넘쳤다).
+ * 글자를 키워 그릇(`RootLayout` .shell)이 16rem 보다 좁으면 줄 전체를 쓰고 두 탭씩 선다 — 숫자 칸은 두 자리 · 탭 틈 8px(글자 기준) ·
+ * 점은 작게. 점 폭으로 칸을 넓히면 탭마다 한 줄씩 4줄이 되어 카드가 224px 내려갔다(QA-D-31)
+ */
 @container shell (width < 16rem) {
   .list {
+    --tab-gap: var(--space-2);
+
     flex: 1 1 100%;
-    flex-wrap: wrap;
+  }
+
+  /*
+   * 두 자리 칸 + 작은 점(지름 0.2375rem = 2ch + 틈 − 10px 를 넘지 않는 셋) — 두 탭이 한 줄에 서고(320 · 200% : 104 + 16 + 131 = 251 ≤ 256px)
+   * 기다리는 점도 다음 이름과 10px 을 남긴다
+   */
+  .list .countSlot {
+    --slot-min: 2ch;
+    --loading-dot: 0.2375rem;
   }
 }
 
@@ -86,8 +102,20 @@
   }
 }
 
+/* 이름 — 보이지 않는 굵은 이름(::after, 높이 0)을 아래에 두어 고른 탭이 굵어져도 폭이 그대로다 */
 .label {
+  display: inline-flex;
+  flex-direction: column;
   word-break: keep-all;
+}
+
+.label::after {
+  content: attr(data-label);
+  height: 0;
+  overflow: hidden;
+  font-weight: var(--weight-extrabold);
+  visibility: hidden;
+  pointer-events: none;
 }
 
 .count {
@@ -101,56 +129,29 @@
 }
 
 /*
- * 탭 한 칸 = 자리 잡기(.reserve) + 링크, 같은 격자 칸에 겹친다. 칸의 폭은 둘 중 넓은 쪽 — 보통 자리 잡기라 무엇이 들어와도 그대로다
- */
-.item {
-  display: grid;
-}
-
-.item > * {
-  grid-area: 1 / 1;
-}
-
-/* 링크는 제 내용만큼 — 아래 막대 · 누르는 곳이 남는 자리까지 늘지 않는다 */
-.item > .tab {
-  justify-self: start;
-}
-
-/* 링크와 같은 글자 · 간격, 이름은 고른 탭의 굵기(가장 넓다). 보이지 않고 누름도 받지 않는다 */
-.reserve {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-1-5);
-  min-height: var(--tap-min);
-  padding-block: var(--space-2);
-  font-size: var(--text-base);
-  font-weight: var(--weight-extrabold);
-  white-space: nowrap;
-  visibility: hidden;
-  pointer-events: none;
-}
-
-/*
- * 숫자 자리 — 이번 방문에 받은 건수의 자릿수, 없으면 두 자리(보이지 않는 `00`, 고정폭 숫자 한 자리 약 9px, QA-P-26).
- * 기다리는 동안 그 위에 목록 건수 자리와 같은 6px 점 셋(셋 26px, 본인 결정 2026-10-18 — 모든 건수 자리 같은 표시)이 겹쳐 선다.
- * 점이 자리보다 넓으면 오른쪽 탭 사이로 나가되 **다음 탭 이름과 11px 은 남긴다**(근접성 — 제 이름 6px · 다음 이름 11px 이상, QA-D-25) —
- * 자리를 점 폭 + 11px − 탭 간격까지 넓힌다(320 22px · 375 21px). 적어도 두 자리(`2ch`) — 기다리는 자리(`00`)보다 좁아지지 않게.
- * 마지막 탭은 뒤에 이름이 없어 두 자리만(점은 그 뒤 여백으로 나간다)
+ * 숫자 칸 — 이번 방문에 받은 건수의 자릿수, 없으면 두 자리(보이지 않는 `00`, 고정폭 숫자 한 자리 약 9px, QA-P-26). 숫자 · 점은 그 칸에 겹친다.
+ * 기다리는 동안 목록 건수 자리와 같은 6px 점 셋(셋 26px, 본인 결정 2026-10-18 — 모든 건수 자리 같은 표시)이 칸 왼쪽에서 선다.
+ * 점이 칸보다 넓으면 탭 사이 틈으로 나가되 **다음 탭 이름과 10px 은 남긴다**(근접성 — 제 이름 6px < 다음 이름 10px, QA-D-25) —
+ * 칸을 점 폭 + 10px − 탭 틈까지 넓힌다(320 21px · 375 20px). 마지막 탭은 뒤에 이름이 없어 두 자리만(점은 그 뒤 여백으로 나간다).
+ * 10차의 11px 는 탭 넷이 320 줄(288px)보다 2.5px 넓어 — 자리를 링크 밖에 겹쳤을 때는 조용히 넘쳤고, 줄을 바꿀 수 있게 한 뒤로는 `완료`가 다음 줄로 갔다.
+ * 칸 + 탭 틈이 늘 점 폭 + 10px 이라 탭 틈을 줄여도 줄지 않는다 — 다음 이름과의 거리를 1px 줄였다(2026-10-18)
  */
 .countSlot {
   --dots-width: calc(var(--loading-dot, 0.375rem) * (3 + 2 * 0.67));
+  --slot-min: max(2ch, calc(var(--dots-width) + 0.625rem - var(--tab-gap)));
 
-  min-width: max(2ch, calc(var(--dots-width) + 0.6875rem - var(--tab-gap)));
+  position: relative;
+  display: inline-grid;
+  align-items: center;
+  min-width: var(--slot-min);
 }
 
 .item:last-child .countSlot {
-  min-width: 2ch;
+  --slot-min: 2ch;
 }
 
-.countPending {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
+.countSlot > * {
+  grid-area: 1 / 1;
 }
 
 .countGhost {

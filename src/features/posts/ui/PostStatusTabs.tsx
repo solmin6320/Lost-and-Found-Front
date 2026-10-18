@@ -47,9 +47,10 @@ const TABS: { status: PostStatus | undefined; label: string }[] = [
  * 목록 건수 자리와 같은 6px 점 셋이 선다(모든 건수 자리가 같은 표시, 본인 결정 2026-10-16 QA-P-12 · 2026-10-18 점 크기).
  * 네 숫자는 한꺼번에 들어온다(부른 쪽이 셋 다 받은 뒤 넘긴다, QA-D-25) — 탭 줄이 두세 번 나뉘어 움직이지 않는다.
  *
- * **탭마다 자리를 늘 잡아 둔다**(`.reserve` — 굵은 이름 + 숫자 자리, 보이지 않음). 점 · 숫자 · 고른 탭의 굵기가 바뀌어도 탭 줄이 움직이지 않는다
- * (본인 지시 2026-10-18 "스켈레톤까지" — 기다릴 때 6px 점 자리가 숫자보다 넓어 숫자가 들어오면 320 에서 탭이 53px 당겨지고,
- * 글자 200%에서는 탭 줄이 줄을 덜 바꿔 카드가 224px 올라왔다). 링크(누르는 곳 · 아래 막대)는 이름 + 숫자만큼이고, 남는 자리는 다음 탭과의 틈이 된다
+ * **탭마다 자리를 늘 잡아 둔다 — 링크 안에서**(본인 지시 2026-10-18 "스켈레톤까지", 디자인 QA 10차 탭 틈 확정안). 이름은 고른 탭의 굵기만큼
+ * (보이지 않는 굵은 이름을 겹친다), 숫자는 숫자 칸(`.countSlot`, 받을 숫자의 자릿수 · 점 폭)만큼. 그래서 링크(누르는 곳 · 아래 막대) 폭이 늘 같고
+ * 탭 사이 틈은 `--tab-gap` 하나다 — 예전엔 자리를 링크 밖에 겹쳐 두어 남는 자리가 다음 탭과의 틈이 되어 탭마다 10 ~ 13px 로 들쭉날쭉했다.
+ * 점 · 숫자 · 고른 탭의 굵기가 바뀌어도 탭 줄이 움직이지 않는다(6px 점 자리를 그때만 넓히면 숫자가 들어올 때 320 에서 탭이 53px 당겨졌다)
  */
 export function PostStatusTabs({ selected, counts, knownCounts, hrefFor, currentData, trailing, className }: PostStatusTabsProps) {
   return (
@@ -60,34 +61,33 @@ export function PostStatusTabs({ selected, counts, knownCounts, hrefFor, current
           const count = counts[status ?? 'ALL']
           return (
             <li key={label} className={styles.item}>
-              {/* 자리 잡기 — 가장 굵은 이름 + 숫자 자리(점이 들어갈 만큼). 링크와 같은 칸에 겹쳐 두어 이 칸의 폭이 늘 같다 */}
-              <span className={styles.reserve} aria-hidden="true">
-                <span>{label}</span>
-                <span className={cx(styles.count, styles.countSlot)} data-numeric>
-                  {ghostOf(knownCounts?.[status ?? 'ALL'])}
-                </span>
-              </span>
               <Link
                 className={styles.tab}
                 to={hrefFor(status)}
                 aria-current={current ? 'true' : undefined}
                 {...(current ? currentData : undefined)}
               >
-                <span className={styles.label}>{label}</span>
-                {count === undefined ? (
-                  // 들어올 숫자의 자릿수만큼 자리를 잡고 점 셋은 그 위에 겹쳐 선다(QA-P-19 · P-26, 목록 건수 자리와 같은 방식)
-                  <span className={cx(styles.count, styles.countPending)} data-numeric>
-                    <span className={styles.countGhost} aria-hidden="true">
-                      {ghostOf(knownCounts?.[status ?? 'ALL'])}
-                    </span>
+                {/* 이름 — 보이지 않는 굵은 이름을 겹쳐 고른 탭이 굵어져도 폭이 그대로다 */}
+                <span className={styles.label} data-label={label}>
+                  {label}
+                </span>
+                {/*
+                  숫자 칸 — 들어올 숫자의 자릿수만큼(보이지 않는 숫자) 먼저 잡고, 숫자 · 점 셋은 그 칸에 겹친다(QA-P-19 · P-26, 목록 건수 자리와 같은 방식).
+                  못 불러오면(null) 숫자 없이 칸만 남는다 — 탭 폭이 그대로다
+                */}
+                <span className={cx(styles.count, styles.countSlot)} data-numeric>
+                  <span className={styles.countGhost} aria-hidden="true">
+                    {ghostOf(knownCounts?.[status ?? 'ALL'])}
+                  </span>
+                  {count === undefined ? (
                     <LoadingDots announce={false} className={styles.countDots} />
-                  </span>
-                ) : count === null ? null : (
-                  <span className={styles.count} data-numeric>
-                    {count.toLocaleString('ko-KR')}
-                    <span className="sr-only">건</span>
-                  </span>
-                )}
+                  ) : count === null ? null : (
+                    <span className={styles.countValue}>
+                      {count.toLocaleString('ko-KR')}
+                      <span className="sr-only">건</span>
+                    </span>
+                  )}
+                </span>
               </Link>
             </li>
           )
