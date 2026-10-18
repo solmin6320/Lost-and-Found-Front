@@ -23,7 +23,7 @@
   display: flex;
   flex: 0 1 auto;
   flex-wrap: wrap;
-  gap: 0 var(--tab-gap);
+  gap: var(--tab-gap);
   min-width: 0;
 }
 
