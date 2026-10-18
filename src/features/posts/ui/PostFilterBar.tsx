@@ -129,7 +129,15 @@ export function PostFilterBar({ search, onApply, onRemove }: PostFilterBarProps)
                 title={`${name}: ${value}`}
                 onClick={(event) => toggle(field, event.currentTarget)}
               >
-                {name}: <span className={styles.value}>{field === 'period' ? <PeriodValue value={value} /> : value}</span>
+                {name}:{' '}
+                {field === 'period' ? (
+                  // 기간은 말줄임 · 줄 제한 없이 값 전부(QA-D-34 — 해 넘는 기간의 끝 날짜가 잘렸다). 줄은 ~ 앞뒤와 연도 뒤에서만 바뀐다
+                  <span className={cx(styles.value, styles.valuePeriod)}>
+                    <PeriodValue value={value} />
+                  </span>
+                ) : (
+                  <span className={styles.value}>{value}</span>
+                )}
               </button>
               <button
                 type="button"
