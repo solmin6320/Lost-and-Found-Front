@@ -1,4 +1,5 @@
-import { PostThumbnail, StatusBadge, TypeBadge, type PostListResponse } from '@/features/posts'
+import { CommentEntryButton } from '@/features/comments'
+import { PostStatusGuide, PostThumbnail, StatusBadge, TypeBadge, type PostListResponse } from '@/features/posts'
 import { CaretLeft } from '@/shared/ui/icons'
 import { Skeleton } from '@/shared/ui/Skeleton'
 
@@ -46,9 +47,10 @@ export function PostDetailSkeleton({ preview, ownerLikely = false }: PostDetailS
             {preview.title}
           </p>
         ) : (
+          // 주소로 바로 열면 제목 길이를 모른다 — 한 줄로 잡는다(QA-D-30). 목 글 25건의 상세 제목은 320 68% · 375 84% · 768 · 1280 92% 가 한 줄이다.
+          // 두 줄로 잡으면 흔한 한 줄 제목에서 이름표 · 사진이 36px 올라갔다
           <div className={styles.title}>
-            <Skeleton shape="text" width="92%" />
-            <Skeleton shape="text" width="54%" />
+            <Skeleton shape="text" width="72%" className={styles.skeletonTitleLine} />
           </div>
         )}
         <div className={styles.badges}>
@@ -65,6 +67,14 @@ export function PostDetailSkeleton({ preview, ownerLikely = false }: PostDetailS
               </>
             )}
           </p>
+          {/*
+            오른쪽 묶음([댓글 쓰기] · 이름표 안내)과 같은 것 — 보이지 않고 누를 수 없다. 좁은 폭 · 글자를 키운 폭에서 진짜 화면처럼 줄을 바꿔
+            사진이 응답 순간 밀리지 않는다(QA-D-30 : 320 · 100% 이름표 줄 44 → 74, 375 · 200% 88 → 236 이라 사진이 30 · 148px 내려갔다)
+          */}
+          <div className={styles.tools} data-reserve="" aria-hidden="true" inert>
+            <CommentEntryButton onClick={ignore} />
+            <PostStatusGuide type={preview?.type ?? 'LOST'} status={preview?.status ?? 'OPEN'} />
+          </div>
         </div>
       </div>
       {ownerLikely ? (
@@ -94,6 +104,9 @@ export function PostDetailSkeleton({ preview, ownerLikely = false }: PostDetailS
     </div>
   )
 }
+
+/** 자리만 잡은 버튼의 누름(누를 수 없다 — inert) */
+function ignore() {}
 
 /**
  * 목록에서 이미 받은 대표 사진(첫 장과 같은 주소) — 바로 뜬다. 상세와 같은 상자(1:1, 태블릿 4:3)에 자르지 않고 놓는다.
