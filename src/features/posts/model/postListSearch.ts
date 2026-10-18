@@ -1,4 +1,4 @@
-import { formatDate, formatMonthDay, isIsoDate } from '@/shared/lib/date'
+import { formatDate, isIsoDate } from '@/shared/lib/date'
 import { parsePageParam } from '@/shared/lib/pageParam'
 
 import {
@@ -303,11 +303,10 @@ export function withKeyword(search: PostListSearch, keyword: string): PostListSe
 }
 
 /**
- * 기간 칩 값 — 두 날짜가 같은 해면 연도를 뺀다(`9. 1. ~ 9. 30.`, QA-D-26). 해가 다르면 둘 다 연도까지.
- * 320 · 글자 200%에서 칩 값 칸(142px)보다 `2026. 9. 30.` 한 덩어리(155px)가 넓어 날짜 가운데서 끊겼다 — 연도를 빼면 날짜가 한 덩어리로 들어가
- * 줄은 `~` 앞뒤에서만 바뀐다. 연도는 칩을 누르면 여는 기간 칸에 그대로 있다
+ * 기간 칩 값 — 늘 연도까지, 카드 날짜와 같은 형식(`2026. 9. 1. ~ 2026. 9. 30.`, 본인 결정 2026-10-18).
+ * 같은 해라고 연도를 빼면(`9. 1. ~ 9. 30.`) 카드 날짜(`2026. 9. 20.`)와 형식이 달라 지난해 기간인지 알 수 없었다.
+ * 좁은 칸에서는 `~` 앞뒤와 연도 뒤에서만 줄을 바꾼다(칩이 날짜를 덩어리로 그린다 — `PostFilterBar` 의 `PeriodValue`, QA-D-26)
  */
 export function periodRangeLabel(from: string, to: string): string {
-  if (from.slice(0, 4) === to.slice(0, 4)) return `${formatMonthDay(from)} ~ ${formatMonthDay(to)}`
   return `${formatDate(from)} ~ ${formatDate(to)}`
 }

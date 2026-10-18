@@ -330,9 +330,9 @@ describe('withKeyword — 새 검색어는 분실 · 습득을 함께 찾는다(
   })
 })
 
-describe('periodRangeLabel — 기간 칩 값(QA-D-26)', () => {
-  it('같은 해면 연도를 뺀다', () => {
-    expect(periodRangeLabel('2026-09-01', '2026-09-30')).toBe('9. 1. ~ 9. 30.')
+describe('periodRangeLabel — 기간 칩 값(QA-D-26 · 본인 결정 2026-10-18)', () => {
+  it('같은 해여도 연도까지 — 카드 날짜와 같은 형식', () => {
+    expect(periodRangeLabel('2026-09-01', '2026-09-30')).toBe('2026. 9. 1. ~ 2026. 9. 30.')
   })
 
   it('해가 다르면 둘 다 연도까지', () => {
