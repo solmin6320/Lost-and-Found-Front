@@ -192,6 +192,8 @@
   position: relative;
   display: grid;
   align-items: center;
+  /* 한 줄로 — 응답 순간(점 → 숫자) 한 프레임이라도 두 줄로 접히면 카드 전체가 10px 내려갔다 올라왔다(QA-D-28) */
+  white-space: nowrap;
 }
 
 /* 자리 잡기와 건수가 같은 칸에 겹친다 — 칸 폭은 둘 중 넓은 쪽(보통 세 자리 자리) */

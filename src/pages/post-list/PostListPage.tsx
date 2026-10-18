@@ -461,7 +461,9 @@ function PostListBody({
     return (
       <ul className={styles.grid} role="list" aria-busy="true">
         {Array.from({ length: POST_LIST_PAGE_SIZE }, (_, i) => (
-          <li key={i}>
+          // 키를 글 id 와 겹치지 않게 — 같은 목록(ul) 자리라 React 가 `key=19` 자리표시를 글 19 의 카드로 옮겨 쓰면,
+          // 화면 밖(맨 아래)에 있던 칸이 둘째 카드 자리로 와 레이아웃 이동(CLS 0.15)으로 잡혔다(QA-D-28)
+          <li key={`skeleton-${i}`}>
             <PostCardSkeleton />
           </li>
         ))}
