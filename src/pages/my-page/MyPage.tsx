@@ -288,6 +288,16 @@ interface MyPostsBodyProps {
 
 /** 네 가지 상태 — 로딩 · 오류 · 비어 있음(전체 0건 · 이 탭 0건 · 끝을 넘은 쪽) · 목록. 권한은 화면 앞에서 갈랐다 */
 function MyPostsBody({ query, search, skeletonCount, noPostsYet, allHref, hrefForPage, onPageNavigate, linkState }: MyPostsBodyProps) {
+  // 세 상태의 건수가 먼저 와 모두 0이면 카드 응답을 기다리지 않고 바로 첫 글 권유 — 어느 탭 · 쪽이든 글이 없다(QA-P-35).
+  // 스켈레톤 20장이 섰다가 빈 상태로 줄어 문서가 한 번 크게 줄던 것
+  if (noPostsYet && (query.isPending || query.isPlaceholderData)) {
+    return (
+      <div className={styles.stateBox}>
+        {emptyOf(search, { totalElements: 0, totalPages: 0 }, true, allHref, hrefForPage, onPageNavigate)}
+      </div>
+    )
+  }
+
   // 직전 탭이 비어 있었으면 그 빈 상태를 흐리게 남기지 않는다 — 문장이 새 탭과 어긋난다
   if (query.isPending || (query.isPlaceholderData && query.data?.content.length === 0)) {
     return <MyPostsGridSkeleton count={skeletonCount} />
