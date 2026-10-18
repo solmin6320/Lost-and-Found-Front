@@ -114,8 +114,14 @@ function MyPosts({ enabled }: { enabled: boolean }) {
     queries: POST_STATUSES.map((status) => ({ ...myPostsQueryOptions({ status, size: 1 }), enabled })),
   })
   const counts = countsOf(countQueries, search, query)
-  // 숫자를 기다리는 동안 자리 폭을 잡을 건수 — 이번 방문에 받은 것(쿼리 캐시)
-  const knownCounts = cachedMyPostCounts(useQueryClient())
+  /*
+   * 이번 방문에 받은 건수(쿼리 캐시). 탭의 자리 폭은 **화면을 연 순간의 값으로 고정**한다(QA-P-31) — 매번 다시 읽으면 카드 응답이
+   * 먼저 와 `전체`의 자릿수가 바뀐 순간 탭이 한 번, 숫자가 들어올 때 또 한 번 움직였다. 고정하면 탭 x가 바뀌는 것은 숫자를 그리는 한 프레임뿐이다.
+   * 카드 자리표시 수는 탭을 바꿀 때마다 그때 아는 건수로 센다(완료 0건 → 연락중 3건이면 3장)
+   */
+  const queryClient = useQueryClient()
+  const [knownCounts] = useState(() => cachedMyPostCounts(queryClient))
+  const liveCounts = cachedMyPostCounts(queryClient)
 
   const tabsRef = useRef<HTMLDivElement>(null)
   const noPostsYet = counts.ALL === 0
@@ -213,7 +219,7 @@ function MyPosts({ enabled }: { enabled: boolean }) {
           <MyPostsBody
             query={query}
             search={search}
-            skeletonCount={myPostsSkeletonCount(knownCounts[search.status ?? 'ALL'], search.page)}
+            skeletonCount={myPostsSkeletonCount(liveCounts[search.status ?? 'ALL'], search.page)}
             noPostsYet={noPostsYet}
             allHref={hrefForStatus(undefined)}
             hrefForPage={hrefForPage}
