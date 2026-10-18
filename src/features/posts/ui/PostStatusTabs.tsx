@@ -42,6 +42,10 @@ const TABS: { status: PostStatus | undefined; label: string }[] = [
  * 숫자는 자리를 먼저 잡는다 — 이번 방문에 받은 건수가 있으면 그 자릿수, 없으면 두 자리(QA-P-26). 0.3초가 넘으면 그 자리에
  * 목록 건수 자리와 같은 6px 점 셋이 선다(모든 건수 자리가 같은 표시, 본인 결정 2026-10-16 QA-P-12 · 2026-10-18 점 크기).
  * 네 숫자는 한꺼번에 들어온다(부른 쪽이 셋 다 받은 뒤 넘긴다, QA-D-25) — 탭 줄이 두세 번 나뉘어 움직이지 않는다.
+ *
+ * **탭마다 자리를 늘 잡아 둔다**(`.reserve` — 굵은 이름 + 숫자 자리, 보이지 않음). 점 · 숫자 · 고른 탭의 굵기가 바뀌어도 탭 줄이 움직이지 않는다
+ * (본인 지시 2026-10-18 "스켈레톤까지" — 기다릴 때 6px 점 자리가 숫자보다 넓어 숫자가 들어오면 320 에서 탭이 53px 당겨지고,
+ * 글자 200%에서는 탭 줄이 줄을 덜 바꿔 카드가 224px 올라왔다). 링크(누르는 곳 · 아래 막대)는 이름 + 숫자만큼이고, 남는 자리는 다음 탭과의 틈이 된다
  */
 export function PostStatusTabs({ selected, counts, knownCounts, hrefFor, trailing, className }: PostStatusTabsProps) {
   return (
@@ -51,7 +55,14 @@ export function PostStatusTabs({ selected, counts, knownCounts, hrefFor, trailin
           const current = status === selected
           const count = counts[status ?? 'ALL']
           return (
-            <li key={label}>
+            <li key={label} className={styles.item}>
+              {/* 자리 잡기 — 가장 굵은 이름 + 숫자 자리(점이 들어갈 만큼). 링크와 같은 칸에 겹쳐 두어 이 칸의 폭이 늘 같다 */}
+              <span className={styles.reserve} aria-hidden="true">
+                <span>{label}</span>
+                <span className={cx(styles.count, styles.countSlot)} data-numeric>
+                  {ghostOf(knownCounts?.[status ?? 'ALL'])}
+                </span>
+              </span>
               <Link className={styles.tab} to={hrefFor(status)} aria-current={current ? 'true' : undefined}>
                 <span className={styles.label}>{label}</span>
                 {count === undefined ? (

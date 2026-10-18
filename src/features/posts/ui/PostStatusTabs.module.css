@@ -101,18 +101,56 @@
 }
 
 /*
- * 숫자가 들어올 자리 — 이번 방문에 받은 건수의 자릿수, 없으면 두 자리(보이지 않는 `00`, 고정폭 숫자 한 자리 약 9px, QA-P-26).
- * 0.3초가 넘으면 점 셋이 그 위에 겹쳐 선다. 점은 목록 건수 자리와 같은 6px(셋 26px, 본인 결정 2026-10-18 — 모든 건수 자리 같은 표시).
- * 점이 자리보다 넓으면 오른쪽 탭 사이 여백으로 나가되 **다음 탭 이름과 11px 은 남긴다**(근접성 — 제 이름과 6px · 다음 이름과 11px 이상, QA-D-25).
- * 모자라면 자리를 넓힌다(`min-width` = 점 폭 + 11px − 탭 간격) : 320 에서 22px · 375 에서 21px · 넓은 화면은 숫자 폭 그대로
+ * 탭 한 칸 = 자리 잡기(.reserve) + 링크, 같은 격자 칸에 겹친다. 칸의 폭은 둘 중 넓은 쪽 — 보통 자리 잡기라 무엇이 들어와도 그대로다
  */
-.countPending {
+.item {
+  display: grid;
+}
+
+.item > * {
+  grid-area: 1 / 1;
+}
+
+/* 링크는 제 내용만큼 — 아래 막대 · 누르는 곳이 남는 자리까지 늘지 않는다 */
+.item > .tab {
+  justify-self: start;
+}
+
+/* 링크와 같은 글자 · 간격, 이름은 고른 탭의 굵기(가장 넓다). 보이지 않고 누름도 받지 않는다 */
+.reserve {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1-5);
+  min-height: var(--tap-min);
+  padding-block: var(--space-2);
+  font-size: var(--text-base);
+  font-weight: var(--weight-extrabold);
+  white-space: nowrap;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/*
+ * 숫자 자리 — 이번 방문에 받은 건수의 자릿수, 없으면 두 자리(보이지 않는 `00`, 고정폭 숫자 한 자리 약 9px, QA-P-26).
+ * 기다리는 동안 그 위에 목록 건수 자리와 같은 6px 점 셋(셋 26px, 본인 결정 2026-10-18 — 모든 건수 자리 같은 표시)이 겹쳐 선다.
+ * 점이 자리보다 넓으면 오른쪽 탭 사이로 나가되 **다음 탭 이름과 11px 은 남긴다**(근접성 — 제 이름 6px · 다음 이름 11px 이상, QA-D-25) —
+ * 자리를 점 폭 + 11px − 탭 간격까지 넓힌다(320 22px · 375 21px). 적어도 두 자리(`2ch`) — 기다리는 자리(`00`)보다 좁아지지 않게.
+ * 마지막 탭은 뒤에 이름이 없어 두 자리만(점은 그 뒤 여백으로 나간다)
+ */
+.countSlot {
   --dots-width: calc(var(--loading-dot, 0.375rem) * (3 + 2 * 0.67));
 
+  min-width: max(2ch, calc(var(--dots-width) + 0.6875rem - var(--tab-gap)));
+}
+
+.item:last-child .countSlot {
+  min-width: 2ch;
+}
+
+.countPending {
   position: relative;
   display: inline-flex;
   align-items: center;
-  min-width: max(0px, calc(var(--dots-width) + 0.6875rem - var(--tab-gap)));
 }
 
 .countGhost {
