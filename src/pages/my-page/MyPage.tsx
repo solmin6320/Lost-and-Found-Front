@@ -173,10 +173,13 @@ function MyPosts({ enabled }: { enabled: boolean }) {
     <div className={styles.page}>
       <header className={styles.head}>
         <h1 className={styles.title}>내가 쓴 글</h1>
-        {/* 관리하는 곳을 알린다 — 카드에는 동작을 두지 않고 상세의 `내 글 관리` 한 곳에 모았다 */}
-        {noPostsYet ? null : (
-          <p className={styles.hint}>글을 열면 ‘내 글 관리’에서 상태를 바꾸거나 고칠 수 있어요.</p>
-        )}
+        {/*
+          관리하는 곳을 알린다 — 카드에는 동작을 두지 않고 상세의 `내 글 관리` 한 곳에 모았다.
+          올린 글이 없으면 읽히지 않게 하되 자리는 둔다 — 건수를 받기 전(스켈레톤)에는 이 줄이 있어, 거두면 빈 상태가 26px 올라왔다(QA-D-38)
+        */}
+        <p className={styles.hint} data-idle={noPostsYet || undefined} aria-hidden={noPostsYet || undefined}>
+          글을 열면 ‘내 글 관리’에서 상태를 바꾸거나 고칠 수 있어요.
+        </p>
       </header>
 
       <section aria-labelledby="my-posts-heading">
@@ -215,7 +218,11 @@ function MyPosts({ enabled }: { enabled: boolean }) {
           {announcement}
         </p>
 
-        <div className={styles.body}>
+        {/*
+          올린 글이 없다고 확정되면 이 칸을 새로 그린다(key) — 스켈레톤 카드 칸이 빈 상태로 바뀌는 것은 내용이 갈리는 것이지 같은 칸이 움직이는 것이 아니다.
+          같은 칸을 쓰면 탭 줄이 거둬진 만큼(65px) 칸이 올라가 레이아웃 이동으로 잡혔다(QA-D-38)
+        */}
+        <div key={noPostsYet ? 'no-posts' : 'posts'} className={styles.body}>
           <MyPostsBody
             query={query}
             search={search}

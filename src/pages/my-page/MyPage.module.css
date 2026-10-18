@@ -31,6 +31,11 @@
   word-break: keep-all;
 }
 
+/* 올린 글이 없을 때 — 자리만(QA-D-38) */
+.hint[data-idle] {
+  visibility: hidden;
+}
+
 @media (min-width: 40rem) {
   .title {
     font-size: var(--text-3xl);
