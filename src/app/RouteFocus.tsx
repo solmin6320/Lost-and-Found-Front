@@ -39,7 +39,8 @@ interface FocusMark {
  * - **고르는 것은 스크롤을 되돌린 뒤, 화면 안의 것만**(QA-P-24 · D-21 · D-22, 2026-10-18). 되돌리기 전에 재면 아직 옮기기 전의 화면으로 재서
  *   되돌린 뒤 화면 밖인 링크에 포커스가 남았다(목록 3페이지 → 뒤로 → Tab → 앞으로 하면 포커스가 3,218px 아래 `4페이지` — 다음 Tab 에 화면이 튀었다).
  *   차례 : 떠날 때 누른 링크 → **떠날 때 포커스가 있던 것**(뒤로가기 단추로 떠나 누른 링크가 없는 기록도 돌아올 자리가 있다) →
- *   지금 포커스 → 지금 페이지 번호 → 페이지를 넘긴 뒤 자리(결과 제목, `data-page-turn-focus`). 이 가운데 화면 안의 첫 것
+ *   지금 포커스 → 지금 페이지 번호 → 페이지를 넘긴 뒤 자리(결과 제목, `data-page-turn-focus`). 이 가운데 화면 안의 첫 것,
+ *   다 화면 밖이면 화면에 보이는 첫 링크 · 버튼
  * - **스크롤을 밀지 않는다**(`preventScroll`). 뒤로가기로 목록을 되돌린 위치(ScrollMemory)가 그대로 남는다
  * - **화면이 먼저 옮겼으면 두고 본다.** 이어 쓰기 묻기 · 폼 오류처럼 화면이 고른 자리가 더 정확하다.
  *   사용자가 기다리는 사이 Tab 을 눌렀어도 그대로 둔다
@@ -164,7 +165,7 @@ export function RouteFocus() {
 /**
  * 같은 경로 안의 뒤로 · 앞으로 — 스크롤을 되돌린 뒤(ScrollMemory), 화면 안에 보이는 것 가운데
  * 떠날 때 누른 링크 → 떠날 때의 포커스 → 지금 포커스 → 지금 페이지 번호 → 페이지를 넘긴 뒤 자리(결과 제목) 차례로 고른다(스크롤은 그대로).
- * 기다리는 동안 사용자가 포커스를 옮겼으면(Tab · 누름) 손대지 않는다. 다 화면 밖이면 두고 본다
+ * 기다리는 동안 사용자가 포커스를 옮겼으면(Tab · 누름) 손대지 않는다. 다 화면 밖이면 화면에 보이는 첫 링크 · 버튼
  */
 function returnToOrigin(originHref: string | undefined, left: FocusMark | undefined, frame: { current: number }) {
   cancelAnimationFrame(frame.current)
@@ -189,8 +190,18 @@ function returnToOrigin(originHref: string | undefined, left: FocusMark | undefi
       main.querySelector('nav[aria-label="페이지 이동"] a[aria-current="page"]'),
       main.querySelector(`[${PAGE_TURN_FOCUS_ATTR}]`),
     ]
-    const target = candidates.find(inView)
+    // 다 화면 밖이면(그사이 글이 늘거나 줄어 자리가 바뀌었다) 지금 화면에 보이는 첫 링크 · 버튼으로 — 포커스를 화면 밖에 두면 다음 Tab 에 화면이 튄다
+    const target = candidates.find(inView) ?? firstVisibleControl(main)
     if (target instanceof HTMLElement && target !== document.activeElement) target.focus({ preventScroll: true })
+  })
+}
+
+/** 화면에 다 보이는 첫 링크 · 버튼 — 붙은 헤더 밑에 걸친 것은 건너뛴다(포커스 링이 가려진다) */
+function firstVisibleControl(main: HTMLElement): HTMLElement | undefined {
+  const top = Math.max(0, document.querySelector('header')?.getBoundingClientRect().bottom ?? 0)
+  return [...main.querySelectorAll<HTMLElement>('a[href], button:not([disabled])')].find((element) => {
+    const rect = element.getBoundingClientRect()
+    return rect.height > 0 && rect.top >= top && rect.top < window.innerHeight && !element.closest('[aria-hidden="true"], [inert]')
   })
 }
 
