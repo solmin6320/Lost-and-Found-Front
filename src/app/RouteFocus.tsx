@@ -196,13 +196,33 @@ function returnToOrigin(originHref: string | undefined, left: FocusMark | undefi
   })
 }
 
-/** 화면에 다 보이는 첫 링크 · 버튼 — 붙은 헤더 밑에 걸친 것은 건너뛴다(포커스 링이 가려진다) */
+/**
+ * 화면에 다 보이는 첫 링크 · 버튼. 위 기준선은 문서의 `scroll-padding-top`(붙은 헤더 · 칩 줄 + 16px)과 헤더 아래 끝 가운데 낮은 쪽 —
+ * 그보다 위에 걸친 것에 포커스를 두면 다음 Tab 에서 브라우저가 그만큼 스크롤을 밀었다(QA-P-32 : 내 글 카드 y66 → Tab 에 6px).
+ * 붙은 줄(sticky) 안의 단추는 건너뛴다 — 스크롤해도 늘 그 자리라 "보던 자리"가 아니고, 목록에서는 칩에 포커스가 가 Tab 한 번에 350px 튀었다
+ */
 function firstVisibleControl(main: HTMLElement): HTMLElement | undefined {
-  const top = Math.max(0, document.querySelector('header')?.getBoundingClientRect().bottom ?? 0)
+  const header = document.querySelector('header')?.getBoundingClientRect().bottom ?? 0
+  const padding = parseFloat(getComputedStyle(document.documentElement).scrollPaddingTop) || 0
+  const top = Math.max(0, header, padding)
   return [...main.querySelectorAll<HTMLElement>('a[href], button:not([disabled])')].find((element) => {
     const rect = element.getBoundingClientRect()
-    return rect.height > 0 && rect.top >= top && rect.top < window.innerHeight && !element.closest('[aria-hidden="true"], [inert]')
+    return (
+      rect.height > 0 &&
+      rect.top >= top &&
+      rect.bottom <= window.innerHeight &&
+      !element.closest('[aria-hidden="true"], [inert]') &&
+      !insideSticky(element, main)
+    )
   })
+}
+
+/** 본문 안에서 붙는 줄(`position: sticky`) 안에 있나 */
+function insideSticky(element: HTMLElement, main: HTMLElement): boolean {
+  for (let node: HTMLElement | null = element; node && node !== main; node = node.parentElement) {
+    if (getComputedStyle(node).position === 'sticky') return true
+  }
+  return false
 }
 
 function findLink(main: HTMLElement, href: string): HTMLAnchorElement | null {

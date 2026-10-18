@@ -104,6 +104,15 @@
   :global(html):has(.page) {
     scroll-padding-top: calc(var(--header-h) + var(--tap-min) + var(--space-4));
   }
+
+  /*
+   * 붙은 칩 줄 안의 것(칩 · 펼침 칸의 칸 · 버튼)은 위 scroll-padding 에서 빼 준다 — 칩 줄은 스크롤해도 늘 헤더 바로 아래라
+   * 칩(y60)이 "칩 줄 밑에 가렸다"고 잘못 읽혀, 붙은 칩 줄 안에서 Tab 을 누를 때마다 화면이 350px 위로 튀었다(QA-P-32).
+   * 칩 줄 높이 + 16px 만큼 위 여백을 줄여 칩 줄 위끝(헤더 아래)부터를 보이는 자리로 본다
+   */
+  .chips[data-sticks] * {
+    scroll-margin-top: calc(-1 * (var(--tap-min) + var(--space-4)));
+  }
 }
 
 /*
