@@ -274,6 +274,13 @@ export function PostListPage() {
           */}
           <div className={styles.countGroup}>
             <div className={styles.countSlot}>
+              {/*
+                건수 자리 — 세 자리(`000건`)만큼 늘 잡아 둔다(보이지 않음, QA-P-34). 기다리는 점(26px)보다 숫자(`230건` 46px)가 넓어
+                숫자가 들어오는 순간 이름표 안내가 7px(200% 13px) 오른쪽으로 밀렸다. 한두 자리 수면 그만큼 안내 앞이 넓어진다
+              */}
+              <span className={styles.countReserve} aria-hidden="true">
+                <strong data-numeric>000</strong>건
+              </span>
               <p className={styles.count} aria-live="polite" aria-atomic="true" data-stale={stale || undefined}>
                 {total === undefined ? (
                   query.isPending ? (

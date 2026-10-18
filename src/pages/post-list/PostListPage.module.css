@@ -190,8 +190,27 @@
 
 .countSlot {
   position: relative;
-  display: flex;
+  display: grid;
   align-items: center;
+}
+
+/* 자리 잡기와 건수가 같은 칸에 겹친다 — 칸 폭은 둘 중 넓은 쪽(보통 세 자리 자리) */
+.countSlot > .countReserve,
+.countSlot > .count {
+  grid-area: 1 / 1;
+}
+
+/* 받은 건수와 같은 글자(굵은 숫자 + 건). 보이지 않고 누름도 받지 않는다 */
+.countReserve {
+  font-size: var(--text-base);
+  font-weight: var(--weight-semibold);
+  white-space: nowrap;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.countReserve strong {
+  font-weight: var(--weight-extrabold);
 }
 
 .staleDots {
