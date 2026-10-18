@@ -54,6 +54,8 @@ export function RouteFocus() {
   const navigationType = useNavigationType()
   const previous = useRef(pathname)
   const currentKey = useRef(key)
+  /** 마지막으로 포커스를 판정한 기록 — 첫 화면은 이 키 그대로라 같은 경로의 뒤로 · 앞으로로 읽지 않는다 */
+  const shownKey = useRef(key)
   /** 기록 항목(`location.key`)마다 거기서 마지막으로 누른 본문 링크의 `href` */
   const origins = useRef(new Map<string, string>())
   /** 기록 항목마다 거기서 마지막으로 포커스가 있던 본문 요소(떠날 때의 포커스). 뒤로가기 단추처럼 링크 없이 떠난 기록에도 남는다 */
@@ -101,8 +103,12 @@ export function RouteFocus() {
   }, [])
 
   useEffect(() => {
+    // 첫 화면(주소를 열거나 새로고침)은 건드리지 않는다 — 기록이 바뀐 것이 아니다. 첫 렌더도 POP 이라 예전엔 같은 경로의 뒤로 · 앞으로로 읽혀
+    // 결과 제목 · 지금 탭에 포커스 링이 선 채로 열렸다(누른 적 없는 사람에게 링이 뜬금없다, 스크린리더는 첫 화면 제목을 건너뛴다)
+    const opened = key === shownKey.current
+    shownKey.current = key
     if (previous.current === pathname) {
-      if (navigationType === 'POP') returnToOrigin(origins.current.get(key), departed.current.get(key), frame)
+      if (navigationType === 'POP' && !opened) returnToOrigin(origins.current.get(key), departed.current.get(key), frame)
       return
     }
     previous.current = pathname
