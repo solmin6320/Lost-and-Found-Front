@@ -186,6 +186,30 @@ export function PostListPage() {
   const totalPages = view?.page.totalPages ?? 0
   /** 뒤 페이지가 남았나(확정된 목록 기준) */
   const morePages = view !== undefined && !stale && search.page < totalPages
+  /*
+   * 결과 제목 아래 글쓰기 입구 줄 — 보임 · 자리만(보이지 않게) · 없음.
+   * 칸을 골라 처음 받는 동안(스켈레톤)은 **자리만 잡는다**(QA-P-30) — 받은 뒤에야 줄이 서면 카드 전체가 35px 내려갔다(375 `?type=LOST`).
+   * 다시 받는 동안(직전 목록이 흐림)은 직전 화면에 줄이 있었을 때만 — 같은 칸이면 그대로 보이고, 칸을 바꿨으면 자리만(없던 줄이 생겼다 사라지지 않게).
+   * 확정 건수가 4건 이하면 그때 거둔다(그 경우만 카드가 35px 올라온다 — 목록 끝의 입구가 같은 화면에 보여 둘이 되지 않게)
+   */
+  const writeDecided = confirmedTotal === undefined ? undefined : intent !== undefined && confirmedTotal >= WRITE_LINK_MIN
+  /** 마지막으로 확정된 화면에 줄이 있었으면 그 줄의 종류(분실 · 습득), 없었으면 null */
+  const [writeShownFor, setWriteShownFor] = useState<PostType | null>(null)
+  const decidedFor = writeDecided === undefined ? undefined : writeDecided && intent ? intent.concept : null
+  if (decidedFor !== undefined && decidedFor !== writeShownFor) setWriteShownFor(decidedFor)
+  const writeRow: 'show' | 'reserve' | 'none' =
+    intent === undefined || query.isError
+      ? 'none'
+      : writeDecided !== undefined
+        ? writeDecided
+          ? 'show'
+          : 'none'
+        : writeShownFor === intent.concept
+          ? 'show' // 같은 칸에서 페이지 · 조건만 바꾸는 중 — 있던 줄을 그대로 둔다
+          : query.isPending || writeShownFor !== null
+            ? 'reserve'
+            : 'none'
+
   // 목록 끝의 "내 글을 올려 두기".
   //  칸을 골랐으면 그 종류 하나, **마지막 페이지에서만**(본인 결정 2026-10-16) — 그 전 페이지는 결과 제목 아래 한 줄이 이미 입구다(5건 이상)
   //  칸 · 검색어 · 필터가 없는 처음 목록이면 두 종류를 나란히(QA P-1). 휴대폰 헤더의 [+]는 글자가 없어 본문에 글로 된 입구가
@@ -276,8 +300,9 @@ export function PostListPage() {
         </div>
 
         {/* 의도를 고른 순간의 글쓰기 입구. 떠 있는 버튼 대신 흐름 안 한 줄 — 결심하는 순간 바로 아래에 있다 */}
-        {intent && confirmedTotal !== undefined && confirmedTotal >= WRITE_LINK_MIN ? (
-          <p className={styles.write}>
+        {intent && writeRow !== 'none' ? (
+          // 자리만 잡을 때는 보이지 않고 누를 수도 · 읽을 수도 없다(inert)
+          <p className={styles.write} data-reserve={writeRow === 'reserve' || undefined} inert={writeRow === 'reserve'}>
             {intent.write.lead}{' '}
             <Link className={styles.writeLink} to={createHref(intent.concept)}>
               <Plus />
