@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Navigate, useLocation, type To } from 'react-router-dom'
 
 import { loginPath } from '@/app/authRedirect'
+import { PAGE_TURN_FOCUS_ATTR } from '@/app/RouteFocus'
 import { paths, postDetailFromMine, type LoginNoticeState } from '@/app/paths'
 import { subscribeSignedOutElsewhere, useAuth } from '@/features/auth'
 import {
@@ -38,6 +39,9 @@ import { Pagination } from '@/shared/ui/Pagination'
 
 import styles from './MyPage.module.css'
 import { MyPostsGridSkeleton } from './MyPageSkeleton'
+
+/** 페이지를 넘긴 뒤 포커스 자리 표시(RouteFocus 가 뒤로 · 앞으로의 대체 자리로 찾는다) */
+const PAGE_TURN_FOCUS = { [PAGE_TURN_FOCUS_ATTR]: true } as const
 
 /** 첫 줄 카드 수(가장 넓은 4열). 이 카드들의 사진은 미루지 않는다 */
 const FIRST_ROW = 4
@@ -114,13 +118,13 @@ function MyPosts({ enabled }: { enabled: boolean }) {
   const knownCounts = cachedMyPostCounts(useQueryClient())
 
   const tabsRef = useRef<HTMLDivElement>(null)
-  const headingRef = useRef<HTMLHeadingElement>(null)
   const noPostsYet = counts.ALL === 0
 
   /*
-   * 쪽을 넘기면 탭 줄부터 다시 읽는다. 포커스는 탭 줄 바로 위 결과 제목(`전체 글` — 화면에는 탭이 이름이라 읽는 사람에게만)에 —
-   * 목록이 결과 제목으로 데려가는 것과 같다(QA-P-23). 예전엔 지금 탭에 두어 Tab 네 번을 지나야 첫 카드였고,
-   * 탭(`aria-current`)과 지금 페이지 번호가 한 화면에 둘 다 "지금 페이지"로 읽혔다
+   * 쪽을 넘기면 탭 줄부터 다시 읽는다. 포커스는 **지금 탭**(`aria-current="true"`)에 — 보이는 자리라 키보드 사용자에게 링이 서고,
+   * 스크린리더는 `전체 230건, 현재` 다음에 결과 알림(`3페이지예요. 230건 중 41~60번째 글이에요.`)을 듣는다(QA-P-29).
+   * 거기서 Tab 은 뒤 탭들을 지나 첫 카드다(전체 4 · 게시중 3 · 연락중 2 · 완료 1번). 10차엔 화면에 없는 결과 제목(1px)에 두어
+   * 키보드 사용자가 포커스를 볼 수 없었고 첫 카드까지 Tab 이 한 번 더 들었다(QA-P-23 → P-29)
    *
    * 주소가 그려진 **뒤에** 옮긴다(목록과 같다, QA-P-25 · D-21). 누른 직후(다음 프레임)에 옮기면 주소가 아직 그려지기 전이라
    * 그 스크롤이 떠나는 페이지의 기록으로 남아(ScrollMemory) 뒤로가기가 누르던 번호 줄이 아니라 맨 위(탭 줄)로 돌아왔다
@@ -132,8 +136,10 @@ function MyPosts({ enabled }: { enabled: boolean }) {
   useEffect(() => {
     if (!turnedPage.current) return
     turnedPage.current = false
-    tabsRef.current?.scrollIntoView({ block: 'start' })
-    headingRef.current?.focus({ preventScroll: true })
+    const tabs = tabsRef.current
+    if (!tabs) return
+    tabs.scrollIntoView({ block: 'start' })
+    tabs.querySelector<HTMLElement>('a[aria-current="true"]')?.focus({ preventScroll: true })
   }, [search.status, search.page])
 
   const tabLabel = search.status ? POST_STATUS_LABEL[search.status] : '전체'
@@ -168,11 +174,8 @@ function MyPosts({ enabled }: { enabled: boolean }) {
       </header>
 
       <section aria-labelledby="my-posts-heading">
-        {/*
-          결과 제목 — 쪽을 넘기면 포커스가 여기로 온다(목록의 결과 제목과 같은 자리 · 같은 일). 화면에는 탭이 이름이라 읽는 사람에게만.
-          뒤로 · 앞으로에서 고른 자리가 화면 밖이면 여기로(data-page-turn-focus, RouteFocus)
-        */}
-        <h2 id="my-posts-heading" ref={headingRef} tabIndex={-1} className="sr-only" data-page-turn-focus>
+        {/* 결과 제목 — 이 구역의 이름(화면에는 탭이 이름이라 읽는 사람에게만). 포커스 자리는 아니다(지금 탭이 받는다, QA-P-29) */}
+        <h2 id="my-posts-heading" className="sr-only">
           {`${tabLabel} 글`}
         </h2>
         {/* 올린 글이 하나도 없으면 탭을 두지 않는다 — "0 0 0 0" 은 읽을 거리가 아니라 소음이다. 빈 상태가 첫 글을 권한다 */}
@@ -183,6 +186,8 @@ function MyPosts({ enabled }: { enabled: boolean }) {
               counts={counts}
               knownCounts={knownCounts}
               hrefFor={hrefForStatus}
+              // 쪽을 넘긴 뒤 · 뒤로 · 앞으로에서 고른 자리가 화면 밖일 때(RouteFocus)의 포커스 자리 — 지금 탭(QA-P-29)
+              currentData={PAGE_TURN_FOCUS}
               // 탭 · 쪽을 바꿔 다시 받는 중 — 직전 글은 흐리게 두고 **탭 줄 바로 아래(탭 줄과 카드 사이 여백)에 점 셋**(0.3초 넘을 때만, QA-P-9).
               // 여백 안에 겹쳐 서서 탭 · 카드가 밀리지 않고 카드 이름표도 덮지 않는다. 예전엔 탭 뒤 흐름 안에 서서 자리가 모자라면(320) 줄을 바꿔
               // 카드가 22px 내려갔다 돌아왔다. 탭 뒤 한 줄에 두면 글자를 키운 폭(125 ~ 200%)에서 탭이 줄을 바꿔 자리가 없다

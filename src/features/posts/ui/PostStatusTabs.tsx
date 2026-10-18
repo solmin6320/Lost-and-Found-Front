@@ -22,6 +22,10 @@ interface PostStatusTabsProps {
   knownCounts?: Partial<Record<PostStatus | 'ALL', number>>
   /** 탭 → 주소. 경로는 부른 쪽이 정한다 */
   hrefFor: (status: PostStatus | undefined) => To
+  /**
+   * 지금 탭 링크에 덧붙일 표시(`data-*`). 부른 쪽이 페이지를 넘긴 뒤 포커스 자리로 쓴다 — 내가 쓴 글의 `data-page-turn-focus`(QA-P-29)
+   */
+  currentData?: Record<`data-${string}`, string | true>
   /** 탭 줄에 덧붙는 것(다시 받는 중의 점 셋). 탭 목록 밖 — 목록 항목 수가 늘지 않는다. 자리는 부른 쪽이 정한다(이 줄이 기준 상자) */
   trailing?: ReactNode
   className?: string
@@ -47,7 +51,7 @@ const TABS: { status: PostStatus | undefined; label: string }[] = [
  * (본인 지시 2026-10-18 "스켈레톤까지" — 기다릴 때 6px 점 자리가 숫자보다 넓어 숫자가 들어오면 320 에서 탭이 53px 당겨지고,
  * 글자 200%에서는 탭 줄이 줄을 덜 바꿔 카드가 224px 올라왔다). 링크(누르는 곳 · 아래 막대)는 이름 + 숫자만큼이고, 남는 자리는 다음 탭과의 틈이 된다
  */
-export function PostStatusTabs({ selected, counts, knownCounts, hrefFor, trailing, className }: PostStatusTabsProps) {
+export function PostStatusTabs({ selected, counts, knownCounts, hrefFor, currentData, trailing, className }: PostStatusTabsProps) {
   return (
     <nav className={cx(styles.nav, className)} aria-label="상태별로 보기">
       <ul className={styles.list} role="list">
@@ -63,7 +67,12 @@ export function PostStatusTabs({ selected, counts, knownCounts, hrefFor, trailin
                   {ghostOf(knownCounts?.[status ?? 'ALL'])}
                 </span>
               </span>
-              <Link className={styles.tab} to={hrefFor(status)} aria-current={current ? 'true' : undefined}>
+              <Link
+                className={styles.tab}
+                to={hrefFor(status)}
+                aria-current={current ? 'true' : undefined}
+                {...(current ? currentData : undefined)}
+              >
                 <span className={styles.label}>{label}</span>
                 {count === undefined ? (
                   // 들어올 숫자의 자릿수만큼 자리를 잡고 점 셋은 그 위에 겹쳐 선다(QA-P-19 · P-26, 목록 건수 자리와 같은 방식)
