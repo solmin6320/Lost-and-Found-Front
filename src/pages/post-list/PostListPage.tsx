@@ -244,31 +244,35 @@ export function PostListPage() {
             다시 받는 중(조건 · 페이지를 바꿈)에는 직전 목록을 흐리게 두고 **건수 자리에 점 셋이 겹쳐 선다**(0.3초 넘을 때만) — 건수 글자는 그동안
             보이지 않게 둔다(직전 조건의 수다). 점 자리는 늘 잡혀 있고(`reserve`) 건수 상자 위에 겹쳐 서서 줄 · 이름표 안내 · 카드가
             밀리지 않는다. 예전엔 건수 뒤 흐름 안에 서서 이름표 안내가 ±50px 오갔고(200%에서 첫 카드 +52px), 쉬는 동안에도 빈 자리가
-            칸 하나를 차지해 건수 → 이름표 안내가 8 → 16px 벌어졌다(QA-D-12)
+            칸 하나를 차지해 건수 → 이름표 안내가 8 → 16px 벌어졌다(QA-D-12).
+            건수와 이름표 안내는 한 묶음으로 줄을 바꾼다(countGroup) — 따로 서면 글자 200%에서 기다리는 점(56px)은 제목 옆에 서고 받은 건수(`132건` 69px)는
+            다음 줄로 내려가 결과 제목이 4px · 줄이 9px 움직였다(본인 지시 2026-10-18 "스켈레톤까지")
           */}
-          <div className={styles.countSlot}>
-            <p className={styles.count} aria-live="polite" aria-atomic="true" data-stale={stale || undefined}>
-              {total === undefined ? (
-                query.isPending ? (
-                  // 첫 로딩 — 카드 자리는 스켈레톤, 건수 자리에는 점 셋(본인 결정 2026-10-14, QA-P-5).
-                  // 자리(점 셋 폭)를 먼저 잡아 두어 숫자가 들어와도 줄이 밀리지 않는다. 0.3초 전에는 빈 자리
-                  <>
-                    <span className="sr-only">게시글을 불러오는 중이에요</span>
-                    <LoadingDots announce={false} />
-                  </>
-                ) : null
-              ) : (
-                <span className={styles.countText}>
-                  <span className="sr-only">게시글 </span>
-                  <strong data-numeric>{total.toLocaleString('ko-KR')}</strong>건
-                </span>
-              )}
-            </p>
-            {/* 알림 영역(건수) 밖 형제 — 건수 문장을 다시 읽히지 않게. 누름을 받지 않는다 */}
-            <LoadingDots active={stale} label="글을 불러오는 중" reserve className={styles.staleDots} />
+          <div className={styles.countGroup}>
+            <div className={styles.countSlot}>
+              <p className={styles.count} aria-live="polite" aria-atomic="true" data-stale={stale || undefined}>
+                {total === undefined ? (
+                  query.isPending ? (
+                    // 첫 로딩 — 카드 자리는 스켈레톤, 건수 자리에는 점 셋(본인 결정 2026-10-14, QA-P-5).
+                    // 자리(점 셋 폭)를 먼저 잡아 두어 숫자가 들어와도 줄이 밀리지 않는다. 0.3초 전에는 빈 자리
+                    <>
+                      <span className="sr-only">게시글을 불러오는 중이에요</span>
+                      <LoadingDots announce={false} />
+                    </>
+                  ) : null
+                ) : (
+                  <span className={styles.countText}>
+                    <span className="sr-only">게시글 </span>
+                    <strong data-numeric>{total.toLocaleString('ko-KR')}</strong>건
+                  </span>
+                )}
+              </p>
+              {/* 알림 영역(건수) 밖 형제 — 건수 문장을 다시 읽히지 않게. 누름을 받지 않는다 */}
+              <LoadingDots active={stale} label="글을 불러오는 중" reserve className={styles.staleDots} />
+            </div>
+            {/* 카드의 이름표가 무엇인지 — 건수 바로 뒤. 누르면 펼친다(온보딩 2층). 알림 영역(건수) 밖 형제로 둔다 */}
+            <BadgeGuide className={styles.badgeGuide} />
           </div>
-          {/* 카드의 이름표가 무엇인지 — 건수 바로 뒤. 누르면 펼친다(온보딩 2층). 알림 영역(건수) 밖 형제로 둔다 */}
-          <BadgeGuide className={styles.badgeGuide} />
         </div>
 
         {/* 의도를 고른 순간의 글쓰기 입구. 떠 있는 버튼 대신 흐름 안 한 줄 — 결심하는 순간 바로 아래에 있다 */}

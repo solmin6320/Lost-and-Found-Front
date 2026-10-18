@@ -171,6 +171,14 @@
  * 건수 + 다시 받는 중의 점 셋(겹쳐 선다, QA-P-9). 점은 건수 상자 왼쪽 끝에서 시작해 흐름에 자리를 차지하지 않는다 —
  * 쉬는 동안 건수 → 이름표 안내 간격이 8px 그대로이고(QA-D-12), 점이 나타나도 아무것도 밀리지 않는다
  */
+/* 건수 + 이름표 안내 — 한 묶음으로 제목 옆 · 다음 줄을 오간다. 기준 상자를 만들지 않는다(이름표 안내 설명은 결과 제목 줄 기준) */
+.countGroup {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-2);
+}
+
 .countSlot {
   position: relative;
   display: flex;
