@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Navigate, useLocation, type To } from 'react-router-dom'
 
 import { loginPath } from '@/app/authRedirect'
+import { LabSlot } from '@/app/lab/LabSlot'
 import { PAGE_TURN_FOCUS_ATTR } from '@/app/RouteFocus'
 import { paths, postDetailFromMine, type LoginNoticeState } from '@/app/paths'
 import { subscribeSignedOutElsewhere, useAuth } from '@/features/auth'
@@ -181,6 +182,9 @@ function MyPosts({ enabled }: { enabled: boolean }) {
           글을 열면 ‘내 글 관리’에서 상태를 바꾸거나 고칠 수 있어요.
         </p>
       </header>
+
+      {/* 시안 자리(개발 모드 `?lab=match-a|b|c` 에서만, 2026-10-19) — 내 분실 글의 매칭 후보 */}
+      <LabSlot name="match" context="me" />
 
       <section aria-labelledby="my-posts-heading">
         {/* 결과 제목 — 이 구역의 이름(화면에는 탭이 이름이라 읽는 사람에게만). 포커스 자리는 아니다(지금 탭이 받는다, QA-P-29) */}

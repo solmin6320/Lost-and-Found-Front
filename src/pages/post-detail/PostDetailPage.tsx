@@ -3,6 +3,7 @@ import { useEffect, useRef, useState, type MouseEvent } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 
 import { loginPath } from '@/app/authRedirect'
+import { LabSlot } from '@/app/lab/LabSlot'
 import {
   paths,
   POST_COMMENTS_HASH,
@@ -224,6 +225,8 @@ function PostDetail({ post, claimTitleFocus = false }: PostDetailProps) {
       {isOwner ? (
         <div className={styles.owner}>
           <PostOwnerPanel post={post} editHref={paths.postEdit(post.id)} onDeleted={handleDeleted} />
+          {/* 시안 자리(개발 모드 `?lab=match-a|b|c` 에서만, 2026-10-19) — 내 분실 글의 매칭 후보 */}
+          {post.type === 'LOST' && !done ? <LabSlot name="match" context="detail" source={post} /> : null}
         </div>
       ) : null}
 

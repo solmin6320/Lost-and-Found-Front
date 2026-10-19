@@ -1,0 +1,123 @@
+.index,
+.inbox {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-5);
+  max-width: var(--layout-max);
+  margin-inline: auto;
+}
+
+.title {
+  color: var(--text-strong);
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-extrabold);
+  letter-spacing: var(--tracking-tight);
+}
+
+.lead {
+  color: var(--text-body);
+  font-size: var(--text-sm);
+  line-height: var(--leading-normal);
+}
+
+.lead code {
+  padding: 0 0.25em;
+  border-radius: var(--radius-xs);
+  background: var(--surface-sunken);
+  font-size: 0.92em;
+}
+
+.rows {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.row {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.row dt {
+  color: var(--text-strong);
+  font-weight: var(--weight-bold);
+}
+
+.row dd {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--tap-min);
+  padding-inline: var(--space-4);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-pill);
+  color: var(--text-strong);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+}
+
+@media (hover: hover) {
+  .chip:hover {
+    border-color: var(--border-hover);
+    background: var(--surface-sunken);
+  }
+}
+
+.inbox {
+  gap: var(--space-3);
+}
+
+.inboxHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.textButton {
+  min-height: var(--tap-min);
+  padding-inline: var(--space-2);
+  color: var(--text-strong);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-bold);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.tabs {
+  display: flex;
+  gap: var(--space-5);
+  border-bottom: var(--hairline);
+}
+
+.tabs [role='tab'] {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1-5);
+  min-height: var(--tap-min);
+  border-bottom: 3px solid transparent;
+  color: var(--text-muted);
+  font-size: var(--text-base);
+  font-weight: var(--weight-bold);
+}
+
+.tabs [aria-selected='true'] {
+  border-bottom-color: var(--selected-line);
+  color: var(--text-strong);
+}
+
+.count {
+  display: grid;
+  place-items: center;
+  min-width: 1.25rem;
+  height: 1.25rem;
+  padding-inline: 0.375rem;
+  border-radius: var(--radius-pill);
+  background: var(--text-strong);
+  color: var(--surface);
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-extrabold);
+}

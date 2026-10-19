@@ -14,7 +14,9 @@
 
   display: grid;
   grid-template-columns: minmax(0, 1fr);
+  /* 'strip' — 시안 자리(현황 띠, 개발 모드 `?lab=strip-*` 에서만 찬다). 비어 있으면 높이 0 */
   grid-template-areas:
+    'strip'
     'hero'
     'search'
     'chips'
@@ -124,6 +126,7 @@
   .page {
     grid-template-columns: minmax(0, 30rem) minmax(0, 1fr);
     grid-template-areas:
+      'strip strip'
       'hero hero'
       'search chips'
       'results results';

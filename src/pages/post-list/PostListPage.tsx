@@ -2,6 +2,7 @@ import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { useEffect, useRef, useState, type RefObject } from 'react'
 import { useNavigate, type To } from 'react-router-dom'
 
+import { LabSlot } from '@/app/lab/LabSlot'
 import { POST_DETAIL_FROM_LIST, paths } from '@/app/paths'
 import { useAuth } from '@/features/auth'
 import {
@@ -191,6 +192,8 @@ export function PostListPage() {
   return (
     <div className={styles.page}>
       {/* 읽는 순서 = Tab 순서 : 의도 → 검색 → 필터 → 결과. 가장 먼저 할 일이 가장 위에 있다 */}
+      {/* 시안 자리(개발 모드 `?lab=strip-a|b|c` 에서만, 2026-10-19) — 지금 서비스 현황 띠. 격자의 'strip' 칸에 선다 */}
+      <LabSlot name="strip" />
       <section className={styles.hero} aria-labelledby="post-list-title">
         <h1 id="post-list-title" tabIndex={-1} className={styles.title}>
           잃어버렸나요, 주웠나요?
@@ -277,23 +280,26 @@ export function PostListPage() {
           </div>
         </div>
 
-        <PostListBody
-          query={{ isPending: query.isPending, isFetching: query.isFetching, error: query.error }}
-          view={view}
-          search={search}
-          lastPageHref={view ? hrefForPage(Math.max(view.page.totalPages, 1)) : undefined}
-          onPageNavigate={handlePageNavigate}
-          intent={intent}
-          stale={stale}
-          gridRef={gridRef}
-          createHref={createHref}
-          onRetry={() => {
-            refocusResults.current = true
-            void query.refetch()
-          }}
-          onClearFilters={clearFilters}
-          onClearKeyword={clearKeyword}
-        />
+        {/* 시안 자리(개발 모드 `?lab=map-a|b|c` 에서만) — 주변 분실물 지도. 끄면 목록 그대로 */}
+        <LabSlot name="map" posts={view?.content}>
+          <PostListBody
+            query={{ isPending: query.isPending, isFetching: query.isFetching, error: query.error }}
+            view={view}
+            search={search}
+            lastPageHref={view ? hrefForPage(Math.max(view.page.totalPages, 1)) : undefined}
+            onPageNavigate={handlePageNavigate}
+            intent={intent}
+            stale={stale}
+            gridRef={gridRef}
+            createHref={createHref}
+            onRetry={() => {
+              refocusResults.current = true
+              void query.refetch()
+            }}
+            onClearFilters={clearFilters}
+            onClearKeyword={clearKeyword}
+          />
+        </LabSlot>
 
         {/*
           페이지 번호 — 마지막 카드 줄 바로 아래. 다섯 개씩, 6페이지부터 이전 · 다음 묶음 화살표(본인 결정 2026-10-16 · 10-17).
