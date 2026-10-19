@@ -1,0 +1,450 @@
+/*
+ * (다) 추천 띠. 상세 오른쪽 열(넓은 화면 30rem) · 휴대폰 한 줄 모두 들어가야 한다 — 카드 폭은 띠 폭이 아니라 고정 rem,
+ * 넘치면 옆으로 넘긴다(scroll-snap). 띠 양 끝은 화면 끝까지 흘러가게(휴대폰) — 다음 카드가 반쯤 보여 넘길 수 있다는 걸 말한다.
+ * 색 면을 칠하지 않는다. 습득 후보라 이름표 · 포스터가 코발트를 이미 갖고 있다.
+ */
+
+.rail {
+  container: match-rail / inline-size;
+  display: grid;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.rail[data-context='detail'] {
+  margin-top: var(--space-6);
+}
+
+.rail[data-context='me'] {
+  margin-bottom: var(--space-8);
+}
+
+.head {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.title {
+  color: var(--text-strong);
+  font-size: var(--text-xl);
+  font-weight: var(--weight-extrabold);
+  line-height: var(--leading-tight);
+  letter-spacing: var(--tracking-tight);
+}
+
+.lead {
+  color: var(--text-body);
+  font-size: var(--text-sm);
+  line-height: var(--leading-snug);
+}
+
+.lead b {
+  color: var(--text-strong);
+}
+
+.muted {
+  color: var(--text-muted);
+}
+
+/* ── 옆으로 넘기는 줄 ── */
+
+.track {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 13.5rem;
+  gap: var(--space-3);
+  margin-inline: calc(var(--gutter) * -1);
+  padding: var(--space-1) var(--gutter) var(--space-3);
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-padding-inline: var(--gutter);
+  scroll-snap-type: x mandatory;
+  scrollbar-width: thin;
+}
+
+.track > li {
+  min-width: 0;
+  scroll-snap-align: start;
+}
+
+.rail[data-variant='b'] .track {
+  grid-auto-columns: 16.5rem;
+}
+
+/* ── 카드 공통 ── */
+
+.photoCard,
+.compareCard {
+  position: relative;
+  display: grid;
+  height: 100%;
+  overflow: hidden;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+
+.photo {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 4 / 3;
+  border-radius: 0;
+}
+
+.cardBody {
+  display: grid;
+  align-content: start;
+  gap: var(--space-1-5);
+  padding: var(--space-3);
+}
+
+.cardTitle {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  color: var(--text-strong);
+  font-size: var(--text-base);
+  font-weight: var(--weight-bold);
+  line-height: var(--leading-snug);
+  word-break: keep-all;
+}
+
+/* 카드 전체가 누르는 면 */
+.cardLink {
+  text-decoration: none;
+}
+
+.cardLink::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+}
+
+.cardLink:focus-visible {
+  outline: none;
+}
+
+.photoCard:has(.cardLink:focus-visible),
+.compareCard:has(.cardLink:focus-visible) {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+@media (hover: hover) {
+  .photoCard:hover,
+  .compareCard:hover {
+    border-color: var(--border-hover);
+  }
+}
+
+/* 일치율 — 숫자가 말하고 막대는 길이만(바탕 트랙 없음, dataviz · taste 규칙) */
+.score {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.scoreNum {
+  color: var(--text-body);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+}
+
+.scoreNum b {
+  color: var(--text-strong);
+  font-size: var(--text-lg);
+  font-weight: var(--weight-extrabold);
+  letter-spacing: var(--tracking-tight);
+}
+
+.scoreBar {
+  display: block;
+  height: 0.25rem;
+}
+
+.scoreBar span {
+  display: block;
+  height: 100%;
+  border-radius: 0 var(--radius-xs) var(--radius-xs) 0;
+  background: var(--text-strong);
+}
+
+.reasons {
+  display: grid;
+  gap: var(--space-0-5);
+  color: var(--text-body);
+  font-size: var(--text-xs);
+}
+
+.reasons li {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.reasons li:not([data-matched]) {
+  color: var(--text-muted);
+}
+
+.reasons svg {
+  flex: none;
+  width: var(--icon-xs);
+  height: var(--icon-xs);
+}
+
+/* ── b 비교 ── */
+
+.compareCard {
+  align-content: start;
+  gap: var(--space-3);
+  padding: var(--space-3);
+}
+
+.compareHead {
+  display: grid;
+  grid-template-columns: 3.5rem minmax(0, 1fr);
+  gap: var(--space-3);
+  align-items: center;
+}
+
+.compareThumb {
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: var(--radius-sm);
+}
+
+.compareTitleBox {
+  display: grid;
+  gap: var(--space-0-5);
+  min-width: 0;
+}
+
+.level {
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-bold);
+}
+
+.level[data-level='높음'] {
+  color: var(--text-strong);
+}
+
+.compare {
+  display: grid;
+  border-top: var(--hairline);
+  font-size: var(--text-xs);
+}
+
+.compareRow {
+  display: grid;
+  grid-template-columns: 3.25rem minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--space-2);
+  align-items: baseline;
+  padding-block: var(--space-1-5);
+}
+
+.compareRow:first-child {
+  padding-bottom: 0;
+  color: var(--text-muted);
+  font-size: var(--text-2xs);
+}
+
+.compareRow dt {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  color: var(--text-muted);
+  font-weight: var(--weight-semibold);
+}
+
+.compareRow dt svg {
+  flex: none;
+  width: var(--icon-xs);
+  height: var(--icon-xs);
+}
+
+.compareRow[data-matched] dt {
+  color: var(--text-strong);
+}
+
+.compareRow dd {
+  overflow: hidden;
+  color: var(--text-body);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.compareRow[data-matched] dd:last-child {
+  color: var(--text-strong);
+  font-weight: var(--weight-bold);
+}
+
+/* ── c 한 장씩 ── */
+
+.focus {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.focusCard {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  overflow: hidden;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+}
+
+.focusPhoto {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 16 / 10;
+  border-radius: 0;
+}
+
+.focusBody {
+  display: grid;
+  justify-items: start;
+  gap: var(--space-2);
+  padding: var(--space-4);
+}
+
+.focusBody > .score {
+  justify-self: stretch;
+}
+
+.focusTitle {
+  color: var(--text-strong);
+  font-size: var(--text-lg);
+  font-weight: var(--weight-extrabold);
+  line-height: var(--leading-snug);
+  word-break: keep-all;
+}
+
+.focusReasons {
+  grid-template-columns: repeat(2, minmax(0, max-content));
+  gap: var(--space-1) var(--space-4);
+  font-size: var(--text-sm);
+}
+
+.focusActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+@container match-rail (width >= 34rem) {
+  .focusCard {
+    grid-template-columns: minmax(0, 15rem) minmax(0, 1fr);
+  }
+
+  .focusPhoto {
+    height: 100%;
+    aspect-ratio: auto;
+    min-height: 15rem;
+  }
+}
+
+.others {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+}
+
+.othersLabel {
+  grid-column: 1 / -1;
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-bold);
+}
+
+.otherList {
+  display: flex;
+  gap: var(--space-2);
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.otherList > li {
+  flex: none;
+}
+
+.other {
+  display: grid;
+  grid-template-columns: 2.75rem 9rem;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--tap-min);
+  padding: var(--space-1);
+  padding-right: var(--space-3);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  text-align: left;
+}
+
+@media (hover: hover) {
+  .other:hover {
+    border-color: var(--border-hover);
+  }
+}
+
+.otherThumb {
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: var(--radius-xs);
+}
+
+.otherText {
+  display: grid;
+  min-width: 0;
+  font-size: var(--text-xs);
+}
+
+.otherTitle {
+  overflow: hidden;
+  color: var(--text-strong);
+  font-weight: var(--weight-bold);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stepper {
+  display: flex;
+  gap: var(--space-1);
+}
+
+/* ── 빈 · 오류 ── */
+
+.state {
+  display: grid;
+  justify-items: start;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-md);
+}
+
+.stateText {
+  color: var(--text-body);
+  font-size: var(--text-sm);
+  line-height: var(--leading-snug);
+}
+
+.stateText strong {
+  display: block;
+  margin-bottom: var(--space-0-5);
+  color: var(--text-strong);
+  font-size: var(--text-base);
+}
+
+/* 작은 포스터에서는 그림 이름(지갑 · 카드 …)을 숨긴다 — 칸이 좁아 글자가 그림을 가린다 */
+.compareThumb [class*='label'] {
+  display: none;
+}
+
+/* 작은 포스터에서는 그림 이름(지갑 · 카드 …)을 숨긴다 — 칸이 좁아 글자가 그림을 가린다 */
+.otherThumb [class*='label'] {
+  display: none;
+}

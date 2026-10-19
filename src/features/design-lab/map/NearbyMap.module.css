@@ -1,0 +1,488 @@
+/*
+ * (나) 지도 시안 배치. 결과 칸(`list-results` 컨테이너) 안이다.
+ * 지도 높이는 화면 높이를 따르되 위아래 한계를 둔다 — 휴대폰에서 지도가 화면을 다 덮으면 스크롤할 곳이 없어진다(지도가 손가락을 먹는다)
+ */
+
+.mapBox {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius-md);
+}
+
+.mapSkeleton {
+  display: grid;
+  place-items: center;
+}
+
+.mapSkeletonFill {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+}
+
+.mapSkeletonDots {
+  position: relative;
+  color: var(--text-muted);
+}
+
+.mapState {
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--border-subtle);
+  background: var(--surface-sunken);
+}
+
+.mapEmpty {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-sm);
+  background: var(--surface-raised);
+  color: var(--text-body);
+  font-size: var(--text-sm);
+  line-height: var(--leading-snug);
+}
+
+.mapEmpty svg {
+  flex: none;
+  width: var(--icon-md);
+  height: var(--icon-md);
+  color: var(--text-muted);
+}
+
+.mapEmpty > button {
+  flex: none;
+  align-self: center;
+  margin-left: auto;
+}
+
+.mapEmpty strong {
+  color: var(--text-strong);
+}
+
+.mapNote {
+  margin-top: var(--space-2);
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+}
+
+/* 지도 위 빈 상태 — 가운데 떠 있는 판 */
+.overlayNote {
+  position: absolute;
+  inset: auto var(--space-3) var(--space-8);
+  z-index: 600;
+  box-shadow: var(--shadow-overlay);
+  border-radius: var(--radius-sm);
+}
+
+/* ── 고른 글 카드(지도 아래쪽) ── */
+
+.picked {
+  position: absolute;
+  right: var(--space-3);
+  bottom: var(--space-6);
+  left: var(--space-3);
+  z-index: 600;
+  display: grid;
+  grid-template-columns: 4.5rem minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-3);
+  max-width: 26rem;
+  padding: var(--space-2);
+  padding-right: var(--space-3);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-overlay);
+  animation: rise var(--duration-base) var(--ease-out);
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+.pickedThumb {
+  width: 4.5rem;
+  height: 4.5rem;
+  border-radius: var(--radius-sm);
+}
+
+.pickedBody {
+  display: grid;
+  justify-items: start;
+  gap: var(--space-0-5);
+  min-width: 0;
+}
+
+.pickedTitle {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 1;
+  color: var(--text-strong);
+  font-size: var(--text-base);
+  font-weight: var(--weight-bold);
+  line-height: var(--leading-snug);
+}
+
+/* 카드 전체가 누르는 면 */
+.pickedLink::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+}
+
+.pickedLink:focus-visible {
+  outline: none;
+}
+
+.picked:has(.pickedLink:focus-visible) {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.pickedMeta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  max-width: 100%;
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+}
+
+.pickedMeta svg {
+  flex: none;
+  width: var(--icon-xs);
+  height: var(--icon-xs);
+}
+
+.pickedPlace {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pickedGo {
+  width: var(--icon-md);
+  height: var(--icon-md);
+  color: var(--text-muted);
+}
+
+/* [×] — 카드 오른쪽 위에 걸친 동그란 버튼(보이는 28px, 누르는 면 44px) */
+.pickedClose {
+  position: absolute;
+  top: -0.75rem;
+  right: -0.5rem;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-pill);
+  background: var(--surface-raised);
+  color: var(--text-strong);
+}
+
+.pickedClose::after {
+  content: '';
+  position: absolute;
+  inset: -0.5rem;
+}
+
+.pickedClose svg {
+  width: var(--icon-sm);
+  height: var(--icon-sm);
+}
+
+/* ── a 전환 ── */
+
+.toggleWrap {
+  display: grid;
+  gap: var(--space-3);
+}
+
+/* 두 칸 전환 — 고른 칸은 잉크 채움(선택 = 색 면 하나). 이 줄의 주인공은 지도/사진 둘 중 하나라 버튼 무게를 낮춘다 */
+.viewSwitch {
+  display: inline-grid;
+  grid-auto-flow: column;
+  justify-self: start;
+  padding: 3px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-sunken);
+}
+
+.viewSwitch button {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1-5);
+  min-height: 2.375rem;
+  padding: 0 var(--space-3);
+  border-radius: calc(var(--radius-sm) - 3px);
+  color: var(--text-body);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+}
+
+/* 보이는 높이 38px, 누르는 면 44px */
+.viewSwitch button {
+  position: relative;
+}
+
+.viewSwitch button::after {
+  content: '';
+  position: absolute;
+  inset: -3px 0;
+}
+
+.viewSwitch svg {
+  width: var(--icon-sm);
+  height: var(--icon-sm);
+}
+
+.viewSwitch [aria-pressed='true'] {
+  background: var(--surface-raised);
+  box-shadow: 0 1px 3px rgb(25 27 31 / 0.18);
+  color: var(--text-strong);
+  font-weight: var(--weight-bold);
+}
+
+.toggleMap {
+  height: clamp(22rem, 62dvh, 38rem);
+}
+
+/* ── b 나란히 ── */
+
+.split {
+  container: lab-split / inline-size;
+}
+
+/*
+ * 목록 칸의 폭으로 피드 열 수를 다시 정한다 — 결과 칸(list-results)은 지도까지 포함한 폭이라 4열이 그대로 남는다.
+ * 그릇 이름은 한 곳에서만 짓는다(containers.test) — list-results 를 다시 짓지 않고 이 칸 이름으로 잰다
+ */
+.splitList {
+  container: lab-split-list / inline-size;
+}
+
+@container lab-split-list (34rem <= width < 54rem) {
+  .splitList > ul {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@container lab-split-list (18rem <= width < 34rem) {
+  .splitList > ul {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.splitList [data-lab-picked] {
+  outline: 3px solid var(--text-strong);
+  outline-offset: 4px;
+  border-radius: var(--radius-md);
+}
+
+.splitPreview {
+  margin-bottom: var(--space-5);
+}
+
+.previewButton {
+  position: relative;
+  display: block;
+  width: 100%;
+  border-radius: var(--radius-md);
+  text-align: left;
+}
+
+.previewMap {
+  height: 9.5rem;
+  pointer-events: none;
+}
+
+.previewLabel {
+  position: absolute;
+  right: var(--space-3);
+  bottom: var(--space-3);
+  z-index: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1-5);
+  min-height: var(--tap-min);
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-sm);
+  background: var(--action);
+  color: var(--on-action);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-bold);
+}
+
+.previewLabel svg {
+  width: var(--icon-sm);
+  height: var(--icon-sm);
+}
+
+.splitMap {
+  display: none;
+}
+
+/*
+ * 넓은 칸 : 목록 | 지도. 지도는 칩 줄 아래에 붙어 따라온다(붙는 줄 총량 — 헤더 + 칩 줄 + 이 지도는 옆 열이라 본문을 가리지 않는다).
+ * 목록 칸이 좁아지면 피드가 4열 → 3 · 2열로 준다(결과 칸 컨테이너 쿼리 그대로)
+ */
+@container lab-split (width >= 60rem) {
+  .splitGrid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(20rem, 0.72fr);
+    align-items: start;
+    gap: var(--space-6);
+  }
+
+  .splitPreview {
+    display: none;
+  }
+
+
+  .splitMap {
+    position: sticky;
+    top: calc(var(--list-sticky-top, var(--header-h)) + var(--space-4));
+    display: block;
+  }
+
+  .sideMap {
+    height: calc(100dvh - var(--list-sticky-top, var(--header-h)) - var(--space-8));
+    min-height: 24rem;
+    max-height: 44rem;
+  }
+}
+
+/* 휴대폰 지도 화면 — 화면 전체, 위에 제목 줄 */
+.fullMap {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-dialog);
+  height: 100dvh;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  background: var(--surface);
+  animation: rise var(--duration-base) var(--ease-out);
+}
+
+.fullHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  min-height: var(--header-h);
+  padding: 0 var(--space-2) 0 var(--gutter);
+  border-bottom: var(--hairline);
+}
+
+.fullTitle {
+  font-size: var(--text-lg);
+  font-weight: var(--weight-extrabold);
+}
+
+.fullTitle span {
+  margin-left: var(--space-1);
+  color: var(--text-muted);
+  font-size: var(--text-base);
+  font-weight: var(--weight-semibold);
+}
+
+.fullMapBody {
+  height: 100%;
+  min-height: 0;
+  border: 0;
+  border-radius: 0;
+}
+
+/* ── c 지도 띠 ── */
+
+.band {
+  display: grid;
+}
+
+.bandMap {
+  height: clamp(15rem, 34dvh, 22rem);
+}
+
+.bandBar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-4);
+  margin-block: var(--space-2) var(--space-5);
+}
+
+.onlyInside {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--tap-min);
+  color: var(--text-strong);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  cursor: pointer;
+}
+
+.onlyInside input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: inherit;
+}
+
+/* 켜고 끄는 스위치(되돌릴 수 있는 보기 조건) — 켜면 잉크 채움 + 손잡이 오른쪽 */
+.switchTrack {
+  position: relative;
+  width: 2.25rem;
+  height: 1.375rem;
+  border: 2px solid var(--text-strong);
+  border-radius: var(--radius-pill);
+  transition: background-color var(--duration-fast) var(--ease-out);
+}
+
+.switchTrack::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 0.875rem;
+  height: 0.875rem;
+  border-radius: var(--radius-pill);
+  background: var(--text-strong);
+  transition: transform var(--duration-fast) var(--ease-out);
+}
+
+.onlyInside input:checked + .switchTrack {
+  background: var(--text-strong);
+}
+
+.onlyInside input:checked + .switchTrack::after {
+  background: var(--surface);
+  transform: translateX(0.875rem);
+}
+
+.onlyInside input:focus-visible + .switchTrack {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.onlyInside:has(input:disabled) {
+  color: var(--text-disabled);
+  cursor: default;
+}
+
+.bandCount {
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+  font-variant-numeric: tabular-nums;
+}

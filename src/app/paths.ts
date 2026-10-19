@@ -35,6 +35,17 @@ export const paths = {
    * 비로그인도 화면 모드를 바꿀 수 있어야 해서 `/me` 아래가 아니다
    */
   settings: '/settings',
+
+  /**
+   * 시안 화면(개발 모드 전용, 2026-10-19 — 알림 · 채팅 · 위치 찍기). 라우트도 개발 모드에서만 걸린다(routes.tsx).
+   * 본인이 시안을 고르면 확정 경로(`/notifications` · `/chats/:roomId` 등)로 바꾸고 이 묶음은 지운다
+   */
+  lab: {
+    index: '/__lab',
+    notifications: (variant: string) => `/__lab/notifications?v=${variant}`,
+    chat: (variant: string, roomId = 7) => `/__lab/chat?v=${variant}&room=${roomId}`,
+    location: '/__lab/location',
+  },
 } as const
 
 /**

@@ -2,6 +2,7 @@ import { useEffect, useRef, type MouseEvent } from 'react'
 import { Link, NavLink, Outlet, matchPath, useLocation } from 'react-router-dom'
 
 import { isAuthScreen } from '@/app/authRedirect'
+import { LabSlot } from '@/app/lab/LabSlot'
 import { paths } from '@/app/paths'
 import { RouteFocus } from '@/app/RouteFocus'
 import { ScrollMemory } from '@/app/ScrollMemory'
@@ -91,6 +92,8 @@ export function HeaderActions() {
     <div className={styles.actions}>
       <CreatePostLink />
       <HomeLink />
+      {/* 시안 자리(개발 모드 `?lab=bell-a|b|c` 에서만, 2026-10-19) — 알림 종. 로그인했을 때만 그린다 */}
+      <LabSlot name="bell" />
       <HeaderAuth />
     </div>
   )

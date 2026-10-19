@@ -1,0 +1,526 @@
+/*
+ * (라) 채팅 화면. 화면 높이를 꽉 쓰는 세 칸(머리 · 대화 · 입력). 입력 줄은 아래에 붙는다(붙는 것 총량 = 헤더 + 이 줄 하나).
+ * 말풍선 반경은 놓이는 면(12px), 이어지는 말은 붙은 쪽 모서리만 4px — 누가 말했는지 묶음으로 보인다(근접성)
+ */
+
+.page {
+  --chat-h: calc(100dvh - var(--header-h) - var(--space-10));
+
+  max-width: var(--layout-max);
+  margin-inline: auto;
+}
+
+.twoPane {
+  max-width: none;
+}
+
+.paneList {
+  display: none;
+}
+
+@media (min-width: 64rem) {
+  .twoPane {
+    display: grid;
+    grid-template-columns: 22rem minmax(0, 1fr);
+    gap: 0;
+    height: var(--chat-h);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+  }
+
+  .paneList {
+    display: block;
+    overflow-y: auto;
+    border-right: 1px solid var(--border-strong);
+  }
+
+  .twoPane .conversation {
+    height: 100%;
+    border: 0;
+    border-radius: 0;
+  }
+}
+
+.paneTitle {
+  padding: var(--space-4);
+  color: var(--text-strong);
+  font-size: var(--text-xl);
+  font-weight: var(--weight-extrabold);
+}
+
+.conversation {
+  /* 머리 · (진행 카드) · 대화 · 입력 — 대화만 늘고 줄어든다 */
+  display: flex;
+  flex-direction: column;
+  height: var(--chat-h);
+  min-height: 26rem;
+  overflow: hidden;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+
+/* ── 머리 ── */
+
+.top {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 3.75rem;
+  padding: var(--space-2) var(--space-3) var(--space-2) var(--space-1);
+  border-bottom: var(--hairline);
+}
+
+.back {
+  display: grid;
+  place-items: center;
+  width: var(--tap-min);
+  height: var(--tap-min);
+  border-radius: var(--radius-sm);
+  color: var(--text-strong);
+}
+
+.back svg {
+  width: var(--icon-md);
+  height: var(--icon-md);
+}
+
+@media (min-width: 64rem) {
+  .twoPane .back {
+    visibility: hidden;
+    width: var(--space-2);
+  }
+}
+
+.who {
+  display: grid;
+  gap: var(--space-0-5);
+  min-width: 0;
+}
+
+.partner {
+  color: var(--text-strong);
+  font-size: var(--text-lg);
+  font-weight: var(--weight-extrabold);
+  line-height: var(--leading-tight);
+}
+
+.about {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1-5);
+  min-width: 0;
+  font-size: var(--text-xs);
+}
+
+.aboutLink {
+  overflow: hidden;
+  color: var(--text-body);
+  text-decoration: underline;
+  text-decoration-color: var(--border-strong);
+  text-underline-offset: 0.2em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── b 진행 카드 ── */
+
+.progress {
+  display: grid;
+  gap: var(--space-1-5);
+  padding: var(--space-3) var(--space-4);
+  border-bottom: var(--hairline);
+  background: var(--surface-sunken);
+}
+
+.steps {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-2);
+}
+
+.steps li {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-1-5);
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+}
+
+/* 단계 사이 잇는 선 */
+.steps li + li::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  right: calc(100% + var(--space-1));
+  width: calc(var(--space-2) - 2px);
+  height: 2px;
+  background: var(--border-strong);
+}
+
+.stepMark {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border: 2px solid var(--border-strong);
+  border-radius: var(--radius-pill);
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-extrabold);
+}
+
+.stepMark svg {
+  width: var(--icon-xs);
+  height: var(--icon-xs);
+}
+
+.steps [data-done] {
+  color: var(--text-body);
+}
+
+.steps [data-done] .stepMark {
+  border-color: var(--text-strong);
+  background: var(--text-strong);
+  color: var(--surface);
+}
+
+.steps [data-current] {
+  color: var(--text-strong);
+  font-weight: var(--weight-extrabold);
+}
+
+.steps [data-current] .stepMark {
+  border-color: var(--text-strong);
+  color: var(--text-strong);
+}
+
+.progressHint {
+  color: var(--text-body);
+  font-size: var(--text-xs);
+}
+
+/* ── 대화 ── */
+
+.scroll {
+  container: chat-scroll / inline-size;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: var(--space-4) var(--space-3) var(--space-2);
+}
+
+.messages {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-1);
+  list-style: none;
+}
+
+.day {
+  display: flex;
+  justify-content: center;
+  margin-block: var(--space-3) var(--space-2);
+}
+
+.day span {
+  padding: 0.125rem var(--space-2);
+  border-radius: var(--radius-pill);
+  background: var(--surface-sunken);
+  color: var(--text-muted);
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-semibold);
+}
+
+.system {
+  justify-self: center;
+  max-width: 30rem;
+  margin-block: var(--space-2);
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+  line-height: var(--leading-snug);
+  text-align: center;
+  word-break: keep-all;
+}
+
+.message {
+  display: grid;
+  justify-items: start;
+  margin-top: var(--space-2);
+}
+
+.message[data-run] {
+  margin-top: 0;
+}
+
+.message[data-mine] {
+  justify-items: end;
+}
+
+.bubbleRow {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-1-5);
+  max-width: min(82%, 30rem);
+}
+
+.message[data-mine] .bubbleRow {
+  flex-direction: row-reverse;
+}
+
+.bubble {
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--surface-sunken);
+  color: var(--text-strong);
+  font-size: var(--text-base);
+  line-height: var(--leading-snug);
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.message:not([data-mine]) .bubble {
+  border-top-left-radius: var(--radius-xs);
+}
+
+.message[data-mine] .bubble {
+  border-top-right-radius: var(--radius-xs);
+  background: var(--action);
+  color: var(--on-action);
+}
+
+.message[data-run]:not([data-mine]) .bubble {
+  border-top-left-radius: var(--radius-xs);
+}
+
+.stamp {
+  display: grid;
+  flex: none;
+  justify-items: end;
+  color: var(--text-muted);
+  font-size: 0.6875rem;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.3;
+  white-space: nowrap;
+}
+
+.message:not([data-mine]) .stamp {
+  justify-items: start;
+}
+
+.read {
+  color: var(--text-body);
+  font-weight: var(--weight-semibold);
+}
+
+/* 가린 자리 — 자물쇠 + 별표 글자. 말풍선 색 위에서 한 칸 낮은 대비의 조각 */
+.masked {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2em;
+  margin-inline: 0.1em;
+  padding: 0 0.375em;
+  border-radius: var(--radius-xs);
+  background: color-mix(in srgb, currentColor 16%, transparent);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+/* 글자를 크게 키워 한 줄에 안 들어가면 조각 안에서도 줄을 바꾼다 */
+@container chat-scroll (width < 24rem) {
+  .masked {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+}
+
+.masked svg {
+  width: 0.875em;
+  height: 0.875em;
+}
+
+.maskNote {
+  margin-top: var(--space-1);
+  color: var(--text-muted);
+  font-size: var(--text-2xs);
+}
+
+/* c 기록형 — 말풍선 없이 왼쪽 정렬 · 이름과 시간이 위에 */
+.messages[data-variant='c'] .message,
+.messages[data-variant='c'] .message[data-mine] {
+  justify-items: start;
+}
+
+.messages[data-variant='c'] .message[data-mine] .bubbleRow {
+  flex-direction: row;
+}
+
+.messages[data-variant='c'] .bubbleRow {
+  max-width: 100%;
+}
+
+.messages[data-variant='c'] .bubble,
+.messages[data-variant='c'] .message[data-mine] .bubble {
+  padding: 0.125rem 0 0.125rem var(--space-3);
+  border-left: 3px solid var(--border-strong);
+  border-radius: 0;
+  background: none;
+  color: var(--text-strong);
+}
+
+.messages[data-variant='c'] .message[data-mine] .bubble {
+  border-left-color: var(--text-strong);
+}
+
+.messages[data-variant='c'] .message {
+  margin-top: var(--space-3);
+}
+
+.messages[data-variant='c'] .message[data-run] {
+  margin-top: var(--space-1);
+}
+
+.sender {
+  margin-bottom: var(--space-1);
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+}
+
+.sender b {
+  margin-right: var(--space-1);
+  color: var(--text-strong);
+  font-size: var(--text-sm);
+}
+
+.bubbleSkeleton {
+  border-radius: var(--radius-md);
+}
+
+/* ── 입력 줄 ── */
+
+.composer {
+  display: grid;
+  gap: var(--space-1-5);
+  padding: var(--space-2) var(--space-3) var(--space-3);
+  border-top: var(--hairline);
+  background: var(--surface);
+}
+
+.composerNote {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+}
+
+.composerNote svg {
+  flex: none;
+  width: var(--icon-sm);
+  height: var(--icon-sm);
+}
+
+/* 번호 모양을 친 순간 — 막지 않고 알려 준다(빨강 아님, 잉크 굵게) */
+.composerNote[data-hit] {
+  color: var(--text-strong);
+  font-weight: var(--weight-bold);
+}
+
+.composerRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: var(--space-2);
+}
+
+.input {
+  min-height: var(--form-control-h);
+  max-height: 8rem;
+  padding: 0.75rem var(--space-3);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text-strong);
+  font-size: var(--text-base);
+  line-height: var(--leading-snug);
+  resize: none;
+  field-sizing: content;
+}
+
+.input:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 1px;
+}
+
+.send {
+  width: var(--form-control-h);
+  min-height: var(--form-control-h);
+  padding: 0;
+}
+
+.send svg {
+  width: var(--icon-md);
+  height: var(--icon-md);
+}
+
+/* ── 닫힌 방 ── */
+
+.closed {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  border-top: var(--hairline);
+  background: var(--surface-sunken);
+  color: var(--text-body);
+  font-size: var(--text-sm);
+  line-height: var(--leading-snug);
+}
+
+.closed svg {
+  flex: none;
+  width: var(--icon-md);
+  height: var(--icon-md);
+  color: var(--text-strong);
+}
+
+.closed b {
+  color: var(--text-strong);
+}
+
+/* ── 빈 · 오류 ── */
+
+.state {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-2);
+  max-width: 22rem;
+  margin: var(--space-10) auto;
+  text-align: center;
+}
+
+.stateIcon {
+  width: var(--icon-state);
+  height: var(--icon-state);
+  color: var(--text-disabled);
+}
+
+.stateTitle {
+  color: var(--text-strong);
+  font-size: var(--text-lg);
+  font-weight: var(--weight-extrabold);
+}
+
+.stateText {
+  color: var(--text-body);
+  font-size: var(--text-sm);
+  line-height: var(--leading-snug);
+  word-break: keep-all;
+}

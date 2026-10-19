@@ -56,7 +56,6 @@ describe('분실 · 습득 칸 — 칸 이름 = 보여 주는 글의 종류(본�
         intent.heading,
         ...Object.values(intent.next),
         ...Object.values(intent.empty),
-        intent.write.lead,
       ]
       for (const text of texts) expect(text).not.toMatch(/[—–]/)
     }

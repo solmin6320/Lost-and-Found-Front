@@ -95,6 +95,15 @@ export function createAppRouter() {
           errorElement={<RouteLoadError />}
         />
 
+        {/* 시안 화면(개발 모드 전용, 2026-10-19 — 알림 · 채팅 · 위치 찍기 · 시안 모음). 운영 빌드에서는 이 줄째 지워진다 */}
+        {import.meta.env.DEV ? (
+          <Route
+            path="/__lab/*"
+            lazy={() => import('@/features/design-lab/pages/LabRoutes').then((m) => ({ Component: m.LabRoutes }))}
+            errorElement={<RouteLoadError />}
+          />
+        ) : null}
+
         <Route path="*" element={<NotFoundPage />} />
       </Route>,
     ),

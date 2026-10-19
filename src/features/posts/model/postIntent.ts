@@ -25,8 +25,6 @@ export interface PostIntent {
   next: { title: string; description: string; action: string }
   /** 이 칸만 골랐는데(검색어 · 필터 없음) 글이 하나도 없을 때 */
   empty: { title: string; description: string }
-  /** 결과 제목 줄 아래 한 줄 — 칸을 고른 순간의 글쓰기 입구. 링크 글자는 `next.action` 과 같다 */
-  write: { lead: string }
 }
 
 const LOST_POSTS: PostIntent = {
@@ -43,7 +41,6 @@ const LOST_POSTS: PostIntent = {
     title: '진행 중인 분실 글이 없어요.',
     description: '물건을 잃어버렸다면 분실 글을 올려 두세요. 주운 사람이 보고 댓글로 알려 줄 수 있어요.',
   },
-  write: { lead: '물건을 잃어버렸다면' },
 }
 
 const FOUND_POSTS: PostIntent = {
@@ -61,7 +58,6 @@ const FOUND_POSTS: PostIntent = {
     title: '진행 중인 습득 글이 없어요.',
     description: '물건을 주웠다면 습득 글을 올려 두세요. 잃어버린 사람이 보고 댓글로 연락할 수 있어요.',
   },
-  write: { lead: '물건을 주웠다면' },
 }
 
 /** 화면 순서 그대로. 분실이 앞이다(이름표 안내 · 등록 화면의 순서와 같다) */

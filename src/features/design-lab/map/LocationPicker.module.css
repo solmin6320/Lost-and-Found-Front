@@ -1,0 +1,186 @@
+.page {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-4);
+  max-width: var(--layout-max);
+  margin-inline: auto;
+}
+
+.head {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.step {
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+}
+
+.title {
+  color: var(--text-strong);
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-extrabold);
+  letter-spacing: var(--tracking-tight);
+}
+
+.lead {
+  color: var(--text-body);
+  font-size: var(--text-sm);
+  line-height: var(--leading-snug);
+}
+
+.map,
+.mapSkeleton {
+  height: clamp(17rem, 46dvh, 26rem);
+}
+
+.mapSkeleton {
+  position: relative;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-md);
+}
+
+.fill {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+}
+
+.dots {
+  position: relative;
+  color: var(--text-muted);
+}
+
+/* 가운데 고정 핀 — 바늘 끝이 지도 가운데 */
+.pin {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 550;
+  color: var(--text-strong);
+  filter: drop-shadow(0 2px 2px rgb(25 27 31 / 0.35));
+  transform: translate(-50%, -100%);
+  pointer-events: none;
+}
+
+.pin svg {
+  width: 2.5rem;
+  height: 2.5rem;
+}
+
+/* 공개 범위 원 — 줌에 따라 크기가 바뀐다 */
+.ring {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 540;
+  border: 2px dashed var(--text-strong);
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--text-strong) 8%, transparent);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.locate {
+  position: absolute;
+  bottom: var(--space-6);
+  left: var(--space-3);
+  z-index: 600;
+  box-shadow: 0 2px 8px -4px rgb(25 27 31 / 0.35);
+}
+
+.geoError {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-1-5);
+  color: var(--error-text);
+  font-size: var(--text-sm);
+  line-height: var(--leading-snug);
+}
+
+.geoError svg {
+  flex: none;
+  width: var(--icon-sm);
+  height: var(--icon-sm);
+  margin-top: 0.15em;
+}
+
+.readout {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.area,
+.privacy {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-1-5);
+  font-size: var(--text-sm);
+  line-height: var(--leading-snug);
+}
+
+.area {
+  color: var(--text-strong);
+  font-size: var(--text-base);
+}
+
+.area svg,
+.privacy svg {
+  flex: none;
+  width: var(--icon-sm);
+  height: var(--icon-sm);
+  margin-top: 0.2em;
+}
+
+.chosen {
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+}
+
+.privacy {
+  color: var(--text-muted);
+}
+
+.field {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-1-5);
+  margin-top: var(--space-2);
+}
+
+.label {
+  color: var(--text-strong);
+  font-size: var(--text-base);
+  font-weight: var(--weight-bold);
+}
+
+.input {
+  width: 100%;
+  min-width: 0;
+  min-height: var(--form-control-h);
+  padding-inline: var(--space-3);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text-strong);
+  font-size: var(--text-base);
+}
+
+.input:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 1px;
+}
+
+.help {
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
