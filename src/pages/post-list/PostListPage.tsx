@@ -1,6 +1,6 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { useEffect, useRef, useState, type RefObject } from 'react'
-import { Link, useNavigate, type To } from 'react-router-dom'
+import { useNavigate, type To } from 'react-router-dom'
 
 import { POST_DETAIL_FROM_LIST, paths } from '@/app/paths'
 import { useAuth } from '@/features/auth'
@@ -42,7 +42,7 @@ import type { PagedModel } from '@/shared/types/api'
 import { Button, ButtonLink } from '@/shared/ui/Button'
 import { EmptyState } from '@/shared/ui/EmptyState'
 import { ErrorState } from '@/shared/ui/ErrorState'
-import { MagnifyingGlass, Plus } from '@/shared/ui/icons'
+import { MagnifyingGlass } from '@/shared/ui/icons'
 import { LoadingDots } from '@/shared/ui/LoadingDots'
 import { Pagination } from '@/shared/ui/Pagination'
 
@@ -50,12 +50,6 @@ import styles from './PostListPage.module.css'
 
 /** 첫 줄 카드 수(가장 넓은 4열 기준). 이 카드들의 사진은 미루지 않고 바로 받는다 */
 const FIRST_ROW = 4
-/**
- * 결과 제목 아래 글쓰기 입구를 띄우는 최소 건수. 두 줄(4건) 이하면 목록 끝의 "찾는 물건이 없나요?"가
- * 같은 화면에 보여 같은 입구가 둘이 된다
- */
-const WRITE_LINK_MIN = 5
-
 type PostList = PagedModel<PostListResponse>
 
 /**
@@ -186,24 +180,13 @@ export function PostListPage() {
   const totalPages = view?.page.totalPages ?? 0
   /** 뒤 페이지가 남았나(확정된 목록 기준) */
   const morePages = view !== undefined && !stale && search.page < totalPages
-  /*
-   * 결과 제목 아래 글쓰기 입구 줄. 칸(유형)은 주소로 알 수 있어 **받기 전부터 그린다**(QA-P-30 · D-29) — 받은 뒤에야 줄이 서면
-   * 카드 전체가 35px 내려갔다(375 `?type=LOST`). 처음 받는 동안(스켈레톤), 그리고 다시 받는 동안 직전 화면에 줄이 있었으면 그대로 둔다
-   * (없던 줄이 생겼다 사라지지 않게). 확정 건수가 4건 이하면 그때 거둔다(그 경우만 카드가 35px 올라온다 — 목록 끝의 입구가 같은 화면에 보여 둘이 되지 않게)
-   */
-  const writeDecided = confirmedTotal === undefined ? undefined : intent !== undefined && confirmedTotal >= WRITE_LINK_MIN
-  /** 마지막으로 확정된 화면에 줄이 있었나 */
-  const [writeShown, setWriteShown] = useState(false)
-  if (writeDecided !== undefined && writeDecided !== writeShown) setWriteShown(writeDecided)
-  const showWrite =
-    intent !== undefined && !query.isError && (writeDecided ?? (query.isPending || writeShown))
-
-  // 목록 끝의 "내 글을 올려 두기".
-  //  칸을 골랐으면 그 종류 하나, **마지막 페이지에서만**(본인 결정 2026-10-16) — 그 전 페이지는 결과 제목 아래 한 줄이 이미 입구다(5건 이상)
-  //  칸 · 검색어 · 필터가 없는 처음 목록이면 두 종류를 나란히(QA P-1). 휴대폰 헤더의 [+]는 글자가 없어 본문에 글로 된 입구가
-  //  이것 하나뿐이라 모든 페이지에 둔다 — 제목만 갈린다(뒤 페이지가 남았으면 "올릴 물건이 있나요?", 마지막이면 "찾는 물건이 없나요?")
+  // 목록 끝의 "내 글을 올려 두기" — 모든 페이지에(페이지 번호 아래).
+  //  칸을 골랐으면 그 종류 하나. 결과 제목 아래 글쓰기 한 줄을 걷어 낸 뒤(본인 결정 2026-10-19)로는 본문의 글로 된 입구가 이것 하나라
+  //  처음 목록과 같이 모든 페이지에 둔다(예전엔 그 한 줄이 앞 페이지의 입구라 마지막 페이지에서만 보였다).
+  //  칸 · 검색어 · 필터가 없는 처음 목록이면 두 종류를 나란히(QA P-1) — 제목만 갈린다(뒤 페이지가 남았으면 "올릴 물건이 있나요?",
+  //  마지막이면 "찾는 물건이 없나요?"). 검색어 · 필터가 걸린 목록에는 두지 않는다
   const plainList = intent === undefined && !search.keyword && !filtered
-  const showNext = view !== undefined && !empty && !stale && (intent !== undefined ? !morePages : plainList)
+  const showNext = view !== undefined && !empty && !stale && (intent !== undefined || plainList)
 
   return (
     <div className={styles.page}>
@@ -293,17 +276,6 @@ export function PostListPage() {
             <BadgeGuide className={styles.badgeGuide} />
           </div>
         </div>
-
-        {/* 의도를 고른 순간의 글쓰기 입구. 떠 있는 버튼 대신 흐름 안 한 줄 — 결심하는 순간 바로 아래에 있다 */}
-        {intent && showWrite ? (
-          <p className={styles.write}>
-            {intent.write.lead}{' '}
-            <Link className={styles.writeLink} to={createHref(intent.concept)}>
-              <Plus />
-              {intent.next.action}
-            </Link>
-          </p>
-        ) : null}
 
         <PostListBody
           query={{ isPending: query.isPending, isFetching: query.isFetching, error: query.error }}
