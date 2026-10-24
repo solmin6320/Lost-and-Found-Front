@@ -2,11 +2,11 @@ import { useEffect, useRef, type MouseEvent } from 'react'
 import { Link, NavLink, Outlet, matchPath, useLocation } from 'react-router-dom'
 
 import { isAuthScreen } from '@/app/authRedirect'
-import { LabSlot } from '@/app/lab/LabSlot'
 import { paths } from '@/app/paths'
 import { RouteFocus } from '@/app/RouteFocus'
 import { ScrollMemory } from '@/app/ScrollMemory'
 import { useAuth } from '@/features/auth'
+import { NotificationBell } from '@/features/notifications'
 import { intentShowing, postTypeFromQuery } from '@/features/posts'
 import { cx } from '@/shared/lib/cx'
 import { useDirtyLeaveGuard } from '@/shared/lib/dirtyRegistry'
@@ -92,11 +92,21 @@ export function HeaderActions() {
     <div className={styles.actions}>
       <CreatePostLink />
       <HomeLink />
-      {/* 시안 자리(개발 모드 `?lab=bell-a|b|c` 에서만, 2026-10-19) — 알림 종. 로그인했을 때만 그린다 */}
-      <LabSlot name="bell" />
+      <HeaderBell />
       <HeaderAuth />
     </div>
   )
+}
+
+/**
+ * 알림 종(SCR-10) — **로그인했을 때만**. 자리는 [홈] 뒤 · 계정 메뉴 앞(누르는 면끼리 8px — `.actions` 의 gap).
+ * 비로그인 · 세션 복구 중에는 그리지 않는다(알림은 내 것이다 — 비로그인 헤더는 그대로). 로그아웃 · 세션 만료로 사라질 때
+ * 실시간 연결을 끊고 알림 캐시를 지운다(`NotificationBell`)
+ */
+function HeaderBell() {
+  const auth = useAuth()
+  if (auth.status !== 'authenticated') return null
+  return <NotificationBell />
 }
 
 /**

@@ -40,6 +40,8 @@ export type ErrorCode =
   // 그래서 크기는 보내기 전에 막는다(`features/posts` 의 `preparePostImages`)
   | 'INVALID_IMAGE_EXTENSION' // 400 — 파일 이름의 확장자가 jpg · jpeg · png · gif 가 아님(이름에 `.` 이 없어도)
   | 'EXCEEDED_IMAGE_COUNT' // 400 — 빈 파트를 뺀 사진이 5장 초과
+  // 알림
+  | 'NOTIFICATION_NOT_FOUND' // 404 — 없는 알림 · 남의 알림을 읽음으로 바꾸려 함
   // 공통
   | 'INVALID_INPUT' // 400
   | 'RESOURCE_NOT_FOUND' // 404

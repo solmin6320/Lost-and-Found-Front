@@ -1,3 +1,4 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { MemoryRouter } from 'react-router-dom'
 import { describe, expect, it } from 'vitest'
@@ -25,14 +26,17 @@ const readCss = (relative: string) =>
 
 const noop = async () => {}
 
-function render(path: string, status: 'unknown' | 'anonymous'): string {
-  const auth = { status, me: null, login: noop, logout: noop, updatePassword: noop } as unknown as AuthContextValue
+function render(path: string, status: 'unknown' | 'anonymous' | 'authenticated'): string {
+  const me = status === 'authenticated' ? { id: 1, email: 'a@b.c', nickname: '민수', createdAt: '2026-09-01T10:00:00' } : null
+  const auth = { status, me, login: noop, logout: noop, updatePassword: noop } as unknown as AuthContextValue
   return renderToStaticMarkup(
-    <MemoryRouter initialEntries={[path]}>
-      <AuthContext.Provider value={auth}>
-        <HeaderActions />
-      </AuthContext.Provider>
-    </MemoryRouter>,
+    <QueryClientProvider client={new QueryClient()}>
+      <MemoryRouter initialEntries={[path]}>
+        <AuthContext.Provider value={auth}>
+          <HeaderActions />
+        </AuthContext.Provider>
+      </MemoryRouter>
+    </QueryClientProvider>,
   )
 }
 
@@ -49,12 +53,26 @@ function slots(markup: string): string[] {
   find('홈', /<a[^>]*>(?:(?!<\/a>).)*<span>홈<\/span><\/a>/)
   find('설정', /<a[^>]*aria-label="설정"[^>]*>/)
   find('로그인', /<(?:a|span)[^>]*>로그인<\/(?:a|span)>/)
+  find('알림', /<button[^>]*aria-haspopup="dialog"[^>]*>/)
+  find('계정', /<button[^>]*aria-label="[^"]*계정 메뉴"[^>]*>/)
   return order.sort((a, b) => a[0] - b[0]).map(([, label]) => label)
 }
 
 describe('헤더 오른쪽 묶음 — 로그인 · 가입 화면에서도 자리 유지', () => {
   it('조건 없는 목록(비로그인) : 글 올리기 · 홈 · 설정 · 로그인 네 칸이 다 보인다', () => {
     expect(slots(render('/', 'anonymous'))).toEqual(['글 올리기', '홈', '설정', '로그인'])
+  })
+
+  it('로그인 : 글 올리기 · 홈 · 알림(종) · 계정 — 종은 [홈] 뒤 · 계정 앞(SCR-10), 설정 톱니 · [로그인] 없음', () => {
+    const markup = render('/', 'authenticated')
+    expect(slots(markup)).toEqual(['글 올리기', '홈', '알림', '계정'])
+    // 수가 오기 전에는 배지를 그리지 않고 이름은 "알림"
+    expect(markup).toMatch(/<button[^>]*aria-label="알림"[^>]*aria-haspopup="dialog"/)
+  })
+
+  it('비로그인 · 세션 복구 중에는 종이 없다', () => {
+    expect(render('/', 'anonymous')).not.toMatch(/aria-haspopup="dialog"/)
+    expect(render('/', 'unknown')).not.toMatch(/aria-haspopup="dialog"/)
   })
 
   it.each([

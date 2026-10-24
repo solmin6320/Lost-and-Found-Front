@@ -70,6 +70,60 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
   }
 }
 
+export interface StreamOptions {
+  signal: AbortSignal
+  /** 덧붙일 머리글(`Last-Event-ID` 등) */
+  headers?: Record<string, string>
+}
+
+/**
+ * 끝나지 않는 응답(SSE `text/event-stream`)을 연다. 본문을 읽지 않고 **열린 응답**을 돌려준다 — 읽는 쪽이 `response.body` 를 흘려 읽는다.
+ *
+ * 브라우저의 `EventSource` 는 머리글을 실을 수 없어 `Authorization: Bearer` 가 필요한 우리 서버에 못 쓴다. 그래서 `fetch` 로 연다.
+ * 인증은 `request` 와 같다 — 토큰을 싣고, 401 `INVALID_ACCESS_TOKEN` 이면 재발급(탭 안 · 탭 사이 한 번) 뒤 **딱 한 번** 다시 연다.
+ * 다시 연 것도 거절되면 세션을 끝낸다. 실패는 `ApiError`(서버가 응답함) · `NetworkError`(응답 없음)로 던진다.
+ * 성공 응답인데 `text/event-stream` 이 아니면(개발 프록시 · CDN 이 화면 HTML 을 대신 준 경우) `UNEXPECTED_RESPONSE` 다
+ */
+export async function openStream(path: string, options: StreamOptions): Promise<Response> {
+  const url = buildUrl(path, undefined)
+  const sentToken = getAccessToken()
+
+  try {
+    return await attemptStream(url, options, sentToken)
+  } catch (error) {
+    if (!isAccessTokenRejected(error)) throw error
+  }
+
+  const retryToken = await tokenForRetry(sentToken)
+  try {
+    return await attemptStream(url, options, retryToken)
+  } catch (error) {
+    if (isAccessTokenRejected(error)) expireSession()
+    throw error
+  }
+}
+
+async function attemptStream(url: string, options: StreamOptions, token: string | null): Promise<Response> {
+  const headers = new Headers({ Accept: 'text/event-stream', ...options.headers })
+  if (token) headers.set('Authorization', `Bearer ${token}`)
+  const response = await send(url, {
+    method: 'GET',
+    headers,
+    credentials: 'include',
+    cache: 'no-store',
+    signal: options.signal,
+  })
+  if (!response.ok) {
+    // 실패 본문은 짧은 JSON 이다 — 여느 요청과 같이 읽어 ApiError 로 던진다
+    await readResult<never>(response, options.signal)
+  }
+  if (!response.body || !(response.headers.get('Content-Type') ?? '').includes('text/event-stream')) {
+    await response.body?.cancel().catch(() => undefined)
+    throw new ApiError(response.status, UNEXPECTED_RESPONSE, CONNECTION_FAILED_MESSAGE)
+  }
+  return response
+}
+
 async function attempt<T>(url: string, options: RequestOptions, token: string | null): Promise<T> {
   const response = await send(url, buildInit(options, token))
   return readResult<T>(response, options.signal)
