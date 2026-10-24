@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-label="분실물 찾기 — 잃어버린 물건, 주운 물건을 주인에게">
+  <!--
+    링크 미리보기 그림(og:image) 원본. 내보낸 PNG 는 public/og-image.png (1200×630).
+    다시 내보내는 법 · 메타 태그는 docs/배포.md 10장(링크 미리보기).
+
+    구성 — 가운데가 살아 있게 : 디스코드 · 슬랙의 작은 썸네일, X 의 정사각 자르기(가운데 630)에서도
+    로고 · 서비스 이름 · 한 줄이 남는다. 양옆은 목록의 사진 없는 글 포스터 두 장(분실 지갑 · 습득 휴대폰).
+    색은 src/shared/styles/tokens.css 밝게 원값, 그림은 src/features/posts/ui/CategoryArt.tsx 의 지갑 · 전자기기 그대로.
+    그라데이션 · 반짝이 · 그림자 없음.
+  -->
+  <style>
+    @font-face { font-family: 'Pretendard'; font-weight: 800; src: url('../../node_modules/pretendard/dist/web/static/woff2/Pretendard-ExtraBold.woff2') format('woff2'); }
+    @font-face { font-family: 'Pretendard'; font-weight: 700; src: url('../../node_modules/pretendard/dist/web/static/woff2/Pretendard-Bold.woff2') format('woff2'); }
+    @font-face { font-family: 'Pretendard'; font-weight: 600; src: url('../../node_modules/pretendard/dist/web/static/woff2/Pretendard-SemiBold.woff2') format('woff2'); }
+    text { font-family: 'Pretendard', sans-serif; }
+    .art { fill: none; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+    .lost { stroke: #3d2600; }
+    .found { stroke: #102550; }
+  </style>
+
+  <rect width="1200" height="630" fill="#ffffff"/>
+
+  <!-- 왼쪽 : 분실 포스터(지갑). 목록 카드처럼 잉크 윤곽 -->
+  <g transform="translate(172 318) rotate(-6)">
+    <rect x="-170" y="-170" width="340" height="340" rx="24" fill="#ffefc4" stroke="#191b1f" stroke-width="5"/>
+    <g class="art lost" transform="translate(-122 -138) scale(2.04)">
+      <ellipse cx="60" cy="109" rx="36" ry="3.5" fill="#3d2600" stroke="none" opacity="0.14"/>
+      <rect x="31" y="22" width="50" height="34" rx="5" fill="#fff8e6" transform="rotate(-6 56 39)"/>
+      <path d="M33.5 32.5 82 27.4" stroke-width="5" stroke="#f5a900"/>
+      <rect x="14" y="42" width="92" height="58" rx="11" fill="#ffbf2e"/>
+      <rect x="21" y="49" width="78" height="44" rx="6.5" stroke-width="1.75" stroke-dasharray="3.5 4.5" opacity="0.5"/>
+      <path d="M106 58H79a9 9 0 0 0-9 9v6a9 9 0 0 0 9 9h27" fill="#f5a900"/>
+      <circle cx="81" cy="70" r="4" fill="#fff8e6" stroke-width="2.5"/>
+      <path d="M23 50h18" stroke="#fff8e6" stroke-width="3.5" opacity="0.75"/>
+    </g>
+    <text x="-146" y="146" font-size="34" font-weight="800" fill="#3d2600" letter-spacing="-0.5">지갑</text>
+    <!-- 사진 위 유형 배지 — 채운 이름표, 흰 테 -->
+    <rect x="-150" y="-150" width="84" height="46" rx="6" fill="#ffbf2e" stroke="#ffffff" stroke-width="3"/>
+    <text x="-108" y="-118" font-size="26" font-weight="700" fill="#3d2600" text-anchor="middle">분실</text>
+  </g>
+
+  <!-- 오른쪽 : 습득 포스터(휴대폰 + 이어폰) -->
+  <g transform="translate(1030 312) rotate(5)">
+    <rect x="-170" y="-170" width="340" height="340" rx="24" fill="#dde7f8" stroke="#191b1f" stroke-width="5"/>
+    <g class="art found" transform="translate(-122 -138) scale(2.04)">
+      <ellipse cx="60" cy="109" rx="36" ry="3.5" fill="#102550" stroke="none" opacity="0.14"/>
+      <rect x="24" y="12" width="50" height="92" rx="11" fill="#618ad1"/>
+      <rect x="31" y="22" width="36" height="70" rx="4.5" fill="#f2f6fd" stroke-width="2.25"/>
+      <path d="M43 17h12" stroke-width="2.5"/>
+      <rect x="36" y="28" width="11" height="11" rx="3" fill="#2f5fb1" stroke="none"/>
+      <rect x="51" y="28" width="11" height="11" rx="3" fill="#618ad1" stroke="none"/>
+      <rect x="36" y="43" width="11" height="11" rx="3" fill="#618ad1" stroke="none"/>
+      <path d="M36 70h26M36 78h16" stroke-width="2.5" opacity="0.55"/>
+      <path d="M49 97.5h0" stroke-width="4"/>
+      <rect x="85.5" y="68" width="10" height="33" rx="5" fill="#f2f6fd" transform="rotate(-12 90 84)"/>
+      <circle cx="88" cy="64" r="12" fill="#f2f6fd"/>
+      <circle cx="84.5" cy="61" r="4" fill="#102550" stroke="none"/>
+    </g>
+    <text x="-146" y="146" font-size="34" font-weight="800" fill="#102550" letter-spacing="-0.5">전자기기</text>
+    <rect x="-150" y="-150" width="84" height="46" rx="6" fill="#2f5fb1" stroke="#ffffff" stroke-width="3"/>
+    <text x="-108" y="-118" font-size="26" font-weight="700" fill="#ffffff" text-anchor="middle">습득</text>
+  </g>
+
+  <!-- 가운데 : 로고(파비콘 꼬리표) · 서비스 이름 · 한 줄 -->
+  <g transform="translate(548 152) scale(3.25)">
+    <rect width="32" height="32" rx="8" fill="#2f5fb1"/>
+    <g transform="translate(4 3.2) rotate(-12 12 12)">
+      <path d="M12 1.8 17.3 6.3a1.6 1.6 0 0 1 .6 1.23V20.4a1.6 1.6 0 0 1-1.6 1.6H7.7a1.6 1.6 0 0 1-1.6-1.6V7.53a1.6 1.6 0 0 1 .6-1.23Z" fill="#ffbf2e"/>
+      <circle cx="12" cy="7.9" r="1.9" fill="#2f5fb1"/>
+    </g>
+  </g>
+  <text x="600" y="382" font-size="96" font-weight="800" fill="#191b1f" text-anchor="middle" letter-spacing="-3">분실물 찾기</text>
+  <text x="600" y="450" font-size="30" font-weight="600" fill="#40454d" text-anchor="middle" letter-spacing="-0.6">잃어버린 물건, 주운 물건을 주인에게</text>
+</svg>

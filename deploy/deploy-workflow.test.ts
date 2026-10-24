@@ -146,4 +146,9 @@ describe('deploy.yml — 빌드', () => {
   it('CSP_IMAGE_ORIGINS 가 build/csp.ts 의 기본 사진 출처와 같다 — 사진 도메인을 바꾸면 여기도', () => {
     expect(/^\s+CSP_IMAGE_ORIGINS: (\S+)$/m.exec(deploy)?.[1]).toBe(DEFAULT_IMAGE_ORIGINS.join(' '))
   })
+
+  it('빌드에 SITE_URL(배포 확인과 같은 변수)을 넘긴다 — 링크 미리보기의 절대 주소(docs/배포.md 10장)', () => {
+    const buildStep = block(deployJob, '- run: npm run build', 6)
+    expect(buildStep).toMatch(/^ {10}SITE_URL: \$\{\{ vars\.SITE_URL \}\}$/m)
+  })
 })

@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="180" height="180" viewBox="0 0 32 32" role="img" aria-label="분실물 찾기">
+  <!--
+    홈 화면 아이콘(apple-touch-icon) 원본. 내보낸 PNG 는 public/apple-touch-icon.png (180×180).
+    public/favicon.svg 와 같은 꼬리표. iOS 가 모서리를 스스로 둥글리고 투명 부분을 검게 칠하므로
+    둥근 모서리 없이 코발트로 꽉 채우고, 꼬리표는 가장자리에서 조금 더 물러나게 줄였다.
+  -->
+  <rect width="32" height="32" fill="#2f5fb1"/>
+  <g transform="translate(16 16) scale(0.86) translate(-16 -16)">
+    <g transform="translate(4 3.2) rotate(-12 12 12)">
+      <path d="M12 1.8 17.3 6.3a1.6 1.6 0 0 1 .6 1.23V20.4a1.6 1.6 0 0 1-1.6 1.6H7.7a1.6 1.6 0 0 1-1.6-1.6V7.53a1.6 1.6 0 0 1 .6-1.23Z" fill="#ffbf2e"/>
+      <circle cx="12" cy="7.9" r="1.9" fill="#2f5fb1"/>
+    </g>
+  </g>
+</svg>

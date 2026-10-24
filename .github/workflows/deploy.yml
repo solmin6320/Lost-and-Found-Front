@@ -97,9 +97,11 @@ jobs:
       - run: npm ci
 
       # 사진 CloudFront. build/csp.ts 의 DEFAULT_IMAGE_ORIGINS 와 같은 값 — deploy-workflow.test.ts 가 맞춰 본다
+      # SITE_URL 은 링크 미리보기(og:image · og:url)의 절대 주소. 배포 확인과 같은 변수 — 도메인을 바꾸면 변수 하나만 고친다(docs/배포.md 10장)
       - run: npm run build
         env:
           CSP_IMAGE_ORIGINS: https://d1xmzetvs0f1oh.cloudfront.net
+          SITE_URL: ${{ vars.SITE_URL }}
 
       # 자격(임시 키)은 빌드가 끝난 뒤에 받는다 — npm ci · 빌드 단계의 환경에는 AWS 키가 없다.
       # 업로드는 1분 남짓이라 15분(최소)이면 남는다
