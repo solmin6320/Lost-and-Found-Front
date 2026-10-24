@@ -5,6 +5,7 @@ import react from '@vitejs/plugin-react'
 import { defineConfig, loadEnv, type Plugin } from 'vite'
 
 import { DEFAULT_IMAGE_ORIGINS, FORBIDDEN_CSP_TOKENS, buildMetaCsp, parseOriginList } from './build/csp.ts'
+import { DEFAULT_SITE_URL, fillSiteUrl, resolveSiteOrigin } from './build/linkPreview.ts'
 
 /**
  * 운영 빌드의 `index.html` 에 보안 meta 두 줄을 심는다(보안명세서 4장). **빌드에서만**(`apply: 'build'`).
@@ -35,6 +36,20 @@ function securityMeta({ imageOrigins, connectOrigins }: { imageOrigins: string[]
           `${charset}\n    <meta http-equiv="Content-Security-Policy" content="${csp}" />\n    <meta name="referrer" content="same-origin" />`,
         )
       },
+    },
+  }
+}
+
+/**
+ * 링크 미리보기 메타(`og:image` · `og:url` · `twitter:image`)의 `__SITE_URL__` 을 사이트 주소로 채운다(docs/배포.md 10장).
+ * Vite 의 `%ENV%` 치환 · 에셋 처리보다 먼저(`pre`) — 절대 주소가 된 `og:image` 는 Vite 가 건드리지 않는다
+ */
+function linkPreviewMeta(origin: string): Plugin {
+  return {
+    name: 'lost-and-found:link-preview-meta',
+    transformIndexHtml: {
+      order: 'pre',
+      handler: (html) => fillSiteUrl(html, origin),
     },
   }
 }
@@ -72,7 +87,11 @@ export default defineConfig(({ command, mode }) => {
 
   return {
     // 보안 meta 는 빌드에서만 만든다. 개발 서버 · vitest 는 환경변수를 검사하지 않는다(값이 이상해도 개발은 멈추지 않게)
-    plugins: command === 'build' ? [react(), securityMeta(securityMetaOptions(env))] : [react()],
+    // 링크 미리보기 주소(`SITE_URL`)도 빌드에서만 검사한다. 개발 서버는 운영 주소 그대로
+    plugins:
+      command === 'build'
+        ? [react(), linkPreviewMeta(resolveSiteOrigin(env.SITE_URL)), securityMeta(securityMetaOptions(env))]
+        : [react(), linkPreviewMeta(DEFAULT_SITE_URL)],
 
     resolve: {
       alias: {

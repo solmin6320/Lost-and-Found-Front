@@ -8,7 +8,7 @@
 #
 # 순서가 핵심이다.
 #   1. /assets/* (해시 이름) 먼저 — 1년 캐시 · immutable. **지우지 않는다**(옛 index.html 을 가진 탭이 옛 청크를 받아야 한다)
-#   2. 해시 없는 파일(theme-init.js · favicon.svg) → 마지막에 index.html — no-cache.
+#   2. 해시 없는 파일(theme-init.js · favicon.svg · og-image.png · apple-touch-icon.png) → 마지막에 index.html — no-cache.
 #      index.html 이 먼저 바뀌면 새 청크가 올라가기 전의 짧은 틈에 새 index.html 이 없는 파일을 부른다
 #   3. 해시 없는 파일만 무효화
 # prune 은 지금 배포(index.html)가 PRUNE_DAYS 일(기본 7)을 넘긴 뒤에만 지운다 — 까닭은 아래 prune 부분.
