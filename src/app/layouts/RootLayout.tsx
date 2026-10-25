@@ -6,7 +6,7 @@ import { paths } from '@/app/paths'
 import { RouteFocus } from '@/app/RouteFocus'
 import { ScrollMemory } from '@/app/ScrollMemory'
 import { useAuth } from '@/features/auth'
-import { NotificationBell } from '@/features/notifications'
+import { NotificationBell, NotificationCenter } from '@/features/notifications'
 import { intentShowing, postTypeFromQuery } from '@/features/posts'
 import { cx } from '@/shared/lib/cx'
 import { useDirtyLeaveGuard } from '@/shared/lib/dirtyRegistry'
@@ -88,25 +88,19 @@ export function RootLayout() {
  * 스크롤바가 생기고 없어지는 것(로그인 ↔ 가입)으로 헤더가 밀리지 않게 하는 것은 `reset.css` 의 `scrollbar-gutter` 다
  */
 export function HeaderActions() {
-  return (
+  const auth = useAuth()
+  const actions = (
     <div className={styles.actions}>
       <CreatePostLink />
       <HomeLink />
-      <HeaderBell />
+      <NotificationBell />
       <HeaderAuth />
     </div>
   )
-}
-
-/**
- * 알림 종(SCR-10) — **로그인했을 때만**. 자리는 [홈] 뒤 · 계정 메뉴 앞(누르는 면끼리 8px — `.actions` 의 gap).
- * 비로그인 · 세션 복구 중에는 그리지 않는다(알림은 내 것이다 — 비로그인 헤더는 그대로). 로그아웃 · 세션 만료로 사라질 때
- * 실시간 연결을 끊고 알림 캐시를 지운다(`NotificationBell`)
- */
-function HeaderBell() {
-  const auth = useAuth()
-  if (auth.status !== 'authenticated') return null
-  return <NotificationBell />
+  // 알림(SCR-10) — **로그인했을 때만**. 종은 [홈] 뒤 · 계정 메뉴 앞(누르는 면끼리 8px — `.actions` 의 gap), 헤더가 아주 좁으면
+  // 계정 메뉴의 `알림` 줄이 대신한다(본인 결정 2026-10-25). 비로그인 · 세션 복구 중에는 그리지 않는다(비로그인 헤더는 그대로).
+  // 로그아웃 · 세션 만료로 사라질 때 실시간 연결을 끊고 알림 캐시를 지운다(`NotificationCenter`)
+  return auth.status === 'authenticated' ? <NotificationCenter>{actions}</NotificationCenter> : actions
 }
 
 /**

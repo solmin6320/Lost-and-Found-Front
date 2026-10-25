@@ -3,6 +3,8 @@ import { NavLink } from 'react-router-dom'
 
 import { paths } from '@/app/paths'
 import type { MemberResponse } from '@/features/members'
+import { useNotificationCenter } from '@/features/notifications'
+import { cx } from '@/shared/lib/cx'
 import { CaretDown, User } from '@/shared/ui/icons'
 import { LoadingDots } from '@/shared/ui/LoadingDots'
 
@@ -32,6 +34,8 @@ export function AccountMenu({ me, onLogout }: AccountMenuProps) {
   const noteId = useId()
   // 끝나면 이 메뉴는 사라지고 헤더가 [로그인]으로 포커스를 옮긴다(RootLayout)
   const logout = useGuardedLogout(onLogout)
+  // 알림 — 헤더가 아주 좁을 때(종이 숨을 때) 이 메뉴가 입구다(본인 결정 2026-10-25, SCR-10). 로그인했으면 늘 있다
+  const notice = useNotificationCenter()
   const { loggingOut, confirmOpen } = logout
 
   useEffect(() => {
@@ -70,17 +74,34 @@ export function AccountMenu({ me, onLogout }: AccountMenuProps) {
 
   return (
     <div ref={rootRef} className={styles.account} onBlur={handleBlur}>
+      {/*
+        이름은 글자에서 나온다(aria-label 이 아니다) — 헤더가 아주 좁을 때만 보이는 조각(`.compactOnly`)이 이름에도 들고 나야
+        배지와 같은 수를 읽는다. 넓을 때 그 조각은 display: none 이라 이름에서도 빠진다
+      */}
       <button
         ref={toggleRef}
         type="button"
         className={styles.toggle}
         aria-expanded={open}
         aria-controls={panelId}
-        aria-label={`${me.nickname} 계정 메뉴`}
         onClick={() => setOpen((value) => !value)}
       >
         <User />
-        <span className={styles.name}>{me.nickname}</span>
+        <span className={styles.name} aria-hidden="true">
+          {me.nickname}
+        </span>
+        {notice && notice.total ? (
+          <>
+            {/* 이름 조각을 통째로 둘 — 넓을 때 · 좁을 때 하나만 남는다(따로 떨어진 조각을 이으면 "메뉴 , 안 읽은"처럼 빈칸이 끼었다) */}
+            <span className={cx('sr-only', styles.wideOnly)}>{`${me.nickname} 계정 메뉴`}</span>
+            <span className={cx('sr-only', styles.compactOnly)}>{`${me.nickname} 계정 메뉴, ${notice.label.replace(/^알림, /, '')}`}</span>
+            <span className={cx(styles.badge, styles.compactOnly)} aria-hidden="true">
+              {notice.badge}
+            </span>
+          </>
+        ) : (
+          <span className="sr-only">{`${me.nickname} 계정 메뉴`}</span>
+        )}
         <CaretDown className={styles.chevron} />
       </button>
 
@@ -91,6 +112,30 @@ export function AccountMenu({ me, onLogout }: AccountMenuProps) {
             <span>{me.email}</span>
           </p>
           <ul role="list">
+            {notice ? (
+              // 헤더가 아주 좁을 때만 — 종 대신 여기서 같은 알림 칸을 연다. 닫으면 계정 단추로 포커스가 돌아온다
+              <li className={styles.compactOnly}>
+                <button
+                  type="button"
+                  className={styles.item}
+                  aria-haspopup="dialog"
+                  onClick={() => {
+                    setOpen(false)
+                    notice.toggle(toggleRef.current)
+                  }}
+                >
+                  알림
+                  {notice.badge ? (
+                    <>
+                      <span className={styles.itemCount} aria-hidden="true">
+                        {notice.badge}
+                      </span>
+                      <span className="sr-only">{`, ${notice.label.replace(/^알림, /, '')}`}</span>
+                    </>
+                  ) : null}
+                </button>
+              </li>
+            ) : null}
             <li>
               <NavLink className={styles.item} to={paths.myPage} end onClick={close}>
                 내가 쓴 글

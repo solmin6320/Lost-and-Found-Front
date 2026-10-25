@@ -37,8 +37,8 @@ export interface PanelTab {
 interface NotificationPanelProps {
   open: boolean
   onClose: () => void
-  /** 종 — 펼침 칸이 그 아래에 서고, 닫으면 그리로 포커스가 돌아온다 */
-  anchorRef: RefObject<HTMLButtonElement | null>
+  /** 연 단추(종 · 좁은 헤더의 계정 단추) — 펼침 칸이 그 아래에 서고, 닫으면 그리로 포커스가 돌아온다 */
+  anchorRef: RefObject<HTMLElement | null>
   tabs: PanelTab[]
   /** 안 읽은 알림 수(`[모두 읽음]`을 보일지) */
   unread: number

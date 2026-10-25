@@ -17,6 +17,80 @@
   font-weight: var(--weight-semibold);
 }
 
+/*
+ * 헤더가 아주 좁을 때만(그릇 10.5rem 미만 — 320 × 글자 200%) 보이는 것 : 계정 단추의 안 읽은 수 배지 · 이름 속 수, 메뉴 첫 줄 `알림`.
+ * 그 폭에서는 종이 숨는다(종을 두면 헤더가 세 줄 321px — 본인 결정 2026-10-25, 안 c). 값은 종 쪽 규칙
+ * (`features/notifications/ui/NotificationPanel.module.css` `.bell`)과 같이 바뀐다. display: none 이라 넓을 때는 이름 · Tab 에서도 빠진다
+ */
+.compactOnly {
+  display: none;
+}
+
+@container shell (width < 10.5rem) {
+  .compactOnly {
+    display: revert;
+  }
+
+  .wideOnly {
+    display: none;
+  }
+
+  .badge.compactOnly {
+    display: grid;
+  }
+}
+
+/* 종의 배지와 같은 잉크 알약 — 사람 그림의 오른쪽 위 어깨에 걸친다 */
+.toggle {
+  position: relative;
+}
+
+.badge {
+  position: absolute;
+  top: 0.25rem;
+  left: 1.25rem;
+  place-items: center;
+  min-width: 1.125rem;
+  height: 1.125rem;
+  padding-inline: 0.3125rem;
+  border: 2px solid var(--surface);
+  border-radius: var(--radius-pill);
+  background-color: var(--text-strong);
+  color: var(--surface);
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-extrabold);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+/* 메뉴 `알림` 줄의 수 — 같은 잉크 알약, 글자 뒤 */
+.itemCount {
+  display: inline-grid;
+  place-items: center;
+  min-width: 1.25rem;
+  height: 1.25rem;
+  margin-left: var(--space-2);
+  padding-inline: 0.375rem;
+  border-radius: var(--radius-pill);
+  background-color: var(--text-strong);
+  color: var(--surface);
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-extrabold);
+  font-variant-numeric: tabular-nums;
+}
+
+@media (forced-colors: active) {
+  .badge,
+  .itemCount {
+    forced-color-adjust: none;
+    border-color: Canvas;
+    background-color: CanvasText;
+    color: Canvas;
+  }
+}
+
 .toggle svg {
   flex: none;
   width: var(--icon-md);

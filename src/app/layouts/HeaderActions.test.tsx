@@ -54,7 +54,7 @@ function slots(markup: string): string[] {
   find('설정', /<a[^>]*aria-label="설정"[^>]*>/)
   find('로그인', /<(?:a|span)[^>]*>로그인<\/(?:a|span)>/)
   find('알림', /<button[^>]*aria-haspopup="dialog"[^>]*>/)
-  find('계정', /<button[^>]*aria-label="[^"]*계정 메뉴"[^>]*>/)
+  find('계정', /<button[^>]*aria-controls="[^"]*"[^>]*>(?:(?!<\/button>).)*계정 메뉴/)
   return order.sort((a, b) => a[0] - b[0]).map(([, label]) => label)
 }
 
@@ -68,6 +68,20 @@ describe('헤더 오른쪽 묶음 — 로그인 · 가입 화면에서도 자리
     expect(slots(markup)).toEqual(['글 올리기', '홈', '알림', '계정'])
     // 수가 오기 전에는 배지를 그리지 않고 이름은 "알림"
     expect(markup).toMatch(/<button[^>]*aria-label="알림"[^>]*aria-haspopup="dialog"/)
+  })
+
+  it('CSS : 아주 좁은 헤더(그릇 10.5rem 미만)에서 종이 숨는 자리와 계정 메뉴 알림이 서는 자리가 같은 값이다(본인 결정 2026-10-25)', () => {
+    const bell = readCss('../../features/notifications/ui/NotificationPanel.module.css')
+    const menu = readCss('./AccountMenu.module.css')
+    expect(bell).toMatch(/@container shell \(width < 10\.5rem\)\s*\{\s*\.bell\s*\{\s*display:\s*none;/)
+    expect(menu).toMatch(/\.compactOnly\s*\{\s*display:\s*none;/)
+    expect(menu).toMatch(/@container shell \(width < 10\.5rem\)\s*\{\s*\.compactOnly\s*\{\s*display:\s*revert;/)
+  })
+
+  it('계정 단추의 이름은 글자에서 나온다 — 좁을 때만 보이는 수 조각이 이름에도 들고 난다', () => {
+    const markup = render('/', 'authenticated')
+    expect(markup).not.toMatch(/aria-label="[^"]*계정 메뉴"/)
+    expect(markup).toMatch(/<span class="sr-only">민수 계정 메뉴<\/span>/)
   })
 
   it('비로그인 · 세션 복구 중에는 종이 없다', () => {
