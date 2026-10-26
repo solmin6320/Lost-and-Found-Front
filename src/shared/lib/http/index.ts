@@ -4,8 +4,8 @@ export {
   getAccessTokenRemainingMs,
   setAccessToken,
 } from './accessToken'
-export { request } from './client'
-export type { QueryValue, RequestOptions } from './client'
+export { openStream, request } from './client'
+export type { QueryValue, RequestOptions, StreamOptions } from './client'
 export { expireSession, refreshAccessToken, setTokenRefresher, subscribeSessionExpired } from './tokenRefresh'
 export type { TokenRefresher } from './tokenRefresh'
 export {

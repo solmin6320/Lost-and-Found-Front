@@ -1,0 +1,474 @@
+/*
+ * 알림 — 헤더 종 · 펼침 칸(넓은 화면) · 바텀 시트(휴대폰) · 알림 줄. 화면정의서 SCR-10, 디자인품질기준 "새 요소 규칙".
+ * 색은 의미 토큰만(16진 색 0개). 빨강은 쓰지 않는다 — 배지 · 점 · 아이콘 모두 잉크(빨강 = 오류 · 되돌릴 수 없는 동작 전용).
+ */
+
+/* ── 종 — 헤더의 설정 톱니와 같은 모양(테두리 없는 44px 정사각). 열려 있으면 "지금 여기" 옅은 면 ── */
+
+.bell {
+  position: relative;
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--tap-min);
+  min-height: var(--tap-min);
+  border-radius: var(--radius-sm);
+  color: var(--text-strong);
+}
+
+.bell > svg {
+  width: var(--icon-md);
+  height: var(--icon-md);
+}
+
+.bell[data-open] {
+  background-color: var(--surface-sunken);
+}
+
+/*
+ * 헤더가 아주 좁으면(그릇 10.5rem 미만 — 320 × 글자 200%) 종을 숨기고 계정 메뉴의 `알림` 줄이 입구가 된다(본인 결정 2026-10-25, 안 c).
+ * 실제 줄바꿈 기준이다 — 접힌 헤더(18.5rem 미만)의 둘째 줄은 [홈] 50 · 종 44 · 계정 62 + 사이 16 = 172px 이고, 첫 줄(로고 · [+])에
+ * [홈]이 함께 서려면 줄 폭 8.5rem(그릇 10.5rem = 줄 폭 + 양옆 여백 2rem)이 있어야 한다. 그보다 좁으면 [홈] · 종 · 계정이 둘째 줄에
+ * 다 들어가지 못해 세 줄(321px)이 됐다. 375 × 200%(그릇 11.7rem)는 [홈]이 첫 줄에 서서 종이 있어도 두 줄(217px)이다.
+ * 계정 메뉴 쪽 규칙(`app/layouts/AccountMenu.module.css` `.compactOnly`)과 같은 값 — 둘이 함께 바뀐다
+ */
+@container shell (width < 10.5rem) {
+  .bell {
+    display: none;
+  }
+}
+
+@media (hover: hover) {
+  .bell:hover {
+    background-color: var(--surface-sunken);
+  }
+}
+
+/*
+ * 안 읽은 수 — 잉크 알약(종이 위 대비 17:1, 빨강 아님). 글자 12px(시안 10px → QA-D-L17).
+ * 종 그림의 오른쪽 위 어깨에 걸친다. 종이색 테두리 2px 로 종 그림과 떨어져 보이게 한다
+ */
+.badge {
+  position: absolute;
+  top: 0.25rem;
+  left: calc(50% + 0.125rem);
+  display: grid;
+  place-items: center;
+  min-width: 1.125rem;
+  height: 1.125rem;
+  padding-inline: 0.3125rem;
+  border: 2px solid var(--surface);
+  border-radius: var(--radius-pill);
+  background-color: var(--text-strong);
+  color: var(--surface);
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-extrabold);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.bell[data-open] .badge,
+.bell:hover .badge {
+  border-color: var(--surface-sunken);
+}
+
+.bellTip {
+  white-space: nowrap;
+}
+
+/* ── 칸 — 휴대폰은 바텀 시트(아래에서 올라온다), 40rem 이상은 종 아래 펼침 칸 ── */
+
+.panel {
+  inset: auto 0 0;
+  width: 100%;
+  max-width: 40rem;
+  /* 높이를 정해 둔다 — 받은 목록 · 빈 상태로 바뀌어도 아래에 붙은 시트의 머리가 위아래로 튀지 않는다 */
+  height: min(85dvh, 40rem);
+  max-height: none;
+  margin: 0 auto;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+  background-color: var(--surface-raised);
+  color: inherit;
+  box-shadow: var(--shadow-overlay);
+}
+
+.panel[open] {
+  display: flex;
+  flex-direction: column;
+  animation: rise var(--duration-base) var(--ease-out);
+}
+
+.panel::backdrop {
+  background-color: var(--scrim);
+}
+
+.panel[open]::backdrop {
+  animation: fade var(--duration-base) var(--ease-out);
+}
+
+@media (min-width: 40rem) {
+  /* 종 아래 8px, 오른쪽 끝을 종의 오른쪽 끝에. 자리는 열 때 종을 재서 준다(`--panel-top` · `--panel-right`) */
+  .panel {
+    inset: var(--panel-top, 4rem) var(--panel-right, var(--gutter)) auto auto;
+    width: min(24rem, calc(100vw - 2 * var(--gutter)));
+    max-width: none;
+    /*
+     * 펼침 칸은 위(종 아래)에 매달려 있어 높이가 바뀌어도 머리 · 줄이 움직이지 않는다 — 내용만큼만 자란다.
+     * 정해 둔 높이면 빈 상태가 544px 짜리 빈 상자가 됐다(1280 실측). 시트(아래에 붙음)는 위의 정해 둔 높이 그대로
+     */
+    height: auto;
+    max-height: min(34rem, calc(100dvh - var(--panel-top, 4rem) - var(--space-4)));
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-md);
+    transform-origin: top right;
+  }
+
+  .panel[open] {
+    animation: drop var(--duration-base) var(--ease-out);
+  }
+
+  /* 펼침 칸 — 뒤를 가리지 않는다(바깥을 누르면 닫히는 자리만) */
+  .panel::backdrop {
+    background-color: transparent;
+  }
+}
+
+@keyframes rise {
+  from {
+    transform: translateY(100%);
+  }
+}
+
+@keyframes drop {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
+@keyframes fade {
+  from {
+    opacity: 0;
+  }
+}
+
+/*
+ * 머리 — 제목 · [모두 읽음] · 닫기 한 줄. 칸이 16rem 보다 좁으면(320 × 글자 200%) [모두 읽음]이 제목 아래 줄로 내려간다 —
+ * 닫기는 늘 오른쪽 위(같은 자리, 제이콥). 셋이 한 줄이면 닫기가 칸 밖으로 53px 나갔다(실측)
+ */
+.panel {
+  container: notice-panel / inline-size;
+}
+
+.head {
+  display: grid;
+  flex: none;
+  grid-template-areas: 'title mark close';
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 3.5rem;
+  padding: var(--space-1) var(--space-2) var(--space-1) var(--space-5);
+  border-bottom: var(--hairline);
+}
+
+@container notice-panel (width < 16rem) {
+  .head {
+    grid-template-areas:
+      'title close'
+      'mark mark';
+    grid-template-columns: minmax(0, 1fr) auto;
+    row-gap: 0;
+    padding-bottom: var(--space-2);
+  }
+
+  .markAll {
+    justify-self: start;
+    margin-left: calc(var(--space-3) * -1);
+  }
+}
+
+.title {
+  grid-area: title;
+  color: var(--text-strong);
+  font-size: var(--text-lg);
+  font-weight: var(--weight-extrabold);
+}
+
+.title:focus {
+  outline: none;
+}
+
+.close {
+  display: grid;
+  grid-area: close;
+  flex: none;
+  place-items: center;
+  width: var(--tap-min);
+  height: var(--tap-min);
+  border-radius: var(--radius-sm);
+  color: var(--text-body);
+}
+
+.close svg {
+  width: var(--icon-lg);
+  height: var(--icon-lg);
+}
+
+@media (hover: hover) {
+  .close:hover {
+    background-color: var(--surface-sunken);
+    color: var(--text-strong);
+  }
+}
+
+.markAll {
+  grid-area: mark;
+}
+
+.headError {
+  flex: none;
+  padding: var(--space-2) var(--space-5);
+  border-bottom: var(--hairline);
+  color: var(--error-text);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  line-height: var(--leading-snug);
+}
+
+.scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* ── 탭(채팅 단계) — 밑줄(선택 표시 규칙). 탭이 하나면 그리지 않는다 ── */
+
+.tabs {
+  display: flex;
+  flex: none;
+  gap: var(--space-4);
+  padding-inline: var(--space-5);
+  border-bottom: var(--hairline);
+}
+
+.tabs [role='tab'] {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1-5);
+  min-height: var(--tap-min);
+  border-bottom: 3px solid transparent;
+  color: var(--text-muted);
+  font-size: var(--text-base);
+  font-weight: var(--weight-bold);
+}
+
+.tabs [aria-selected='true'] {
+  border-bottom-color: var(--selected-line);
+  color: var(--text-strong);
+}
+
+.tabCount {
+  display: grid;
+  place-items: center;
+  min-width: 1.25rem;
+  height: 1.25rem;
+  padding-inline: 0.375rem;
+  border-radius: var(--radius-pill);
+  background-color: var(--text-strong);
+  color: var(--surface);
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-extrabold);
+}
+
+/* ── 알림 줄 — 줄 전체가 링크 하나(늘인 ::after), 최소 56px. 앞에 종류 아이콘 16px 하나(원 바탕 없음) ── */
+
+.listArea {
+  padding-block: var(--space-1) var(--space-2);
+}
+
+.list {
+  display: grid;
+}
+
+.item {
+  position: relative;
+  display: grid;
+  grid-template-columns: var(--icon-sm) minmax(0, 1fr);
+  align-items: start;
+  column-gap: var(--space-3);
+  min-height: 3.5rem;
+  padding: var(--space-3) var(--space-4) var(--space-3) var(--space-5);
+}
+
+/* 안 읽음 = 왼쪽 여백의 잉크 점(실제 상태) + 굵은 글자. 색만으로 가르지 않는다 */
+.item[data-unread]::before {
+  content: '';
+  position: absolute;
+  top: calc(var(--space-3) + 0.725rem);
+  left: 0.5rem;
+  width: 0.375rem;
+  height: 0.375rem;
+  border-radius: var(--radius-pill);
+  background-color: var(--text-strong);
+  transform: translateY(-50%);
+}
+
+@media (hover: hover) {
+  .item:has(a):hover {
+    background-color: var(--surface-sunken);
+  }
+}
+
+/* 포커스 링은 줄 전체에(링크는 문장만 감싸지만 누르는 면은 줄이다) */
+.item:has(.link:focus-visible) {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: -2px;
+}
+
+.link:focus-visible {
+  outline: none;
+}
+
+.kind {
+  width: var(--icon-sm);
+  height: var(--icon-sm);
+  margin-top: calc((1.45em - var(--icon-sm)) / 2);
+  color: var(--text-muted);
+  font-size: var(--text-base);
+}
+
+.item[data-unread] .kind {
+  color: var(--text-strong);
+}
+
+.body {
+  display: grid;
+  gap: 0.125rem;
+  min-width: 0;
+}
+
+.link {
+  color: var(--text-body);
+  font-size: var(--text-base);
+  font-weight: var(--weight-regular);
+  line-height: var(--leading-snug);
+  text-decoration: none;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+a.link::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+}
+
+.link b {
+  color: var(--text-strong);
+  font-weight: var(--weight-semibold);
+}
+
+.item[data-unread] .link {
+  color: var(--text-strong);
+  font-weight: var(--weight-medium);
+}
+
+.item[data-unread] .link b {
+  font-weight: var(--weight-bold);
+}
+
+.time {
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+  font-variant-numeric: tabular-nums;
+  line-height: var(--leading-snug);
+}
+
+.text {
+  display: block;
+  font-size: var(--text-base);
+  line-height: var(--leading-snug);
+}
+
+.kindSkeleton {
+  width: var(--icon-sm);
+  height: var(--icon-sm);
+  margin-top: calc((1.45rem - var(--icon-sm)) / 2);
+}
+
+.more {
+  display: flex;
+  justify-content: center;
+  padding: var(--space-2) var(--space-4) var(--space-3);
+}
+
+.moreError {
+  padding: 0 var(--space-5) var(--space-3);
+  color: var(--error-text);
+  font-size: var(--text-sm);
+  text-align: center;
+}
+
+/* ── 빈 · 오류 ── */
+
+.state {
+  display: grid;
+  justify-items: start;
+  gap: var(--space-2);
+  padding: var(--space-6) var(--space-5);
+}
+
+.stateTitle {
+  color: var(--text-strong);
+  font-size: var(--text-base);
+  font-weight: var(--weight-bold);
+}
+
+.stateText {
+  color: var(--text-body);
+  font-size: var(--text-sm);
+  line-height: var(--leading-snug);
+  word-break: keep-all;
+}
+
+.state > :last-child:is(button) {
+  margin-top: var(--space-2);
+}
+
+/* 강제 색상 — 배지 · 안 읽음 점 · 탭 밑줄이 사라지지 않게 시스템 색으로 */
+@media (forced-colors: active) {
+  .badge {
+    forced-color-adjust: none;
+    border-color: Canvas;
+    background-color: CanvasText;
+    color: Canvas;
+  }
+
+  .item[data-unread]::before {
+    forced-color-adjust: none;
+    background-color: CanvasText;
+  }
+
+  .tabs [aria-selected='true'] {
+    border-bottom-color: Highlight;
+  }
+
+  .panel {
+    border: 1px solid CanvasText;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .panel[open],
+  .panel[open]::backdrop {
+    animation: none;
+  }
+}
