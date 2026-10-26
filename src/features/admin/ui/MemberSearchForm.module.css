@@ -1,0 +1,111 @@
+/*
+ * 회원 찾기 — 이름(위) · 칸 + [찾기](한 줄). 칸 높이 · 글자는 기본 단계(44px · 16px, 디자인품질기준 5장 "칸 크기" — 읽는 화면 안의 작은 입력).
+ * 칸 안 왼쪽 돋보기는 장식(누르지 않는다), 오른쪽 [×]는 글자가 있을 때만
+ */
+.form {
+  display: grid;
+  gap: var(--space-1-5);
+  min-width: 0;
+}
+
+.label {
+  color: var(--text-strong);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-bold);
+  line-height: var(--leading-snug);
+}
+
+.row {
+  display: flex;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.control {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.lead {
+  position: absolute;
+  top: 50%;
+  left: var(--space-3);
+  width: var(--icon-sm);
+  height: var(--icon-sm);
+  color: var(--text-muted);
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.input {
+  width: 100%;
+  min-height: var(--tap-min);
+  padding: 0 var(--tap-min) 0 calc(var(--space-3) + var(--icon-sm) + var(--space-2));
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background-color: var(--surface);
+  color: var(--text-strong);
+  font-size: var(--text-base);
+  line-height: var(--leading-snug);
+  transition: border-color var(--duration-fast) var(--ease-out);
+}
+
+.input::placeholder {
+  color: var(--text-muted);
+}
+
+/* 브라우저가 검색 칸 안에 그리는 지우기(×)를 끈다 — 우리 [×]가 같은 자리에 있다(눈이 두 개가 되지 않게, TextField 와 같은 까닭) */
+.input::-webkit-search-cancel-button {
+  appearance: none;
+}
+
+/* 글자를 쓰는 동안 테두리가 잉크 두 겹 쪽으로 진해진다(TextField 와 같다). 링은 전역 :focus-visible */
+.input:focus {
+  border-color: var(--selected-line);
+}
+
+@media (hover: hover) {
+  .input:not(:focus):hover {
+    border-color: var(--border-hover);
+  }
+}
+
+.clear {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: grid;
+  place-items: center;
+  width: var(--tap-min);
+  height: 100%;
+  min-height: var(--tap-min);
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.clear svg {
+  width: var(--icon-sm);
+  height: var(--icon-sm);
+}
+
+@media (hover: hover) {
+  .clear:hover {
+    color: var(--text-strong);
+  }
+}
+
+.clear:focus-visible {
+  outline-offset: -4px;
+}
+
+.submit {
+  flex: none;
+  min-width: 4.5rem;
+}
+
+.submit svg {
+  width: var(--icon-sm);
+  height: var(--icon-sm);
+}

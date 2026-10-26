@@ -1,0 +1,187 @@
+/*
+ * 관리자 화면(SCR-19) — 읽는 화면 폭(700px, `--layout-max`)으로 좁힌다. 설정 · 글 폼과 같은 폭 · 같은 머리(왼쪽 정렬 제목).
+ * 위에서 아래로 : 제목 + 할 일 한 줄 → 찾기 → 역할 탭 → 결과 제목 → 회원 줄 → 페이지 번호.
+ * 색은 쓰지 않는다 — 분실 · 습득 두 색은 글의 개념에만 붙는다(화면정의서 1.2). 튀는 것은 `[찾기]` 잉크 채움 하나
+ * 묶음 사이(머리–찾기 20 · 24px, 찾기–탭 20px, 탭–결과 제목 16px) > 묶음 안(이름–칸 6px) — 근접성
+ */
+
+.shell {
+  min-width: 0;
+}
+
+.page {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  width: 100%;
+  max-width: var(--layout-max);
+  margin-inline: auto;
+}
+
+.head {
+  display: grid;
+  gap: var(--space-1-5);
+  margin-bottom: var(--space-5);
+}
+
+.title {
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-extrabold);
+  line-height: var(--leading-tight);
+  letter-spacing: var(--tracking-tight);
+  word-break: keep-all;
+}
+
+.hint {
+  max-width: var(--measure);
+  color: var(--text-body);
+  font-size: var(--text-sm);
+  line-height: var(--leading-snug);
+  word-break: keep-all;
+}
+
+@media (min-width: 40rem) {
+  .title {
+    font-size: var(--text-3xl);
+  }
+
+  .head {
+    margin-bottom: var(--space-6);
+  }
+}
+
+.search {
+  margin-bottom: var(--space-5);
+}
+
+.tabs {
+  margin-bottom: var(--space-4);
+}
+
+/* 결과 제목 줄 — 검색 · 페이지를 넘긴 뒤 여기로 스크롤한다. 붙은 헤더 아래에 숨지 않게 */
+.resultHead {
+  margin-bottom: var(--space-2);
+}
+
+.resultTitle {
+  scroll-margin-top: calc(var(--header-h) + var(--space-4));
+  color: var(--text-strong);
+  font-size: var(--text-base);
+  font-weight: var(--weight-bold);
+  line-height: var(--leading-snug);
+}
+
+.resultText {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1-5);
+}
+
+/* 수 자리 — 점 셋(첫 로딩)이 들어갈 만큼 늘 잡아 둔다. 숫자는 고정폭(`data-numeric`) */
+.resultCount {
+  position: relative;
+  display: inline-grid;
+  align-items: center;
+  min-width: 1.75rem;
+  color: var(--text-muted);
+  font-weight: var(--weight-semibold);
+  white-space: nowrap;
+}
+
+.resultDots {
+  position: absolute;
+  inset-block: 0;
+  left: 0;
+}
+
+/* 비어 있음 · 오류 — 줄 자리에 옅은 면 한 장. 내가 쓴 글 · 목록의 빈 상태와 같은 면이다 */
+.stateBox {
+  border-radius: var(--radius-md);
+  background-color: var(--surface-sunken);
+  animation: appear var(--duration-base) var(--ease-out);
+}
+
+@keyframes appear {
+  from {
+    opacity: 0;
+  }
+}
+
+.pagination {
+  margin-top: var(--space-10);
+}
+
+/* ── 권한 없음 — 없는 화면(SCR-09)과 같은 머리 ── */
+
+.denied {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: start;
+  width: 100%;
+  max-width: var(--layout-max);
+  margin-inline: auto;
+  animation: appear var(--duration-slow) var(--ease-out);
+}
+
+.deniedIcon {
+  display: grid;
+  place-items: center;
+  width: var(--icon-state);
+  height: var(--icon-state);
+  margin-bottom: var(--space-3);
+  color: var(--text-disabled);
+}
+
+.deniedIcon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.denied .title {
+  margin-bottom: var(--space-3);
+}
+
+.deniedText {
+  max-width: var(--measure);
+  color: var(--text-body);
+  font-size: var(--text-base);
+  line-height: var(--leading-normal);
+  word-break: keep-all;
+}
+
+.deniedActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-6);
+}
+
+/* ── 섹션 이동 줄 — 섹션이 둘 이상일 때만 그린다(지금은 그려지지 않는다, adminSections.ts) ── */
+
+.sections {
+  max-width: var(--layout-max);
+  margin: 0 auto var(--space-6);
+  border-bottom: var(--hairline);
+}
+
+.sectionList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-6);
+}
+
+.section {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--tap-min);
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  text-decoration: none;
+}
+
+.section[aria-current='page'] {
+  color: var(--text-strong);
+  font-weight: var(--weight-extrabold);
+  box-shadow: inset 0 -2px 0 var(--text-strong);
+}

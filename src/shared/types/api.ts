@@ -35,6 +35,11 @@ export type ErrorCode =
   | 'COMMENT_NOT_FOUND' // 404
   | 'FORBIDDEN_ACCESS' // 403 — 남의 글·댓글. `@PreAuthorize` 거부도 이 code 다
   | 'INVALID_STATUS_TRANSITION' // 409 — 완료(DONE)된 글의 상태를 되돌리려 함
+  // 역할 · 관리자(7.4) — 매니저 임명 · 해임 `POST · DELETE /api/admin/managers/{memberId}`
+  | 'ACCESS_DENIED' // 403 — 역할이 모자람(`@PreAuthorize("hasRole('ADMIN')")` 거부). 관리자 화면은 권한 없음 면으로 간다
+  | 'ALREADY_MANAGER' // 409 — 이미 매니저인 회원을 임명
+  | 'NOT_MANAGER' // 409 — 매니저가 아닌 회원을 해임
+  | 'ADMIN_ROLE_LOCKED' // 409 — 관리자의 역할은 바꿀 수 없음(서버 환경변수 `ADMIN_EMAILS` 로만)
   // 이미지 — 크기 한도(장당 10MB · 요청 60MB) 초과는 전용 code 가 **없다**.
   // 413 이 아니라 전역 처리기의 500 `INTERNAL_SERVER_ERROR` 로 오거나, 연결이 끊겨 응답 자체가 없다.
   // 그래서 크기는 보내기 전에 막는다(`features/posts` 의 `preparePostImages`)

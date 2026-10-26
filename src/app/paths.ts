@@ -37,6 +37,16 @@ export const paths = {
   settings: '/settings',
 
   /**
+   * 관리자 화면(관리자만, 2026-10-25 — 화면정의서 SCR-19). `/admin` 은 첫 섹션으로 보낸다.
+   * 섹션이 생기면 여기에 경로 하나 + `pages/admin/adminSections.ts` 에 한 줄 + `routes.tsx` 의 `/admin` 아래 자식 하나
+   */
+  admin: {
+    index: '/admin',
+    /** 매니저 관리 — 회원 검색 · 매니저 임명 · 해임 */
+    managers: '/admin/managers',
+  },
+
+  /**
    * 시안 화면(개발 모드 전용, 2026-10-19 — 알림 · 채팅 · 위치 찍기). 라우트도 개발 모드에서만 걸린다(routes.tsx).
    * 본인이 시안을 고르면 확정 경로(`/notifications` · `/chats/:roomId` 등)로 바꾸고 이 묶음은 지운다
    */

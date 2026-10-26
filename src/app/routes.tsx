@@ -1,8 +1,10 @@
-import { Route, createBrowserRouter, createRoutesFromElements } from 'react-router-dom'
+import { Navigate, Route, createBrowserRouter, createRoutesFromElements } from 'react-router-dom'
 
 import { RootLayout } from '@/app/layouts/RootLayout'
+import { paths } from '@/app/paths'
 import { RouteLoadError } from '@/app/RouteLoadError'
 import { PostFormSkeleton } from '@/features/posts'
+import { AdminRouteFallback } from '@/pages/admin/ManagersHead'
 import { LoginPage } from '@/pages/login/LoginPage'
 import { MyPageSkeleton } from '@/pages/my-page/MyPageSkeleton'
 import { NotFoundPage } from '@/pages/not-found/NotFoundPage'
@@ -24,6 +26,7 @@ import { SignupPage } from '@/pages/signup/SignupPage'
  * | /signup             | 회원가입                | [3.1]        |
  * | /me                 | 마이페이지(내 글)       | [6.1]        |
  * | /settings           | 설정(화면 모드 · 프로필 · 비밀번호) | [3.6] [3.7] |
+ * | /admin/managers     | 관리자 — 매니저 관리(회원 검색 · 임명 · 해임) | 7.4 |
  * | 그 외               | 없는 화면               | 9장          |
  *
  * 화면이 없는 기능은 동작으로만 존재한다.
@@ -94,6 +97,24 @@ export function createAppRouter() {
           hydrateFallbackElement={<SettingsSkeleton />}
           errorElement={<RouteLoadError />}
         />
+
+        {/*
+          관리자 화면(SCR-19, 관리자만) — 틀(`AdminLayout`)이 가드와 섹션 자리를 맡고, 섹션은 자식 라우트로 붙는다.
+          섹션을 더할 때는 여기에 자식 하나 + `pages/admin/adminSections.ts` 에 한 줄. `/admin` 은 첫 섹션으로 보낸다.
+          틀과 섹션은 한 조각(`adminRoutes`)으로 받는다. 대체 화면은 머리만(`AdminRouteFallback` — 관리자 코드를 첫 묶음에 싣지 않는다)
+        */}
+        <Route
+          path="/admin"
+          lazy={() => import('@/pages/admin/adminRoutes').then((m) => ({ Component: m.AdminLayout }))}
+          hydrateFallbackElement={<AdminRouteFallback />}
+          errorElement={<RouteLoadError />}
+        >
+          <Route index element={<Navigate to={paths.admin.managers} replace />} />
+          <Route
+            path="managers"
+            lazy={() => import('@/pages/admin/adminRoutes').then((m) => ({ Component: m.ManagersPage }))}
+          />
+        </Route>
 
         {/* 시안 화면(개발 모드 전용, 2026-10-19 — 알림 · 채팅 · 위치 찍기 · 시안 모음). 운영 빌드에서는 이 줄째 지워진다 */}
         {import.meta.env.DEV ? (

@@ -1,0 +1,38 @@
+/*
+ * 역할 이름표 — 글자에 붙는 조각이라 반경 4px(배지). 누르는 것이 아니다.
+ * 색 없이 무게 셋 : 회원(옅은 선) < 매니저(잉크 선 두 겹) < 관리자(잉크 채움)
+ */
+.badge {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  /* 글 배지(`features/posts` Badge)와 같은 높이 · 글자 — 같은 "이름표" 말투 */
+  height: 1.375rem;
+  padding-inline: var(--space-2);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-xs);
+  color: var(--text-body);
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-bold);
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.badge[data-role='MANAGER'] {
+  border-color: var(--text-strong);
+  box-shadow: inset 0 0 0 1px var(--text-strong);
+  color: var(--text-strong);
+}
+
+.badge[data-role='ADMIN'] {
+  border-color: var(--action);
+  background-color: var(--action);
+  color: var(--on-action);
+}
+
+/* 강제 색상 — 채움이 사라지므로 선 두께로 가른다 */
+@media (forced-colors: active) {
+  .badge[data-role='ADMIN'] {
+    border-width: 2px;
+  }
+}

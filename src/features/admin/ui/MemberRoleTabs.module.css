@@ -1,0 +1,98 @@
+/*
+ * 역할 탭 — 내가 쓴 글 상태 탭(`features/posts` PostStatusTabs)과 같은 모양 : 한 줄, 아래 가는 선, 고른 탭만 진한 글자 + 잉크 막대.
+ * 320 에서도 넷이 한 줄에 들어간다(글자뿐이라 숫자 칸이 없다). 글자를 키워 모자라면 다음 줄로 — 넘기지 않는다(숨은 탭이 없다)
+ */
+.nav {
+  border-bottom: var(--hairline);
+}
+
+.list {
+  display: flex;
+  flex-wrap: wrap;
+  /* 탭 사이 틈 — 상태 탭과 같은 값(320 약 15 · 375 16 · 1280 32px) */
+  gap: clamp(var(--space-3), 0.4rem + 2.6vw, var(--space-8));
+}
+
+/* 글자를 키워 그릇(`RootLayout` .shell)이 16rem 보다 좁으면 틈을 줄인다 — 상태 탭과 같은 규칙 */
+@container shell (width < 16rem) {
+  .list {
+    gap: var(--space-2) var(--space-4);
+  }
+}
+
+.tab {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--tap-min);
+  padding-block: var(--space-2);
+  color: var(--text-muted);
+  font-size: var(--text-base);
+  font-weight: var(--weight-semibold);
+  text-decoration: none;
+  white-space: nowrap;
+  transition: color var(--duration-base) var(--ease-out);
+}
+
+/* 고른 탭의 막대 — 아래 가는 선 위에 겹친다. 바뀔 때 옅게 나타난다 */
+.tab::after {
+  content: '';
+  position: absolute;
+  inset-inline: 0;
+  bottom: -1px;
+  height: 2px;
+  border-radius: var(--radius-xs) var(--radius-xs) 0 0;
+  background-color: var(--text-strong);
+  opacity: 0;
+  transform: scaleX(0.6);
+  transition:
+    opacity var(--duration-base) var(--ease-out),
+    transform var(--duration-base) var(--ease-out);
+}
+
+.tab[aria-current='true'] {
+  color: var(--text-strong);
+  font-weight: var(--weight-extrabold);
+}
+
+.tab[aria-current='true']::after {
+  opacity: 1;
+  transform: none;
+}
+
+.tab:focus-visible {
+  border-radius: var(--radius-xs);
+  outline-offset: 2px;
+}
+
+@media (hover: hover) {
+  .tab:not([aria-current='true']):hover {
+    color: var(--text-strong);
+  }
+}
+
+/* 이름 — 보이지 않는 굵은 이름(높이 0)을 아래에 두어 고른 탭이 굵어져도 폭이 그대로다 */
+.label {
+  display: inline-flex;
+  flex-direction: column;
+  word-break: keep-all;
+}
+
+.label::after {
+  content: attr(data-label);
+  height: 0;
+  overflow: hidden;
+  font-weight: var(--weight-extrabold);
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/* 강제 색상 — 막대는 배경색이라 사라진다. 고른 탭에 밑줄을 그린다 */
+@media (forced-colors: active) {
+  .tab[aria-current='true'] {
+    text-decoration: underline;
+    text-decoration-thickness: 2px;
+    text-underline-offset: 0.35em;
+  }
+}
+
