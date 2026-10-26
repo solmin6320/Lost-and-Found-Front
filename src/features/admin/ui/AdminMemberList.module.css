@@ -1,0 +1,139 @@
+/*
+ * 회원 목록 — 줄 사이 가는 선 하나(아래 선만, 줄마다 위 · 아래 둘 다 긋지 않는다). 카드 면 · 그림자 없음.
+ * 좁으면 위에서 아래로 쌓고(닉네임 · 이름표 → 이메일 → 가입일 → 동작), 그릇이 넓으면(40rem) 세 칸이 한 줄에 선다.
+ * 넓은 줄의 가입일 · 동작 칸은 폭을 고정한다 — 줄마다 내용 폭이 달라도 세로로 같은 자리에 선다(스캔).
+ * 묶음 안(닉네임–이메일 2px · 가입일 4px) < 줄 사이(위아래 16px + 선) — 근접성
+ */
+.frame {
+  min-width: 0;
+  container: admin-members / inline-size;
+}
+
+.list {
+  display: grid;
+  border-top: var(--hairline);
+  transition: opacity var(--duration-base) var(--ease-out);
+}
+
+/* 다시 받는 중(검색 · 탭 · 페이지) — 직전 결과를 흐리게 */
+.list[data-stale] {
+  opacity: 0.45;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas:
+    'who'
+    'joined'
+    'action';
+  row-gap: var(--space-1);
+  align-items: center;
+  padding-block: var(--space-4);
+  border-bottom: var(--hairline);
+}
+
+.who {
+  grid-area: who;
+  display: grid;
+  gap: var(--space-0-5);
+  min-width: 0;
+}
+
+.nameLine {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: var(--space-2);
+  row-gap: var(--space-1);
+  min-width: 0;
+}
+
+.name {
+  min-width: 0;
+  color: var(--text-strong);
+  font-size: var(--text-base);
+  font-weight: var(--weight-bold);
+  line-height: var(--leading-snug);
+  overflow-wrap: anywhere;
+}
+
+/* 이메일 — 띄어쓰기가 없는 긴 글자라 어디서든 줄을 바꾼다(320 · 200% 에서 넘치지 않게) */
+.email {
+  min-width: 0;
+  color: var(--text-body);
+  font-size: var(--text-sm);
+  line-height: var(--leading-snug);
+  overflow-wrap: anywhere;
+}
+
+.joined {
+  grid-area: joined;
+  display: flex;
+  gap: var(--space-1);
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+  line-height: var(--leading-snug);
+  white-space: nowrap;
+}
+
+.joinedLabel {
+  font-weight: var(--weight-semibold);
+}
+
+/* 동작 칸 — 버튼(보이는 높이 36px, 누르는 면 44px)과 관리자 안내가 같은 높이를 갖는다(스켈레톤과 받은 줄의 높이가 같게) */
+.action {
+  grid-area: action;
+  display: flex;
+  align-items: center;
+  min-height: 2.25rem;
+  margin-top: var(--space-2);
+}
+
+.locked {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1-5);
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  line-height: var(--leading-snug);
+  word-break: keep-all;
+}
+
+.locked svg {
+  flex: none;
+  width: var(--icon-sm);
+  height: var(--icon-sm);
+}
+
+/* ── 넓은 그릇 — 세 칸 한 줄 ── */
+@container admin-members (width >= 40rem) {
+  .row {
+    grid-template-columns: minmax(0, 1fr) 8.5rem 10rem;
+    grid-template-areas: 'who joined action';
+    column-gap: var(--space-4);
+  }
+
+  .action {
+    justify-content: flex-end;
+    margin-top: 0;
+  }
+
+  .locked {
+    text-align: end;
+  }
+}
+
+/* ── 받는 동안의 자리 ── */
+
+/* 글자 자리 한 줄 = 그 줄 글자 한 줄 높이(글자 크기 × 행간 1.45). 공용 글자 자리(1.5줄)보다 작게 — 받은 뒤 줄이 움직이지 않게(목록 카드와 같은 방법) */
+.row .line {
+  margin-block: calc((1em * var(--leading-snug) - 0.8em) / 2);
+}
+
+.actionSkeleton {
+  width: 7.5rem;
+  height: 2.25rem;
+  border-radius: var(--radius-sm);
+}

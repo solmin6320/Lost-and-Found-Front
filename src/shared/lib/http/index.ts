@@ -18,3 +18,5 @@ export {
   hasErrorCode,
   isApiError,
 } from './errors'
+// 토큰의 역할 클레임 — 화면 표시용(관리자 입구 · 관리자 화면 첫 판정). 권한은 서버가 가른다
+export { getAccessTokenRole, readRoleClaim, subscribeAccessTokenRole } from './accessToken'

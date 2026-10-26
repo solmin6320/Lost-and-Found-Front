@@ -122,6 +122,7 @@ export function describeReturnTarget(path: string): ReturnTarget | null {
   if (POST_PATH.test(url.pathname)) return { label: '보던 글' }
   if (url.pathname === paths.settings) return { label: '설정' }
   if (url.pathname === paths.myPage) return { label: '내가 쓴 글' }
+  if (url.pathname === paths.admin.index || url.pathname.startsWith(`${paths.admin.index}/`)) return { label: '관리자 화면' }
   if (url.pathname === paths.postList && url.search) return { label: '보던 목록' }
   return null
 }

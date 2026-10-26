@@ -1,0 +1,30 @@
+/*
+ * 확인 창의 대상 한 줄 — 이름표(4px) 모양 안에 `대상 이메일`. 없는 화면의 주소 줄과 같은 말투다(무엇을 고쳤는지 눈으로 짚는 자리).
+ * 이메일은 띄어쓰기가 없어 어디서든 줄을 바꾼다(창이 좁아도 넘치지 않게)
+ */
+.who {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  max-width: 100%;
+  margin-bottom: var(--space-2);
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-xs);
+  background-color: var(--surface);
+  font-size: var(--text-sm);
+  line-height: var(--leading-snug);
+}
+
+.whoLabel {
+  flex: none;
+  color: var(--text-muted);
+  font-weight: var(--weight-semibold);
+}
+
+.whoValue {
+  min-width: 0;
+  color: var(--text-strong);
+  font-weight: var(--weight-bold);
+  overflow-wrap: anywhere;
+}

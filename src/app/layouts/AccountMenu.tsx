@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, useState, type FocusEvent } from 'react'
 import { NavLink } from 'react-router-dom'
 
 import { paths } from '@/app/paths'
+import { useMyRole } from '@/features/auth'
 import type { MemberResponse } from '@/features/members'
 import { CaretDown, User } from '@/shared/ui/icons'
 import { LoadingDots } from '@/shared/ui/LoadingDots'
@@ -26,6 +27,7 @@ interface AccountMenuProps {
  */
 export function AccountMenu({ me, onLogout }: AccountMenuProps) {
   const [open, setOpen] = useState(false)
+  const role = useMyRole()
   const rootRef = useRef<HTMLDivElement>(null)
   const toggleRef = useRef<HTMLButtonElement>(null)
   const panelId = useId()
@@ -101,6 +103,14 @@ export function AccountMenu({ me, onLogout }: AccountMenuProps) {
                 설정
               </NavLink>
             </li>
+            {/* 관리자에게만(토큰의 역할 — 화면 표시용, 막는 것은 서버). 섹션이 늘어도 입구는 이것 하나다(SCR-19) */}
+            {role === 'ADMIN' ? (
+              <li>
+                <NavLink className={styles.item} to={paths.admin.index} onClick={close}>
+                  관리자
+                </NavLink>
+              </li>
+            ) : null}
           </ul>
           <div className={styles.divider} aria-hidden="true" />
           <button
