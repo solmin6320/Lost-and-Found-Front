@@ -27,8 +27,10 @@ const render = (post: PostListResponse) =>
   )
 
 describe('PostCard — 주인 확인 배지', () => {
-  it('주인 확인 완료 글은 배지 줄에 "주인 확인"을 하나 더 단다', () => {
-    expect(render({ ...base, ownerVerified: true })).toContain('주인 확인')
+  it('주인 확인 완료 글은 완료 배지 하나 안에서 "주인 확인"을 읽어 준다(배지를 더 달지 않는다)', () => {
+    const html = render({ ...base, ownerVerified: true })
+    expect(html).toContain('주인 확인')
+    expect(html.match(/data-surface="photo"/g)).toHaveLength(2)
   })
 
   it('그냥 완료한 글 · 옛 응답(필드 없음)에는 달지 않는다', () => {

@@ -6,7 +6,6 @@ import { MapPin } from '@/shared/ui/icons'
 
 import type { PostListResponse } from '../api/types'
 import { lostFoundDateLabel } from '../model/labels'
-import badgeStyles from './Badge.module.css'
 import styles from './PostCard.module.css'
 import { PostThumbnail } from './PostThumbnail'
 import { StatusBadge } from './StatusBadge'
@@ -85,18 +84,9 @@ export function PostCard({
           {post.status === 'OPEN' ? null : (
             <>
               <span className="sr-only">, </span>
-              <StatusBadge status={post.status} surface="photo" />
+              <StatusBadge status={post.status} surface="photo" verified={post.ownerVerified} />
             </>
           )}
-          {/* 주인 확인 완료([4.8] 받았어요로 끝난 글) — 사진 위 배지 줄에 하나 더. 카드 높이는 그대로다 */}
-          {post.ownerVerified ? (
-            <>
-              <span className="sr-only">, </span>
-              <span className={badgeStyles.status} data-surface="photo">
-                주인 확인
-              </span>
-            </>
-          ) : null}
         </p>
 
         <dl className={styles.facts}>

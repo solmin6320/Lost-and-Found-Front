@@ -203,6 +203,7 @@ export function PostForm({
   const titleInfo = usePersonalInfoCheck(values.title)
   const locationInfo = usePersonalInfoCheck(values.location)
   const contentInfo = usePersonalInfoCheck(values.content)
+  const questionInfo = usePersonalInfoCheck(values.verificationQuestion)
   const today = useMemo(() => todayIsoDate(), [])
 
   const dirty = !samePostFormValues(values, initialValues) || items.length > 0 || removeExisting
@@ -593,7 +594,7 @@ export function PostForm({
             }}
             hint={
               values.type === 'FOUND'
-                ? '어떤 상태로 어디에 두었는지 적어 주세요. 주인만 알 만한 특징 한두 가지는 적지 말고 남겨 두세요. 진짜 주인인지 물어볼 때 쓸 수 있어요.'
+                ? '어떤 상태로 어디에 두었는지 적어 주세요. 주인만 알 만한 특징 한두 가지는 적지 말고 남겨 두세요. 아래 확인 질문으로 물어볼 수 있어요.'
                 : '색, 브랜드, 흠집, 안에 든 것처럼 사진에 안 보이는 특징을 적어 주세요.'
             }
             // 개인정보 줄은 오류가 떠 있어도 남는다(결과 고지). 한 줄로 줄였다 — 연락처를 적으면 감지 줄이 따로 알린다(SE-3).
@@ -612,16 +613,20 @@ export function PostForm({
             placeholder={values.type === 'LOST' ? '예: 지갑을 주운 곳 근처에 무엇이 있었나요?' : '예: 지갑 안에 든 카드는 몇 장인가요?'}
             hint={
               values.type === 'LOST'
-                ? '주웠다고 연락한 사람에게 물어볼 것이에요. 질문은 누구나 보고, 답은 나만 봐요.'
-                : '주인만 답할 수 있는 것을 물어 주세요. 질문은 누구나 보고, 답은 나만 봐요. 답이 드러나지 않게 적어 주세요.'
+                ? '주웠다는 사람에게 물어볼 질문이에요. 질문은 누구나 보고, 답은 나만 봐요.'
+                : '주인만 답할 수 있는 것을 물어 주세요. 질문은 누구나 보고, 답은 나만 봐요.'
             }
             error={errors.verificationQuestion}
             announceError={liveField === 'verificationQuestion'}
+            detected={<DetectedLine notice={questionInfo.notice} />}
             autoComplete="off"
             enterKeyHint="done"
             readOnly={readOnly}
             onChange={(event) => setField('verificationQuestion', event.target.value)}
-            onBlur={() => checkOnBlur('verificationQuestion')}
+            onBlur={() => {
+              checkOnBlur('verificationQuestion')
+              questionInfo.check()
+            }}
           />
         </div>
 
