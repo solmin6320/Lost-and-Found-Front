@@ -56,12 +56,6 @@ import styles from './PostDetailPage.module.css'
 import { LONG_TITLE, PostDetailSkeleton } from './PostDetailSkeleton'
 
 /**
- * 내가 보낸 확인 요청 목록(SCR-12 ③). 경로 상수는 `paths.myClaims` 로 들어올 예정이다(다른 작업이 `app/paths.ts` 에 추가 중) —
- * 합친 뒤 이 상수를 그것으로 바꾼다
- */
-const MY_CLAIMS_PATH = '/me/claims'
-
-/**
  * SCR-03 게시글 상세 · `/posts/:postId` — [4.3] 상세 · [4.6] 상태 변경 · [4.4] 삭제 · [5.1] 댓글
  *
  * 읽는 순서를 고정한다 : 제목 → 이름표(+ `댓글 쓰기 N`) → (글쓴이면 내 글 관리) → 사진 → 핵심 정보(장소 · 분실습득일 · 종류)
@@ -275,7 +269,7 @@ function PostDetail({ post, claimTitleFocus = false }: PostDetailProps) {
             mode={claimMode}
             loginHref={loginPath(`${here}${POST_CLAIMS_HASH}`)}
             loginState={returnState}
-            myClaimsHref={MY_CLAIMS_PATH}
+            myClaimsHref={paths.myClaims}
           />
         </div>
       ) : null}

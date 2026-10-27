@@ -67,6 +67,12 @@ export const paths = {
 export const POST_COMMENTS_HASH = '#comments'
 
 /**
+ * 상세의 확인 요청 칸 조각(SCR-12). 알림(받은 요청 · 승인) · 확인 요청 칸의 로그인 링크가 붙이고, 상세가 받으면 그 칸으로 데려간다.
+ * 돌아갈 곳에 붙어도 되는 둘째 조각이다(`safeRedirectPath`, 문자열 비교)
+ */
+export const POST_CLAIMS_HASH = '#claims'
+
+/**
  * 로그인 화면에 넘기는 안내 한 줄(`navigate(paths.login, { state })`). 로그인 화면이 폼 위에 띄운다(SCR-05).
  * 설정의 비밀번호 변경 뒤 · 가입은 됐는데 이어진 로그인만 실패했을 때 쓴다
  */

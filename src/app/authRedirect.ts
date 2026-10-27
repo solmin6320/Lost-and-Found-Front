@@ -1,6 +1,4 @@
-import { POST_CLAIMS_HASH } from '@/features/claims'
-
-import { paths, POST_COMMENTS_HASH } from './paths'
+import { paths, POST_CLAIMS_HASH, POST_COMMENTS_HASH } from './paths'
 
 /**
  * 로그인 · 가입 뒤 돌아갈 곳(`?redirect=`). 화면정의서 1.5 · 보안명세서 2장.

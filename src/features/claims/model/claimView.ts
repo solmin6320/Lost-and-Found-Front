@@ -5,10 +5,11 @@ import type { PersonalInfoKind } from '@/shared/lib/personalInfo'
 import { CLAIM_ANSWER_MAX_LENGTH, type ClaimResponse, type ClaimStatus, type MyClaimSummary } from '../api/types'
 import { isReceiver } from './labels'
 
+/** 상세 주소 조각 — 경로 상수와 함께 `app/paths` 한곳에 둔다(로그인 뒤 돌아갈 곳 검사가 첫 화면 코드라 이 기능 입구를 싣지 않게) */
+export { POST_CLAIMS_HASH } from '@/app/paths'
+
 /** 상세의 확인 요청 칸 id — 알림 링크 · 로그인 뒤 돌아오는 주소가 `#claims` 로 이 칸을 가리킨다 */
 export const CLAIMS_ANCHOR_ID = 'claims'
-/** 상세 주소 조각(문자열 비교). 들어오면 확인 요청 칸으로 스크롤 · 포커스하고 지운다 */
-export const POST_CLAIMS_HASH = `#${CLAIMS_ANCHOR_ID}`
 
 /** 보는 사람 — 로그인 확인 전 · 비로그인 · 글쓴이가 아닌 회원 · 글쓴이 */
 export type ClaimViewer = 'unknown' | 'guest' | 'member' | 'owner'

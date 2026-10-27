@@ -1,12 +1,9 @@
-import { paths } from '@/app/paths'
+import { paths, POST_CLAIMS_HASH } from '@/app/paths'
 
 import type { NotificationResponse } from '../api/types'
 
-/**
- * 상세의 확인 요청 칸 조각. 상세가 이 조각을 받으면 그 칸(받은 요청 묶음 · 내 요청)으로 스크롤한다(SCR-12).
- * 알림 줄은 로그인 리다이렉트를 거치지 않으므로 `safeRedirectPath` 의 허용 조각(`#comments`)과 무관하다
- */
-export const POST_CLAIMS_HASH = '#claims'
+/** 상세의 확인 요청 칸 조각(`app/paths`). 상세가 이 조각을 받으면 그 칸(받은 요청 묶음 · 내 요청)으로 데려간다(SCR-12) */
+export { POST_CLAIMS_HASH }
 
 /**
  * 알림 줄을 누르면 가는 곳 — 종류마다 다음 행동이 있는 자리(화면정의서 SCR-10 "누르면").
