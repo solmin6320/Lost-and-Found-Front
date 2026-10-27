@@ -21,6 +21,7 @@ import { SafetyNote } from '@/shared/ui/SafetyNote'
 
 import type { PostDetailResponse, PostStatus, PostType } from '../api/types'
 import { POST_STATUS_LABEL } from '../model/labels'
+import { deleteConsequence } from '../model/postDelete'
 import { useChangePostStatus, useDeletePost } from '../model/postMutations'
 import { postKeys } from '../model/postQueries'
 import { isClaimLocked, isIrreversibleStatus } from '../model/postStatus'
@@ -94,7 +95,7 @@ export function PostOwnerPanel({ post, editHref, onDeleted }: PostOwnerPanelProp
   const queryClient = useQueryClient()
   const changeStatus = useChangePostStatus(post.id)
   const deletePost = useDeletePost()
-  // 바로 아래 받은 확인 요청 칸과 같은 쿼리(같은 키 — 요청은 한 번). 승인 잠금에 쓴다
+  // 바로 아래 받은 확인 요청 칸과 같은 쿼리(같은 키 — 요청은 한 번). 승인 잠금 · 삭제 결과 문장의 요청 수에 쓴다
   const claims = useQuery(receivedClaimsQueryOptions(post.id))
   const [confirm, setConfirm] = useState<'done' | 'delete' | null>(null)
   const [statusError, setStatusError] = useState<string | null>(null)
@@ -172,8 +173,8 @@ export function PostOwnerPanel({ post, editHref, onDeleted }: PostOwnerPanelProp
     })
   }
 
-  const photoCount = post.images.length
-  const commentCount = post.totalCommentCount
+  // 받은 요청을 받았으면 전체(대기 · 승인 · 거절 · 전달 완료 모두 지워진다), 아직이면 상세가 아는 대기 수
+  const claimCount = claims.data ? claims.data.length : (post.pendingClaimCount ?? 0)
   const showContactTip = contactTip && post.status === 'IN_PROGRESS' && !(changeStatus.isPending && !confirm)
 
   return (
@@ -306,21 +307,8 @@ export function PostOwnerPanel({ post, editHref, onDeleted }: PostOwnerPanelProp
         onClose={() => setConfirm(null)}
         fallbackFocus={() => headingRef.current}
       >
-        <p>{deleteConsequence(photoCount, commentCount)}</p>
+        <p>{deleteConsequence({ photos: post.images.length, comments: post.totalCommentCount, claims: claimCount })}</p>
       </ConfirmDialog>
     </section>
   )
-}
-
-/**
- * 무엇이 함께 사라지는지 숫자로(화면정의서 SCR-03 ①). 0인 것은 문장에서 뺀다.
- * 삭제는 댓글(`commentRepository.deleteByPostId`)과 S3 사진까지 지운다 — 사용자가 예상하지 못하는 결과다
- */
-function deleteConsequence(photos: number, comments: number): string {
-  const lost = [photos > 0 ? `사진 ${photos}장` : null, comments > 0 ? `댓글 ${comments.toLocaleString('ko-KR')}개` : null]
-    .filter(Boolean)
-    .join('과 ')
-  if (!lost) return '이 게시글을 삭제하면 되돌릴 수 없어요.'
-  const particle = comments > 0 ? '가' : '이'
-  return `이 게시글을 삭제하면 ${lost}${particle} 함께 사라져요. 되돌릴 수 없어요.`
 }
