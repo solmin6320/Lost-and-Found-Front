@@ -80,8 +80,10 @@ describe('safeRedirectPath — 열린 리다이렉트 방지', () => {
     ['/posts/12#comments-x', '/posts/12'],
     ['/posts/12#%3Cimg%3E', '/posts/12'],
     ['/settings#comments', '/settings#comments'],
+    ['/posts/12#claims', '/posts/12#claims'],
+    ['/posts/12#CLAIMS', '/posts/12'],
     ['/?page=2#top', '/?page=2'],
-  ])('조각은 #comments 만 남긴다 — %s → %s', (raw, expected) => {
+  ])('조각은 #comments · #claims 만 남긴다 — %s → %s', (raw, expected) => {
     expect(safeRedirectPath(raw)).toBe(expected)
   })
 

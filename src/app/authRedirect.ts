@@ -1,3 +1,5 @@
+import { POST_CLAIMS_HASH } from '@/features/claims'
+
 import { paths, POST_COMMENTS_HASH } from './paths'
 
 /**
@@ -11,7 +13,7 @@ import { paths, POST_COMMENTS_HASH } from './paths'
  *   버린다   `https://…` · `//evil.com`(프로토콜 상대) · `/\evil.com`(브라우저가 `//` 로 읽는다)
  *            · 제어 문자가 섞인 값(브라우저가 지우고 다시 읽는다) · `/login` · `/signup`(되돌아오는 고리 —
  *            `/LOGIN` · `/login/` 처럼 라우터가 같은 화면으로 읽는 값까지)
- *   떼어 낸다 조각(`#…`)은 상세의 `#comments` 하나만 남긴다(문자열 비교). 다른 조각은 경로만 따른다 —
+ *   떼어 낸다 조각(`#…`)은 상세의 `#comments` · `#claims`(확인 요청 칸) 둘만 남긴다(문자열 비교). 다른 조각은 경로만 따른다 —
  *            돌아온 화면이 조각을 보고 하는 일이 그것 하나라, 남이 만든 조각으로 화면을 움직이지 못하게
  */
 export function safeRedirectPath(raw: string | null | undefined): string {
@@ -28,7 +30,7 @@ export function safeRedirectPath(raw: string | null | undefined): string {
   if (AUTH_SCREENS.has(routeKey(url.pathname))) {
     return paths.postList
   }
-  const hash = url.hash === POST_COMMENTS_HASH ? url.hash : ''
+  const hash = url.hash === POST_COMMENTS_HASH || url.hash === POST_CLAIMS_HASH ? url.hash : ''
   return `${url.pathname}${url.search}${hash}`
 }
 

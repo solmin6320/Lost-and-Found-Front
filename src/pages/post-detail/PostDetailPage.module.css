@@ -226,6 +226,9 @@
 
 .owner {
   grid-area: owner;
+  display: grid;
+  /* 내 글 관리 — 받은 확인 요청 : 두 면 사이 16px(면 안 간격 24px 보다 좁게 — 둘이 한 묶음 "내 글에 할 일") */
+  gap: var(--space-4);
   min-width: 0;
 }
 
