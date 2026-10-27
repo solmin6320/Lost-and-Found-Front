@@ -143,6 +143,12 @@ export function AccountMenu({ me, onLogout }: AccountMenuProps) {
                 내가 쓴 글
               </NavLink>
             </li>
+            {/* 다른 사람 글에 보낸 주인 확인 요청(SCR-12 ③). 내 활동 두 줄을 붙여 둔다 — 쓴 글 · 보낸 요청 */}
+            <li>
+              <NavLink className={styles.item} to={paths.myClaims} onClick={close}>
+                보낸 확인 요청
+              </NavLink>
+            </li>
             <li>
               <NavLink className={styles.item} to={paths.settings} onClick={close}>
                 설정

@@ -6,6 +6,7 @@ import { RouteLoadError } from '@/app/RouteLoadError'
 import { PostFormSkeleton } from '@/features/posts'
 import { AdminRouteFallback } from '@/pages/admin/ManagersHead'
 import { LoginPage } from '@/pages/login/LoginPage'
+import { MyClaimsSkeleton } from '@/pages/my-claims/MyClaimsSkeleton'
 import { MyPageSkeleton } from '@/pages/my-page/MyPageSkeleton'
 import { NotFoundPage } from '@/pages/not-found/NotFoundPage'
 import { PostDetailSkeleton } from '@/pages/post-detail/PostDetailSkeleton'
@@ -25,6 +26,7 @@ import { SignupPage } from '@/pages/signup/SignupPage'
  * | /login              | 로그인                  | [3.2]        |
  * | /signup             | 회원가입                | [3.1]        |
  * | /me                 | 마이페이지(내 글)       | [6.1]        |
+ * | /me/claims          | 보낸 확인 요청          | [4.7] [4.8]  |
  * | /settings           | 설정(화면 모드 · 프로필 · 비밀번호) | [3.6] [3.7] |
  * | /admin/managers     | 관리자 — 매니저 관리(회원 검색 · 임명 · 해임) | 7.4 |
  * | 그 외               | 없는 화면               | 9장          |
@@ -89,6 +91,12 @@ export function createAppRouter() {
           path="/me"
           lazy={() => import('@/pages/my-page/MyPage').then((m) => ({ Component: m.MyPage }))}
           hydrateFallbackElement={<MyPageSkeleton />}
+          errorElement={<RouteLoadError />}
+        />
+        <Route
+          path="/me/claims"
+          lazy={() => import('@/pages/my-claims/MyClaimsPage').then((m) => ({ Component: m.MyClaimsPage }))}
+          hydrateFallbackElement={<MyClaimsSkeleton />}
           errorElement={<RouteLoadError />}
         />
         <Route
