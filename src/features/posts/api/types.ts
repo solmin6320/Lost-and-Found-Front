@@ -53,6 +53,8 @@ export interface PostListResponse {
   createdAt: string
   /** 대표 사진(첫 장) 주소. 사진이 없는 글은 `null` — 카드가 포스터로 채운다 */
   thumbnailUrl: string | null
+  /** 주인 확인 완료 — 받는 쪽이 [받았어요]를 눌러 끝난 글. 옛 서버 응답엔 없을 수 있다 */
+  ownerVerified?: boolean
 }
 
 /**
