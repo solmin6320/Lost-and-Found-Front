@@ -1,6 +1,7 @@
-import { useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useId, useRef, useState } from 'react'
 
+import { receivedClaimsQueryOptions } from '@/features/claims'
 import { getErrorMessage, hasErrorCode } from '@/shared/lib/http'
 import { Button, ButtonLink } from '@/shared/ui/Button'
 import { ConfirmDialog } from '@/shared/ui/ConfirmDialog'
@@ -8,6 +9,7 @@ import {
   ChatCircleDots,
   Check,
   CheckCircle,
+  LockSimple,
   MegaphoneSimple,
   PencilSimple,
   Trash,
@@ -21,7 +23,7 @@ import type { PostDetailResponse, PostStatus, PostType } from '../api/types'
 import { POST_STATUS_LABEL } from '../model/labels'
 import { useChangePostStatus, useDeletePost } from '../model/postMutations'
 import { postKeys } from '../model/postQueries'
-import { isIrreversibleStatus } from '../model/postStatus'
+import { isClaimLocked, isIrreversibleStatus } from '../model/postStatus'
 import styles from './PostOwnerPanel.module.css'
 
 interface PostOwnerPanelProps {
@@ -58,8 +60,20 @@ const CONTACT_TIP: Record<PostType, string> = {
   LOST: '돈을 먼저 보내 달라는 요청에는 응하지 마세요.',
 }
 
-/** 화면이 틀렸다는 뜻인 실패 — 이미 완료됨 · 남의 글 · 지워진 글. 상세를 다시 받아 맞춘다(훅이 409 · 404 를, 여기서 403 을) */
-const STALE_CODES = ['INVALID_STATUS_TRANSITION', 'FORBIDDEN_ACCESS', 'POST_NOT_FOUND'] as const
+/**
+ * 승인한 확인 요청이 있을 때 상태 줄 대신 서는 한 줄(QA-P-C4). 누가 무엇을 누르면 완료가 되는지 — 받는 쪽은 글 종류로 정해진다
+ * (`isReceiver` — 습득 글은 요청한 분, 분실 글은 나). 뒤 문장은 다시 직접 바꾸는 길(승인 취소 → 글이 게시중으로 돌아간다)
+ */
+const CLAIM_LOCK_NOTE: Record<PostType, string> = {
+  FOUND: '승인한 확인 요청이 있어 상태는 받는 분이 받았다고 누르면 완료로 바뀌어요.',
+  LOST: '승인한 확인 요청이 있어 상태는 물건을 받은 뒤 아래 요청에서 받았다고 누르면 완료로 바뀌어요.',
+}
+
+/**
+ * 화면이 틀렸다는 뜻인 실패 — 이미 완료됨 · 남의 글 · 지워진 글 · 승인한 확인 요청이 생김. 상세를 다시 받아 맞춘다
+ * (훅이 409 전이 · 404 를, 여기서 403 · `CLAIM_IN_PROGRESS` 를 — 이건 받은 요청도 다시 받아야 잠금 줄이 선다)
+ */
+const STALE_CODES = ['INVALID_STATUS_TRANSITION', 'FORBIDDEN_ACCESS', 'POST_NOT_FOUND', 'CLAIM_IN_PROGRESS'] as const
 
 /**
  * 내 글 관리 — **작성자 본인에게만** 그린다(부른 쪽이 판정한다. 비활성으로 남기지 않는다).
@@ -73,11 +87,15 @@ const STALE_CODES = ['INVALID_STATUS_TRANSITION', 'FORBIDDEN_ACCESS', 'POST_NOT_
  *
  * - 요청 중에는 버튼을 `disabled` 로 잠그지 않고 누름만 무시한다(`aria-disabled`) — 누른 버튼이 잠기면 포커스가 빠진다
  * - 서버가 거절하면(409 · 403) 상태 줄 아래에 `message` 를 그대로 보여 주고 상세를 다시 받는다
+ * - 승인한 확인 요청이 있으면(연락중 + 받은 요청에 승인함) 스위치 · [완료로 바꾸기] · "언제든" 도움말을 그리지 않고 한 줄로 까닭을 말한다
+ *   (서버가 거절할 단추를 보이지 않는다 — QA-P-C4). 받은 요청은 바로 아래 칸과 같은 캐시를 읽는다. 받기 전 · 실패면 지금 동작 그대로
  */
 export function PostOwnerPanel({ post, editHref, onDeleted }: PostOwnerPanelProps) {
   const queryClient = useQueryClient()
   const changeStatus = useChangePostStatus(post.id)
   const deletePost = useDeletePost()
+  // 바로 아래 받은 확인 요청 칸과 같은 쿼리(같은 키 — 요청은 한 번). 승인 잠금에 쓴다
+  const claims = useQuery(receivedClaimsQueryOptions(post.id))
   const [confirm, setConfirm] = useState<'done' | 'delete' | null>(null)
   const [statusError, setStatusError] = useState<string | null>(null)
   const [dialogError, setDialogError] = useState<string | null>(null)
@@ -90,6 +108,7 @@ export function PostOwnerPanel({ post, editHref, onDeleted }: PostOwnerPanelProp
 
   const busy = changeStatus.isPending || deletePost.isPending
   const done = post.status === 'DONE'
+  const claimLocked = isClaimLocked(post.status, claims.data?.map((claim) => claim.status))
 
   function openConfirm(kind: 'done' | 'delete') {
     setDialogError(null)
@@ -117,8 +136,12 @@ export function PostOwnerPanel({ post, editHref, onDeleted }: PostOwnerPanelProp
       },
       onError: (error) => {
         const stale = STALE_CODES.some((code) => hasErrorCode(error, code))
-        if (hasErrorCode(error, 'FORBIDDEN_ACCESS')) {
+        if (hasErrorCode(error, 'FORBIDDEN_ACCESS') || hasErrorCode(error, 'CLAIM_IN_PROGRESS')) {
           void queryClient.invalidateQueries({ queryKey: postKeys.detail(post.id), exact: true })
+        }
+        if (hasErrorCode(error, 'CLAIM_IN_PROGRESS')) {
+          // 다른 탭에서 승인했다 — 받은 요청을 다시 받으면 잠금 줄이 선다(창은 닫고, 다시 누를 단추를 남기지 않는다)
+          void queryClient.invalidateQueries({ queryKey: receivedClaimsQueryOptions(post.id).queryKey })
         }
         // 다이얼로그 안에서 난 실패 중 다시 눌러 볼 만한 것(연결 · 서버 오류)은 그 자리에 둔다
         if (confirm === 'done' && !stale) {
@@ -171,6 +194,13 @@ export function PostOwnerPanel({ post, editHref, onDeleted }: PostOwnerPanelProp
                 주인에게 돌아간 물건이에요. <span className={styles.doneMore}>상태는 더 바꿀 수 없어요.</span>
               </span>
             </p>
+          ) : claimLocked ? (
+            <p className={styles.doneNote}>
+              <LockSimple />
+              <span>
+                {CLAIM_LOCK_NOTE[post.type]} <span className={styles.doneMore}>승인을 취소하면 다시 직접 바꿀 수 있어요.</span>
+              </span>
+            </p>
           ) : (
             <div className={styles.statusControls}>
               <div
@@ -202,7 +232,7 @@ export function PostOwnerPanel({ post, editHref, onDeleted }: PostOwnerPanelProp
           )}
         </div>
 
-        {done ? null : showContactTip ? (
+        {done || claimLocked ? null : showContactTip ? (
           // 사칭 · 선입금을 막는 안전 경고 — 빨간 글자 + 경고 세모(본인 피드백 2026-10-07)
           <p id={hintId} className={styles.tip}>
             <SafetyNote appear>{CONTACT_TIP[post.type]}</SafetyNote>
@@ -225,7 +255,8 @@ export function PostOwnerPanel({ post, editHref, onDeleted }: PostOwnerPanelProp
           </p>
         )}
 
-        {statusError ? (
+        {/* 잠금 줄이 섰으면 그 까닭이 이미 화면에 있다 — 서버 문장(합니다체)을 겹쳐 두지 않는다 */}
+        {statusError && !claimLocked ? (
           <p className={styles.error} role="alert">
             <WarningCircle />
             {statusError}
@@ -248,7 +279,7 @@ export function PostOwnerPanel({ post, editHref, onDeleted }: PostOwnerPanelProp
       </div>
 
       <ConfirmDialog
-        open={confirm === 'done'}
+        open={confirm === 'done' && !claimLocked}
         title="완료로 바꿀까요?"
         confirmLabel="완료로 바꾸기"
         pendingLabel="바꾸는 중"

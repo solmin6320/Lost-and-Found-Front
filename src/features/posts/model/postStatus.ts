@@ -15,3 +15,15 @@ import type { PostStatus } from '../api/types'
 export function isIrreversibleStatus(next: PostStatus): boolean {
   return next === 'DONE'
 }
+
+/**
+ * 승인한 확인 요청이 글을 붙잡고 있는가 — 글이 연락중이고 받은 요청 중 승인한 것이 있다(QA-P-C4 · C5).
+ * 서버는 이때 상태 변경을 409 `CLAIM_IN_PROGRESS` 로 거절한다(`PostService.changeStatus`). 화면은 되지 않을 단추를
+ * 그리지 않고(상태 스위치 · 완료로 바꾸기), 수정 화면은 글 종류를 잠근다(받는 쪽이 글 종류로 정해진다 — `Claim.receiverId`).
+ *
+ * `claimStatuses` 는 받은 요청 목록의 상태들. 아직 받지 못했거나 실패했으면 `undefined` — 잠그지 않는다(지금 동작 그대로).
+ * 판정은 서버가 한다. 이것은 UX 다
+ */
+export function isClaimLocked(status: PostStatus, claimStatuses: readonly string[] | undefined): boolean {
+  return status === 'IN_PROGRESS' && (claimStatuses?.includes('APPROVED') ?? false)
+}

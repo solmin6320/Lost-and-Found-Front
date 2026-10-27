@@ -48,7 +48,7 @@ export {
   preparePostImages,
 } from './model/postImages'
 export type { PostImageErrorCode, PostImageExtension } from './model/postImages'
-export { isIrreversibleStatus } from './model/postStatus'
+export { isClaimLocked, isIrreversibleStatus } from './model/postStatus'
 export { toPostId } from './model/postId'
 export {
   clearPostDraft,
