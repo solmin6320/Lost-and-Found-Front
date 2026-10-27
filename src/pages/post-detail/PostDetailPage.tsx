@@ -14,6 +14,15 @@ import {
 } from '@/app/paths'
 import { useAuth } from '@/features/auth'
 import {
+  CLAIMS_ANCHOR_ID,
+  ClaimRequestPanel,
+  OwnerVerifiedNote,
+  POST_CLAIMS_HASH,
+  ReceivedClaims,
+  claimPanelMode,
+  type ClaimViewer,
+} from '@/features/claims'
+import {
   COMMENTS_HEADING_ID,
   CommentEntryButton,
   CommentSection,
@@ -111,7 +120,10 @@ export function PostDetailPage() {
   // 글쓴이일 것이 확실하면 내 글 관리 자리를 미리 잡는다 — 응답 뒤 사진 위에 끼어들어 사진이 밀리지 않게
   const fromMine = readPostDetailEntry(location.state).mineHref !== null
   const sameNickname = auth.status === 'authenticated' && preview !== null && preview.nickname === auth.me.nickname
-  return <PostDetailSkeleton preview={preview} ownerLikely={fromMine || sameNickname} />
+  // 글쓴이가 아닌 것이 확실하면(비로그인 · 다른 닉네임) 확인 요청 칸 자리를 잡는다
+  const notOwner =
+    auth.status === 'anonymous' || (auth.status === 'authenticated' && preview !== null && preview.nickname !== auth.me.nickname)
+  return <PostDetailSkeleton preview={preview} ownerLikely={fromMine || sameNickname} claimLikely={!fromMine && notOwner} />
 }
 
 interface PostDetailProps {
@@ -135,6 +147,10 @@ function PostDetail({ post, claimTitleFocus = false }: PostDetailProps) {
   const viewerId = auth.status === 'authenticated' ? auth.me.id : null
   // 작성자 판정은 회원 id 로. 닉네임은 바뀐다(화면정의서 1.5)
   const isOwner = viewerId !== null && viewerId === post.memberId
+  const claimViewer: ClaimViewer =
+    auth.status === 'unknown' ? 'unknown' : isOwner ? 'owner' : viewerId === null ? 'guest' : 'member'
+  // 글쓴이가 아닌 사람의 확인 요청 칸 — 그릴 것이 있을 때만 제목 아래 칸을 짠다(내 글 관리와 같은 자리)
+  const claimMode = claimPanelMode(post, claimViewer)
   const done = post.status === 'DONE'
   const here = `${location.pathname}${location.search}`
   // 로그인 화면이 돌려줄 이 상세의 진입 상태 — 돌아온 상세의 [목록으로]가 보던 목록으로 간다(API2-2)
@@ -144,7 +160,7 @@ function PostDetail({ post, claimTitleFocus = false }: PostDetailProps) {
 
   // 사용자가 그사이 다른 곳(Tab · 누름)으로 옮겼으면 두고, 아무 데도 없을 때만 제목으로
   useEffect(() => {
-    if (!claimTitleFocus || location.hash === POST_COMMENTS_HASH) return
+    if (!claimTitleFocus || location.hash === POST_COMMENTS_HASH || location.hash === POST_CLAIMS_HASH) return
     const frame = requestAnimationFrame(() => {
       const active = document.activeElement
       if (active && active !== document.body) return
@@ -171,6 +187,22 @@ function PostDetail({ post, claimTitleFocus = false }: PostDetailProps) {
     return () => cancelAnimationFrame(frame)
   }, [location.hash, location.pathname, location.search, location.state, navigate])
 
+  // 확인 요청 칸으로(`#claims`, 문자열 비교) — 알림(요청이 왔다 · 승인 · 거절)과 로그인 뒤 돌아온 주소가 가리킨다.
+  // 칸 제목에 포커스를 두고 조각은 바로 지운다(`#comments` 와 같은 규칙). 칸이 없으면(그사이 끝난 글) 조각만 지운다
+  useEffect(() => {
+    if (location.hash !== POST_CLAIMS_HASH) return
+    const frame = requestAnimationFrame(() => {
+      const target = document.getElementById(CLAIMS_ANCHOR_ID)
+      if (target) {
+        target.scrollIntoView({ block: 'start', behavior: 'instant' })
+        const heading = target.querySelector<HTMLElement>('[data-claims-heading]')
+        ;(heading ?? target).focus({ preventScroll: true })
+      }
+      navigate({ pathname: location.pathname, search: location.search, hash: '' }, { replace: true, state: location.state })
+    })
+    return () => cancelAnimationFrame(frame)
+  }, [location.hash, location.pathname, location.search, location.state, navigate])
+
   // 댓글을 쓰는 도중 로그인이 끊겼다 — 쓰던 글자를 보관했으면 로그인 화면으로(돌아오면 이어서 쓸지 묻는다).
   // 로그인 화면이 이 글을 기록에서 대신한다. 로그인하면 `?redirect=` 로 이 글에 돌아온다
   function handleSessionExpiredWhileWriting(draftSaved: boolean) {
@@ -190,7 +222,7 @@ function PostDetail({ post, claimTitleFocus = false }: PostDetailProps) {
   }
 
   return (
-    <div className={styles.page} data-owner={isOwner || undefined}>
+    <div className={styles.page} data-owner={isOwner || claimMode !== 'none' || undefined}>
       <div className={styles.back}>
         <BackToList />
       </div>
@@ -225,8 +257,20 @@ function PostDetail({ post, claimTitleFocus = false }: PostDetailProps) {
       {isOwner ? (
         <div className={styles.owner}>
           <PostOwnerPanel post={post} editHref={paths.postEdit(post.id)} onDeleted={handleDeleted} />
+          {/* 받은 확인 요청(SCR-12 ②) — 내 글 관리 바로 아래. 상태 · 수정 · 삭제와 같은 "내 글에 할 일" 묶음이다 */}
+          <ReceivedClaims post={post} />
           {/* 시안 자리(개발 모드 `?lab=match-a|b|c` 에서만, 2026-10-19) — 내 분실 글의 매칭 후보 */}
           {post.type === 'LOST' && !done ? <LabSlot name="match" context="detail" source={post} /> : null}
+        </div>
+      ) : claimMode !== 'none' ? (
+        <div className={styles.owner}>
+          <ClaimRequestPanel
+            post={post}
+            mode={claimMode}
+            loginHref={loginPath(`${here}${POST_CLAIMS_HASH}`)}
+            loginState={returnState}
+            myClaimsHref={paths.myClaims}
+          />
         </div>
       ) : null}
 
@@ -257,6 +301,8 @@ function PostDetail({ post, claimTitleFocus = false }: PostDetailProps) {
             <dd>{POST_CATEGORY_LABEL[post.category]}</dd>
           </div>
         </dl>
+
+        <OwnerVerifiedNote ownerVerified={post.ownerVerified} returnRecord={post.returnRecord} />
 
         {/* 사용자 입력 원문 — 텍스트로만. 줄바꿈은 살리고 링크로 바꾸지 않는다(보안명세서 · XSS) */}
         <p className={styles.content}>{post.content}</p>

@@ -33,6 +33,7 @@ describe('제출이 막혔을 때 남은 칸 수(AR-10)', () => {
       location: '강남역',
       lostFoundDate: '2026-10-04',
       content: '검은색',
+      verificationQuestion: '',
     }
     expect(remainingFieldCount(values, TODAY)).toBe(2)
   })

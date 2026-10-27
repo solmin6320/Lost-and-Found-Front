@@ -84,7 +84,7 @@ export function PostCard({
           {post.status === 'OPEN' ? null : (
             <>
               <span className="sr-only">, </span>
-              <StatusBadge status={post.status} surface="photo" />
+              <StatusBadge status={post.status} surface="photo" verified={post.ownerVerified} />
             </>
           )}
         </p>

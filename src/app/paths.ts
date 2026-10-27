@@ -30,6 +30,8 @@ export const paths = {
 
   /** [6.1] 마이페이지 — 내가 쓴 글 */
   myPage: '/me',
+  /** 내가 보낸 주인 확인 요청(SCR-12 ③) — `GET /api/members/me/claims`. 쪽은 `?page=`(1부터) */
+  myClaims: '/me/claims',
   /**
    * 설정 — 화면 모드(누구나) + [3.7] 프로필 · [3.6] 닉네임 · 비밀번호(로그인했을 때만).
    * 비로그인도 화면 모드를 바꿀 수 있어야 해서 `/me` 아래가 아니다
@@ -63,6 +65,12 @@ export const paths = {
  * 돌아갈 곳(`?redirect=`)에 붙어도 되는 조각은 **이것 하나뿐**이다(`safeRedirectPath` 가 문자열로 비교한다)
  */
 export const POST_COMMENTS_HASH = '#comments'
+
+/**
+ * 상세의 확인 요청 칸 조각(SCR-12). 알림(받은 요청 · 승인) · 확인 요청 칸의 로그인 링크가 붙이고, 상세가 받으면 그 칸으로 데려간다.
+ * 돌아갈 곳에 붙어도 되는 둘째 조각이다(`safeRedirectPath`, 문자열 비교)
+ */
+export const POST_CLAIMS_HASH = '#claims'
 
 /**
  * 로그인 화면에 넘기는 안내 한 줄(`navigate(paths.login, { state })`). 로그인 화면이 폼 위에 띄운다(SCR-05).

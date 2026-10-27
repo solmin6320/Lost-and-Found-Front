@@ -1,3 +1,4 @@
+import { ClaimPanelSkeleton } from '@/features/claims'
 import { CommentEntryButton } from '@/features/comments'
 import { PostStatusGuide, PostThumbnail, StatusBadge, TypeBadge, type PostListResponse } from '@/features/posts'
 import { CaretLeft } from '@/shared/ui/icons'
@@ -16,6 +17,11 @@ interface PostDetailSkeletonProps {
   preview?: PostListResponse | null
   /** 글쓴이일 것이 확실하다(내가 쓴 글에서 왔다 · 닉네임이 같다). 내 글 관리 자리를 미리 잡아 사진이 밀리지 않게 */
   ownerLikely?: boolean
+  /**
+   * 글쓴이가 아닐 것이 확실하다(로그인 확인이 끝났고 닉네임이 다르거나 비로그인). 목록 카드의 상태로 확인 요청 칸 자리를 미리 잡는다.
+   * 내가 이미 보낸 요청이 있으면 칸 모양이 달라 조금 움직인다(카드에는 그 정보가 없다)
+   */
+  claimLikely?: boolean
 }
 
 /**
@@ -29,9 +35,10 @@ interface PostDetailSkeletonProps {
  * 문서 맨 앞으로 빠진다. 화면 이동 포커스(RouteFocus)는 진짜 제목을 기다린다. 탭 제목도 진짜 응답 뒤에 바뀐다.
  * 스크린리더에는 "불러오는 중"만 읽힌다(옛 제목을 읽히지 않는다)
  */
-export function PostDetailSkeleton({ preview, ownerLikely = false }: PostDetailSkeletonProps = {}) {
+export function PostDetailSkeleton({ preview, ownerLikely = false, claimLikely = false }: PostDetailSkeletonProps = {}) {
+  const claimSlot = !ownerLikely && claimLikely && preview && preview.status !== 'DONE' ? preview : null
   return (
-    <div className={styles.page} data-owner={ownerLikely || undefined} aria-busy="true">
+    <div className={styles.page} data-owner={ownerLikely || claimSlot !== null || undefined} aria-busy="true">
       <p className="sr-only" role="status">
         글을 불러오는 중이에요
       </p>
@@ -80,6 +87,10 @@ export function PostDetailSkeleton({ preview, ownerLikely = false }: PostDetailS
       {ownerLikely ? (
         <div className={styles.owner}>
           <Skeleton className={styles.skeletonPanel} />
+        </div>
+      ) : claimSlot ? (
+        <div className={styles.owner}>
+          <ClaimPanelSkeleton type={claimSlot.type} status={claimSlot.status} />
         </div>
       ) : null}
       <div className={styles.gallery}>

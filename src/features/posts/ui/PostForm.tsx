@@ -28,6 +28,7 @@ import { TextField } from '@/shared/ui/TextField'
 import {
   POST_CONTENT_MAX_LENGTH,
   POST_LOCATION_MAX_LENGTH,
+  POST_QUESTION_MAX_LENGTH,
   POST_TITLE_MAX_LENGTH,
   type PostCreateRequest,
   type PostImageChange,
@@ -202,6 +203,7 @@ export function PostForm({
   const titleInfo = usePersonalInfoCheck(values.title)
   const locationInfo = usePersonalInfoCheck(values.location)
   const contentInfo = usePersonalInfoCheck(values.content)
+  const questionInfo = usePersonalInfoCheck(values.verificationQuestion)
   const today = useMemo(() => todayIsoDate(), [])
 
   const dirty = !samePostFormValues(values, initialValues) || items.length > 0 || removeExisting
@@ -592,12 +594,39 @@ export function PostForm({
             }}
             hint={
               values.type === 'FOUND'
-                ? '어떤 상태로 어디에 두었는지 적어 주세요. 주인만 알 만한 특징 한두 가지는 적지 말고 남겨 두세요. 진짜 주인인지 물어볼 때 쓸 수 있어요.'
+                ? '어떤 상태로 어디에 두었는지 적어 주세요. 주인만 알 만한 특징 한두 가지는 적지 말고 남겨 두세요. 아래 확인 질문으로 물어볼 수 있어요.'
                 : '색, 브랜드, 흠집, 안에 든 것처럼 사진에 안 보이는 특징을 적어 주세요.'
             }
             // 개인정보 줄은 오류가 떠 있어도 남는다(결과 고지). 한 줄로 줄였다 — 연락처를 적으면 감지 줄이 따로 알린다(SE-3).
             // 빨간 글자 + 경고 세모(본인 피드백 2026-10-07). 막지 않는다
             note={<SafetyNote>전화번호 · 집 주소를 적으면 누구나 봐요.</SafetyNote>}
+          />
+        </div>
+
+        {/* 확인 질문([4.7], 선택) — 확인 요청을 보내는 사람이 이 질문에 답한다. 질문은 누구나 보고, 답은 글쓴이만 본다 */}
+        <div data-field="verificationQuestion">
+          <TextField
+            label="확인 질문 (선택)"
+            name="verificationQuestion"
+            value={values.verificationQuestion}
+            count={{ value: values.verificationQuestion.trim().length, max: POST_QUESTION_MAX_LENGTH }}
+            placeholder={values.type === 'LOST' ? '예: 지갑을 주운 곳 근처에 무엇이 있었나요?' : '예: 지갑 안에 든 카드는 몇 장인가요?'}
+            hint={
+              values.type === 'LOST'
+                ? '주웠다는 사람에게 물어볼 질문이에요. 질문은 누구나 보고, 답은 나만 봐요.'
+                : '주인만 답할 수 있는 것을 물어 주세요. 질문은 누구나 보고, 답은 나만 봐요.'
+            }
+            error={errors.verificationQuestion}
+            announceError={liveField === 'verificationQuestion'}
+            detected={<DetectedLine notice={questionInfo.notice} />}
+            autoComplete="off"
+            enterKeyHint="done"
+            readOnly={readOnly}
+            onChange={(event) => setField('verificationQuestion', event.target.value)}
+            onBlur={() => {
+              checkOnBlur('verificationQuestion')
+              questionInfo.check()
+            }}
           />
         </div>
 

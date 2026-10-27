@@ -8,6 +8,7 @@
  * 백엔드 Enum 에 값이 늘면 여기도 같이 늘려야 한다.
  */
 
+import type { MyClaimSummary, ReturnRecordResponse } from '@/features/claims'
 import type { CommentResponse } from '@/features/comments'
 
 /** 분실 · 습득 */
@@ -52,6 +53,8 @@ export interface PostListResponse {
   createdAt: string
   /** 대표 사진(첫 장) 주소. 사진이 없는 글은 `null` — 카드가 포스터로 채운다 */
   thumbnailUrl: string | null
+  /** 주인 확인 완료 — 받는 쪽이 [받았어요]를 눌러 끝난 글. 옛 서버 응답엔 없을 수 있다 */
+  ownerVerified?: boolean
 }
 
 /**
@@ -143,6 +146,16 @@ export interface PostDetailResponse {
   comments: CommentResponse[]
   /** 댓글 전체 개수. `comments.length` 보다 크면 더 볼 댓글이 있다 */
   totalCommentCount: number
+  /** 글쓴이가 걸어 둔 확인 질문([4.7]). 없으면 `null` — 확인 요청은 답 칸 하나로 보낸다 */
+  verificationQuestion: string | null
+  /** 주인 확인 완료 — 받는 쪽이 [받았어요]를 눌러 끝난 글 */
+  ownerVerified: boolean
+  /** 되찾기 기록. 주인 확인 완료 글에만 있다 */
+  returnRecord: ReturnRecordResponse | null
+  /** 대기 중인 받은 요청 수 — **글쓴이에게만** 온다(다른 사람은 `null`) */
+  pendingClaimCount: number | null
+  /** 내가 이 글에 보낸 요청 — 글쓴이가 아닌 로그인 회원이 보냈을 때만 온다 */
+  myClaim: MyClaimSummary | null
 }
 
 /** [4.6] `PATCH /api/posts/{id}/status` 본문(JSON). 원본 : `dto/request/PostStatusUpdateRequest` */
@@ -173,6 +186,8 @@ export const POST_TITLE_MAX_LENGTH = 100
 export const POST_CONTENT_MAX_LENGTH = 5000
 /** 장소 최대 길이. 원본 : `PostCreateRequest.location` `@Size(max = 100)` */
 export const POST_LOCATION_MAX_LENGTH = 100
+/** 확인 질문 최대 길이. 원본 : `PostCreateRequest.verificationQuestion` `@Size(max = 200)` */
+export const POST_QUESTION_MAX_LENGTH = 200
 
 /**
  * [4.1] 등록 본문(폼 필드). 원본 : `dto/request/PostCreateRequest`
@@ -190,6 +205,11 @@ export interface PostCreateRequest {
   location: string
   /** 분실·습득일 `"yyyy-MM-dd"`. 오늘 이후면 400(`@PastOrPresent` — "오늘"은 서버 시계 기준) */
   lostFoundDate: string
+  /**
+   * 확인 질문(선택, 0~200자). 확인 요청을 보내는 사람이 이 질문에 답한다.
+   * **수정 때도 늘 보낸다** — 빠지면 서버가 질문을 지운다(빈 값 = 지움, 서버가 `null` 로 저장)
+   */
+  verificationQuestion: string
 }
 
 /**

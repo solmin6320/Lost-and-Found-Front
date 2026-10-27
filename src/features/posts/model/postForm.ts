@@ -5,6 +5,7 @@ import { POST_DRAFT_PREFIX } from '@/shared/lib/writeDrafts'
 import {
   POST_CONTENT_MAX_LENGTH,
   POST_LOCATION_MAX_LENGTH,
+  POST_QUESTION_MAX_LENGTH,
   POST_TITLE_MAX_LENGTH,
   isPostCategory,
   isPostType,
@@ -18,7 +19,7 @@ import { lostFoundDateLabel } from './labels'
 /*
  * 등록 · 수정 폼(SCR-02 · SCR-04)의 값과 검사. React 를 모른다.
  *
- * 필수는 여섯 칸이다(유형 · 제목 · 종류 · 장소 · 날짜 · 설명). 사진만 선택이다. 필수를 늘리지 않는다.
+ * 필수는 여섯 칸이다(유형 · 제목 · 종류 · 장소 · 날짜 · 설명). 사진 · 확인 질문만 선택이다. 필수를 늘리지 않는다.
  * 검사 문장은 **화면의 이름**으로 쓴다(제목 · 종류 · 장소 · 분실일 · 설명). 서버 문장("카테고리는 필수입니다",
  * "본문은 …")의 낱말은 화면에 없는 말이라 그대로 옮기지 않았다. 여기서 먼저 막으므로 서버 문장은 보통 오지 않는다.
  * 서버가 막은 경우(`INVALID_INPUT`)는 서버 문장을 그대로 그 칸 아래에 둔다(`fieldOfServerMessage`).
@@ -33,6 +34,8 @@ export interface PostFormValues {
   /** `yyyy-MM-dd`. 기본값은 오늘 */
   lostFoundDate: string
   content: string
+  /** 확인 질문 — 선택. 비워 두면 질문 없이 답 칸 하나로 요청을 받는다 */
+  verificationQuestion: string
 }
 
 export type PostFormField = keyof PostFormValues
@@ -45,12 +48,13 @@ export const POST_FORM_FIELDS: readonly PostFormField[] = [
   'location',
   'lostFoundDate',
   'content',
+  'verificationQuestion',
 ]
 
 export type PostFormErrors = Partial<Record<PostFormField, string>>
 
 export function emptyPostFormValues(type: PostType | null = null, today = todayIsoDate()): PostFormValues {
-  return { type, title: '', category: null, location: '', lostFoundDate: today, content: '' }
+  return { type, title: '', category: null, location: '', lostFoundDate: today, content: '', verificationQuestion: '' }
 }
 
 /** 수정 화면의 처음 값 — 지금 글 그대로 */
@@ -62,6 +66,7 @@ export function postFormValuesOf(post: PostDetailResponse): PostFormValues {
     location: post.location,
     lostFoundDate: post.lostFoundDate,
     content: post.content,
+    verificationQuestion: post.verificationQuestion ?? '',
   }
 }
 
@@ -101,6 +106,11 @@ export function checkPostField(field: PostFormField, values: PostFormValues, tod
     }
     case 'content':
       return checkText(values.content, '설명', POST_CONTENT_MAX_LENGTH)
+    case 'verificationQuestion':
+      // 선택 칸 — 길이만 본다
+      return values.verificationQuestion.trim().length > POST_QUESTION_MAX_LENGTH
+        ? `확인 질문은 ${POST_QUESTION_MAX_LENGTH}자까지 쓸 수 있어요`
+        : undefined
   }
 }
 
@@ -137,6 +147,7 @@ export function toPostRequest(values: PostFormValues): PostCreateRequest {
     category: values.category,
     location: values.location.trim(),
     lostFoundDate: values.lostFoundDate,
+    verificationQuestion: values.verificationQuestion.trim(),
   }
 }
 
@@ -151,6 +162,7 @@ export function fieldOfServerMessage(message: string): PostFormField | null {
   if (message.startsWith('카테고리')) return 'category'
   if (message.startsWith('장소')) return 'location'
   if (message.startsWith('분실')) return 'lostFoundDate'
+  if (message.startsWith('확인 질문')) return 'verificationQuestion'
   return null
 }
 
@@ -251,6 +263,7 @@ function parseDraft(raw: string): PostDraft | null {
         location: text(values.location),
         lostFoundDate: isIsoDate(values.lostFoundDate) ? values.lostFoundDate : todayIsoDate(),
         content: text(values.content),
+        verificationQuestion: text(values.verificationQuestion),
       },
     }
   } catch {
