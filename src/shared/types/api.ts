@@ -47,6 +47,13 @@ export type ErrorCode =
   | 'EXCEEDED_IMAGE_COUNT' // 400 — 빈 파트를 뺀 사진이 5장 초과
   // 알림
   | 'NOTIFICATION_NOT_FOUND' // 404 — 없는 알림 · 남의 알림을 읽음으로 바꾸려 함
+  // 주인 확인 요청([4.7] [4.8])
+  | 'CLAIM_NOT_FOUND' // 404 — 없는 요청
+  | 'CLAIM_OWN_POST' // 400 — 내 글에 요청
+  | 'CLAIM_NOT_ACCEPTING' // 409 — 게시중이 아닌 글에 요청 · 승인
+  | 'DUPLICATE_CLAIM' // 409 — 이 글에 이미 요청을 보냄(거절돼도 다시 못 보낸다)
+  | 'INVALID_CLAIM_STATUS' // 409 — 지금 요청 상태에서 할 수 없는 동작(그사이 바뀜)
+  | 'CLAIM_IN_PROGRESS' // 409 — 승인된 요청이 있어 글 상태를 직접 바꿀 수 없음
   // 공통
   | 'INVALID_INPUT' // 400
   | 'RESOURCE_NOT_FOUND' // 404

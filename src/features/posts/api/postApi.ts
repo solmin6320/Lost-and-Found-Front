@@ -172,6 +172,7 @@ function appendPostFields(form: FormData, body: PostCreateRequest): void {
   form.append('category', body.category)
   form.append('location', body.location)
   form.append('lostFoundDate', body.lostFoundDate)
+  form.append('verificationQuestion', body.verificationQuestion)
 }
 
 /**

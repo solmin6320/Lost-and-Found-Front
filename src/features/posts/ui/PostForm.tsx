@@ -28,6 +28,7 @@ import { TextField } from '@/shared/ui/TextField'
 import {
   POST_CONTENT_MAX_LENGTH,
   POST_LOCATION_MAX_LENGTH,
+  POST_QUESTION_MAX_LENGTH,
   POST_TITLE_MAX_LENGTH,
   type PostCreateRequest,
   type PostImageChange,
@@ -598,6 +599,29 @@ export function PostForm({
             // 개인정보 줄은 오류가 떠 있어도 남는다(결과 고지). 한 줄로 줄였다 — 연락처를 적으면 감지 줄이 따로 알린다(SE-3).
             // 빨간 글자 + 경고 세모(본인 피드백 2026-10-07). 막지 않는다
             note={<SafetyNote>전화번호 · 집 주소를 적으면 누구나 봐요.</SafetyNote>}
+          />
+        </div>
+
+        {/* 확인 질문([4.7], 선택) — 확인 요청을 보내는 사람이 이 질문에 답한다. 질문은 누구나 보고, 답은 글쓴이만 본다 */}
+        <div data-field="verificationQuestion">
+          <TextField
+            label="확인 질문 (선택)"
+            name="verificationQuestion"
+            value={values.verificationQuestion}
+            count={{ value: values.verificationQuestion.trim().length, max: POST_QUESTION_MAX_LENGTH }}
+            placeholder={values.type === 'LOST' ? '예: 지갑을 주운 곳 근처에 무엇이 있었나요?' : '예: 지갑 안에 든 카드는 몇 장인가요?'}
+            hint={
+              values.type === 'LOST'
+                ? '주웠다고 연락한 사람에게 물어볼 것이에요. 질문은 누구나 보고, 답은 나만 봐요.'
+                : '주인만 답할 수 있는 것을 물어 주세요. 질문은 누구나 보고, 답은 나만 봐요. 답이 드러나지 않게 적어 주세요.'
+            }
+            error={errors.verificationQuestion}
+            announceError={liveField === 'verificationQuestion'}
+            autoComplete="off"
+            enterKeyHint="done"
+            readOnly={readOnly}
+            onChange={(event) => setField('verificationQuestion', event.target.value)}
+            onBlur={() => checkOnBlur('verificationQuestion')}
           />
         </div>
 
