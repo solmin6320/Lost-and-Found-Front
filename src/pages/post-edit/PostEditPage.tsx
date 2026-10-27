@@ -1,14 +1,17 @@
+import { useQuery } from '@tanstack/react-query'
 import { useEffect, useState, type ReactNode } from 'react'
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
 
 import { paths } from '@/app/paths'
 import { usePostWritePage } from '@/app/usePostWritePage'
+import { receivedClaimsQueryOptions } from '@/features/claims'
 import {
   MissingPost,
   PostForm,
   PostFormSkeleton,
   PostWriteHeader,
   postDraftKey,
+  isClaimLocked,
   postFormValuesOf,
   toPostId,
   usePostDetail,
@@ -35,6 +38,7 @@ const FORBIDDEN_MESSAGE = '본인이 작성한 게시글, 댓글만 처리할 �
  *   오류 : message + [다시 시도] + [글로 돌아가기](다시 시도해도 안 되면 나갈 문 — 막다른 길을 만들지 않는다)
  * - 저장 중 403 → 상세 + message, 404(다른 기기에서 지움) → 목록 + message
  * - 성공(200) → 상세로 기록을 바꿔 간다 + 짧은 알림. 상세 캐시는 `useUpdatePost` 가 응답으로 고친다
+ * - 승인한 확인 요청이 있으면(연락중 + 받은 요청에 승인함) 글 종류 칸을 잠그고 까닭 한 줄(QA-P-C5). 받기 전 · 실패면 잠그지 않는다
  */
 export function PostEditPage() {
   const postId = toPostId(useParams().postId)
@@ -95,6 +99,7 @@ export function PostEditPage() {
     <EditForm
       key={post.id}
       post={post}
+      status={detail.data?.status ?? post.status}
       memberId={page.memberId}
       signedIn={page.signedIn}
       intro={<PostWriteHeader title="글 수정" lead="사진만 빼고 모두 채워져 있어야 저장돼요." />}
@@ -106,6 +111,8 @@ export function PostEditPage() {
 
 interface EditFormProps {
   post: PostDetailResponse
+  /** 지금 상태 — 붙잡아 둔 글(`post`)보다 새로 받은 상세를 먼저 본다(승인 잠금 판정) */
+  status: PostDetailResponse['status']
   memberId: number
   signedIn: boolean
   intro: ReactNode
@@ -114,10 +121,16 @@ interface EditFormProps {
   loginHref: string
 }
 
-function EditForm({ post, memberId, signedIn, intro, onSessionLost, loginHref }: EditFormProps) {
+/** 승인 중 글 종류 칸 아래 한 줄 */
+const TYPE_LOCKED_REASON = '승인한 확인 요청이 있어 분실 · 습득은 바꿀 수 없어요.'
+
+function EditForm({ post, status, memberId, signedIn, intro, onSessionLost, loginHref }: EditFormProps) {
   const update = useUpdatePost(post.id)
   // 처음 값은 이 화면에 들어온 순간의 글 그대로. 뒤에서 다시 받아도 쓰던 칸을 덮지 않는다
   const [initialValues] = useState(() => postFormValuesOf(post))
+  // 상세의 받은 확인 요청 칸과 같은 캐시. 받는 쪽이 글 종류로 정해져 승인 중에는 종류를 잠근다
+  const claims = useQuery(receivedClaimsQueryOptions(post.id))
+  const typeLocked = isClaimLocked(status, claims.data?.map((claim) => claim.status))
 
   return (
     <PostForm
@@ -155,6 +168,7 @@ function EditForm({ post, memberId, signedIn, intro, onSessionLost, loginHref }:
       onSessionLost={onSessionLost}
       loginHref={loginHref}
       cancelTo={paths.postDetail(post.id)}
+      typeLockedReason={typeLocked ? TYPE_LOCKED_REASON : undefined}
     />
   )
 }

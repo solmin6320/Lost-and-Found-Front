@@ -96,6 +96,11 @@ interface PostFormProps {
   cancelTo: To
   /** 다른 창에서 로그아웃돼 이 화면에 머물 때 [로그인]이 갈 곳(돌아올 곳을 싣는다) */
   loginHref: To
+  /**
+   * 수정 — 글 종류를 바꿀 수 없는 까닭(승인한 확인 요청이 있다, QA-P-C5). 있으면 종류 칸을 잠그고 처음 종류로 되돌린다
+   * (받는 쪽이 글 종류로 정해져 진행 중에 바뀌면 [받았어요]가 건넨 사람에게 넘어간다)
+   */
+  typeLockedReason?: string
 }
 
 /** 앱 안 이동을 막을 때의 문장 — 레이아웃의 막는 곳 하나가 띄운다(쓰던 칸 등록부). 렌더마다 새로 만들지 않게 밖에 둔다 */
@@ -167,6 +172,7 @@ export function PostForm({
   onSessionLost,
   cancelTo,
   loginHref,
+  typeLockedReason,
 }: PostFormProps) {
   const copy = COPY[mode]
   const navigate = useNavigate()
@@ -205,6 +211,12 @@ export function PostForm({
   const contentInfo = usePersonalInfoCheck(values.content)
   const questionInfo = usePersonalInfoCheck(values.verificationQuestion)
   const today = useMemo(() => todayIsoDate(), [])
+
+  // 잠금이 늦게 섰다(받은 요청을 받기 전에 종류를 바꿨다) — 처음 종류로 되돌린다. 보내는 값과 잠긴 화면이 어긋나지 않게
+  const typeLocked = Boolean(typeLockedReason)
+  if (typeLocked && values.type !== initialValues.type) {
+    setValues({ ...values, type: initialValues.type })
+  }
 
   const dirty = !samePostFormValues(values, initialValues) || items.length > 0 || removeExisting
   useDirtyField(dirty || pending, LEAVE_COPY[mode])
@@ -459,6 +471,7 @@ export function PostForm({
           <PostTypeChoice
             value={values.type}
             readOnly={readOnly}
+            lockedReason={typeLockedReason}
             error={errors.type}
             onChange={(type) => setField('type', type)}
           />

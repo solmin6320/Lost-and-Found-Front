@@ -109,6 +109,11 @@
   .choice:hover {
     background-color: var(--choice-face-hover);
   }
+
+  /* 잠긴 칸(보내는 중 · 승인 잠금)은 누를 수 있는 것처럼 밝아지지 않는다 */
+  .choice:has(.input[aria-disabled='true']):hover {
+    background-color: var(--choice-face);
+  }
 }
 
 .input {
@@ -207,6 +212,24 @@
   font-size: var(--text-sm);
   line-height: var(--leading-snug);
   word-break: keep-all;
+}
+
+/* 바꿀 수 없는 까닭(승인 잠금, QA-P-C5) — 도움말 자리에 같은 크기로 선다. 오류가 아니라 빨강 아님, 자물쇠 + 본문색 */
+.locked {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-1);
+  color: var(--text-body);
+  font-size: var(--text-sm);
+  line-height: var(--leading-snug);
+  word-break: keep-all;
+}
+
+.locked svg {
+  flex: none;
+  width: var(--icon-sm);
+  height: var(--icon-sm);
+  margin-top: calc((1lh - var(--icon-sm)) / 2);
 }
 
 @keyframes error-in {
