@@ -1,7 +1,6 @@
 import type { MouseEvent } from 'react'
 import { Link } from 'react-router-dom'
 
-import { paths } from '@/app/paths'
 import { getErrorMessage } from '@/shared/lib/http'
 import { Button } from '@/shared/ui/Button'
 import { Bell, HandHeart, HandWaving, ListMagnifyingGlass, XCircle, type Icon } from '@/shared/ui/icons'
@@ -15,6 +14,7 @@ import {
   notificationTime,
   type NotificationKind,
 } from '../model/notificationCopy'
+import { notificationHref } from '../model/notificationLink'
 import { useNotificationList } from '../model/notificationQueries'
 import styles from './NotificationPanel.module.css'
 
@@ -135,6 +135,7 @@ function NotificationRow({
 }) {
   const KindIcon = KIND_ICON[notificationKind(n.type)]
   const segments = notificationSentence(n)
+  const href = notificationHref(n)
   const sentence = (
     <>
       {n.read ? null : <span className="sr-only">안 읽음. </span>}
@@ -147,11 +148,11 @@ function NotificationRow({
       <KindIcon className={styles.kind} />
       <span className={styles.body}>
         {/*
-          가는 곳은 그 글 상세. 확인 요청 화면(SCR-12 — 받은 요청 묶음 · 내 요청)이 생기면 그 자리로 스크롤한다(화면정의서 SCR-10).
-          글이 없는 알림(앞으로 생길 종류)은 링크가 아니다
+          가는 곳은 종류마다 다음 행동이 있는 자리(`notificationHref`, 화면정의서 SCR-10) — 요청 · 승인은 그 글 상세의 확인 요청 칸(`#claims`),
+          거절은 보낸 확인 요청(`/me/claims`). 글이 없는 알림(앞으로 생길 종류)은 링크가 아니다
         */}
-        {n.postId !== null ? (
-          <Link className={styles.link} to={paths.postDetail(n.postId)} onClick={(event) => onOpen(n, event)}>
+        {href !== null ? (
+          <Link className={styles.link} to={href} onClick={(event) => onOpen(n, event)}>
             {sentence}
           </Link>
         ) : (

@@ -1,0 +1,354 @@
+/*
+ * SCR-12 ③ 보낸 확인 요청 — 내가 쓴 글(SCR-07)과 같은 머리 · 페이지 언어.
+ *   ① 제목 + 한 줄   ② 건수 줄   ③ 요청 칸 목록 · 빈 상태   ④ 페이지
+ * 응답에 사진이 없어 사진 피드가 아니라 종이 칸 목록이다. 넓으면 두 줄(컨테이너 질의).
+ * 색은 의미 토큰만 — 유형 이름표(분실 · 습득)와 승인된 요청의 잉크 채움 하나. 빨강 없음(오류 상태만 전역 규칙)
+ */
+
+.page {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.head {
+  display: grid;
+  gap: var(--space-1-5);
+  margin-bottom: var(--space-5);
+}
+
+.title {
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-extrabold);
+  line-height: var(--leading-tight);
+  letter-spacing: var(--tracking-tight);
+}
+
+.hint {
+  max-width: var(--measure);
+  color: var(--text-body);
+  font-size: var(--text-sm);
+  line-height: var(--leading-snug);
+  word-break: keep-all;
+}
+
+@media (min-width: 40rem) {
+  .title {
+    font-size: var(--text-3xl);
+  }
+
+  .head {
+    margin-bottom: var(--space-6);
+  }
+}
+
+/* 건수 줄 — 이 구역의 이름 · 쪽을 넘긴 뒤 포커스 자리. 높이는 늘 한 줄 */
+.count {
+  /*
+   * 받기 전(글자 없음) · 오류에도 한 줄 높이를 지킨다 — 비면 목록이 20px 올라갔다가 내려왔다.
+   * 높이는 글자 자리표시(0.8em + 위아래 0.35em)와 같은 1.5em, 자리표시의 바깥 여백이 줄 밖으로 새지 않게 flow-root(새면 5px 밀렸다)
+   */
+  display: flow-root;
+  min-height: 1.5em;
+  margin-bottom: var(--space-3);
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+  line-height: var(--leading-snug);
+  scroll-margin-top: calc(var(--header-h) + var(--space-4));
+}
+
+.count b {
+  color: var(--text-strong);
+  font-weight: var(--weight-bold);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 보낸 요청이 없을 때 — 자리만 */
+.count[data-idle] {
+  visibility: hidden;
+}
+
+/* ── 요청 칸 목록 ── */
+
+.list {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-3);
+  container: claim-list / inline-size;
+  transition: opacity var(--duration-base) var(--ease-out);
+}
+
+@media (min-width: 52rem) {
+  .list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-4);
+  }
+}
+
+/* 쪽을 바꿔 불러오는 동안 직전 쪽의 요청 */
+.list[data-stale] {
+  opacity: 0.45;
+}
+
+/* 넓을 때 한 줄의 두 칸은 높이를 맞추고, `내가 보낸 답` 줄은 칸 바닥에 둔다(두 칸의 같은 줄이 같은 높이에) */
+.list > li {
+  display: grid;
+}
+
+.item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-4) var(--space-1);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background-color: var(--surface);
+}
+
+/* 할 일이 있는 칸(승인됨) — 테두리 한 단계 진하게. 상태 줄의 잉크 채움과 함께 모양으로도 갈린다 */
+.item[data-tone='act'] {
+  border-color: var(--border-hover);
+}
+
+/* 위 — 이름표 · 보낸 날 · 제목. 통째로 상세 링크(늘인 ::after) */
+.top {
+  position: relative;
+  display: grid;
+  gap: var(--space-2);
+  border-radius: var(--radius-sm);
+}
+
+.top:has(.link:focus-visible) {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 4px;
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1-5);
+  min-height: 1.375rem;
+}
+
+.sent {
+  margin-left: auto;
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+  line-height: var(--leading-snug);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.postTitle {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  font-size: var(--text-base);
+  font-weight: var(--weight-bold);
+  line-height: var(--leading-snug);
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+@container claim-list (width >= 30rem) {
+  .postTitle {
+    font-size: var(--text-lg);
+  }
+}
+
+.link {
+  color: var(--text-strong);
+  text-decoration: none;
+}
+
+.link::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+}
+
+.link:focus-visible {
+  outline: none;
+}
+
+@media (hover: hover) {
+  .top:hover .link {
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+    text-decoration-thickness: 1px;
+  }
+}
+
+/* 아래 — 내 요청 상태 + 다음 행동 한 줄. 위와 가는 선으로 가른다(근접성 : 글 정보 / 내 요청) */
+.state {
+  display: grid;
+  gap: var(--space-1);
+  padding-top: var(--space-3);
+  border-top: var(--hairline);
+}
+
+.claimStatus {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-2);
+  font-size: var(--text-sm);
+  line-height: var(--leading-snug);
+}
+
+.statusMark {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-height: 1.625rem;
+  font-weight: var(--weight-bold);
+}
+
+.statusIcon {
+  flex: none;
+  width: var(--icon-sm);
+  height: var(--icon-sm);
+}
+
+.claimStatus[data-tone='wait'] .statusMark {
+  color: var(--text-body);
+}
+
+/* 이 화면에서 튀는 것은 이것 하나 — 잉크를 채운 이름표 */
+.claimStatus[data-tone='act'] .statusMark {
+  padding-inline: var(--space-2);
+  border-radius: var(--radius-xs);
+  background-color: var(--action);
+  color: var(--on-action);
+}
+
+.claimStatus[data-tone='closed'] .statusMark {
+  color: var(--text-muted);
+}
+
+.claimStatus[data-tone='done'] .statusMark {
+  color: var(--text-strong);
+}
+
+.settled {
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+.next {
+  color: var(--text-body);
+  font-size: var(--text-sm);
+  line-height: var(--leading-snug);
+  word-break: keep-all;
+}
+
+/* 접은 내 답 — 누르는 줄 44px. 펼치면 질문 · 답(글자만) */
+.answer {
+  margin-top: auto;
+  margin-inline: calc(-1 * var(--space-2));
+}
+
+.summary {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-height: var(--tap-min);
+  padding-inline: var(--space-2);
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  cursor: pointer;
+  list-style: none;
+}
+
+.summary::-webkit-details-marker {
+  display: none;
+}
+
+@media (hover: hover) {
+  .summary:hover {
+    color: var(--text-strong);
+  }
+}
+
+.caret {
+  width: var(--icon-xs);
+  height: var(--icon-xs);
+  transition: transform var(--duration-fast) var(--ease-out);
+}
+
+.answer[open] .caret {
+  transform: rotate(180deg);
+}
+
+.qa {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0 var(--space-2) var(--space-3);
+  padding: var(--space-3);
+  border-radius: var(--radius-sm);
+  background-color: var(--surface-sunken);
+}
+
+.qa dt {
+  margin-bottom: var(--space-0-5);
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+}
+
+.qa dd {
+  color: var(--text-strong);
+  font-size: var(--text-base);
+  line-height: var(--leading-normal);
+  white-space: pre-wrap;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+/* 자리표시 — 좁은 칸의 둘째 줄(다음 행동 문장이 두 줄이 되는 폭에서만) */
+.narrowLine {
+  display: block;
+}
+
+@container claim-list (width >= 30rem) {
+  .narrowLine {
+    display: none;
+  }
+}
+
+/* 자리표시 — 이름표 크기 */
+.badgeSkeleton {
+  width: 2.5rem;
+  height: 1.375rem;
+  border-radius: var(--radius-xs);
+}
+
+/* 비어 있음 · 오류 — 내가 쓴 글과 같은 옅은 면 */
+.stateBox {
+  border-radius: var(--radius-md);
+  background-color: var(--surface-sunken);
+  animation: appear var(--duration-base) var(--ease-out);
+}
+
+@keyframes appear {
+  from {
+    opacity: 0;
+  }
+}
+
+.pagination {
+  margin-top: var(--space-10);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .list,
+  .caret,
+  .stateBox {
+    transition: none;
+    animation: none;
+  }
+}
