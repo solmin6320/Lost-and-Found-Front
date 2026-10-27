@@ -1,0 +1,374 @@
+/*
+ * 주인 확인 요청(SCR-12) — 상세 안의 두 칸과 주인 확인 완료 표시.
+ * 면 · 간격 언어는 내 글 관리(`PostOwnerPanel`)를 따른다 : 옅은 면 한 장(`--surface-sunken`) · 안쪽 20px · 묶음 안 8 ~ 12px < 묶음 사이 24px.
+ * 받은 요청 한 건은 그 면 위의 종이 상자(내 글 관리의 두 칸 스위치가 종이 위에 서는 것과 같은 층).
+ * 새 색을 만들지 않는다(의미 토큰만). 빨강은 오류 문장 · 개인정보 줄에만 — 승인 · 거절 · 받았어요는 빨강이 아니다
+ */
+
+.panel {
+  display: grid;
+  gap: var(--space-4);
+  padding: var(--space-5);
+  border-radius: var(--radius-md);
+  background-color: var(--surface-sunken);
+  scroll-margin-top: calc(var(--header-h) + var(--space-4));
+}
+
+.head {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.heading {
+  text-wrap: balance;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-1-5);
+  font-size: var(--text-base);
+  font-weight: var(--weight-extrabold);
+  line-height: var(--leading-snug);
+  word-break: keep-all;
+}
+
+.heading:focus {
+  outline: none;
+}
+
+/* 제목 옆 대기 수 — 숫자 타일이 아니라 제목에 붙는 글자 하나(댓글 N 과 같은 말투) */
+.count {
+  color: var(--text-body);
+  font-weight: var(--weight-bold);
+  font-variant-numeric: tabular-nums;
+}
+
+.lead {
+  max-width: var(--measure);
+  color: var(--text-body);
+  font-size: var(--text-sm);
+  line-height: var(--leading-snug);
+  word-break: keep-all;
+}
+
+.muted {
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+  line-height: var(--leading-snug);
+  word-break: keep-all;
+}
+
+/* ── 버튼 줄 — 누르는 면 사이 16px(피츠 · 되돌릴 수 없는 것과 자주 쓰는 것을 떼어 둔다) ── */
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-4);
+}
+
+/* ── 확인 질문 — 글쓴이가 건 말. 이름표(작게) + 질문(굵게) 두 줄. 상자로 감싸지 않는다(면 안의 면을 만들지 않는다) ── */
+
+.question {
+  display: grid;
+  gap: var(--space-0-5);
+}
+
+.questionLabel {
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  line-height: var(--leading-snug);
+}
+
+.questionText {
+  color: var(--text-strong);
+  font-size: var(--text-base);
+  font-weight: var(--weight-semibold);
+  line-height: var(--leading-snug);
+  white-space: pre-wrap;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+.form {
+  display: grid;
+  gap: var(--space-4);
+}
+
+/* 펼친 폼이 나타날 때 — 제자리에서 옅게(움직임은 opacity 만) */
+.form,
+.status {
+  composes: appear from '../../../shared/styles/motion.module.css';
+}
+
+/* ── 상태 한 줄(내 요청) ── 아이콘 하나 + 지금 상태 문장, 다음 할 일은 한 단계 흐리게 */
+
+.status {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.statusLine {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-1-5);
+  color: var(--text-strong);
+  font-size: var(--text-base);
+  font-weight: var(--weight-semibold);
+  line-height: var(--leading-snug);
+  word-break: keep-all;
+}
+
+.statusLine:focus {
+  outline: none;
+}
+
+.statusLine svg,
+.quiet svg,
+.error svg,
+.verifiedTitle svg {
+  flex: none;
+  width: var(--icon-sm);
+  height: var(--icon-sm);
+  margin-top: calc((1lh - var(--icon-sm)) / 2);
+}
+
+.statusNext {
+  padding-left: calc(var(--icon-sm) + var(--space-1-5));
+  color: var(--text-body);
+  font-size: var(--text-sm);
+  line-height: var(--leading-snug);
+  word-break: keep-all;
+}
+
+/* 내가 보낸 요청 보기 — 글자 링크. 누르는 면은 44px 높이로 */
+.textLink {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  justify-self: start;
+  min-height: var(--tap-min);
+  margin-block: calc(var(--space-2) * -1);
+  color: var(--text-body);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.textLink svg {
+  width: var(--icon-xs);
+  height: var(--icon-xs);
+}
+
+@media (hover: hover) {
+  .textLink:hover {
+    color: var(--text-strong);
+  }
+}
+
+/* 연락중 글 — 면 없이 흐린 한 줄. 할 수 있는 일이 없어 크게 그리지 않는다 */
+.quiet {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-1-5);
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+  line-height: var(--leading-snug);
+  word-break: keep-all;
+  scroll-margin-top: calc(var(--header-h) + var(--space-4));
+}
+
+.quietWrap {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.error {
+  composes: appear from '../../../shared/styles/motion.module.css';
+
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-1);
+  color: var(--error-text);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  line-height: var(--leading-snug);
+  word-break: keep-all;
+}
+
+.errorBlock {
+  display: grid;
+  justify-items: start;
+  gap: var(--space-3);
+}
+
+/* ── 받은 요청 목록 ── */
+
+.list {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/*
+ * 요청 한 건 — 상자를 겹치지 않고(면 안의 카드 금지) 가는 선 하나로 건을 가른다. 건 안 12px < 건 사이 32px(위아래 16px씩)
+ */
+.item {
+  display: grid;
+  gap: var(--space-3);
+  min-width: 0;
+  padding-block: var(--space-4);
+  border-top: var(--hairline);
+}
+
+.item:first-child {
+  padding-top: 0;
+  border-top: 0;
+}
+
+.item:nth-last-child(1 of .item) {
+  padding-bottom: 0;
+}
+
+.itemHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-2);
+  min-width: 0;
+}
+
+.who {
+  min-width: 0;
+  color: var(--text-strong);
+  font-size: var(--text-base);
+  font-weight: var(--weight-bold);
+  overflow-wrap: anywhere;
+}
+
+.when {
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 상태 이름표 — 상태 축은 외곽선(배지 체계). 색 없이 글자로 */
+.state {
+  display: inline-flex;
+  align-items: center;
+  height: 1.375rem;
+  margin-left: auto;
+  padding-inline: var(--space-2);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-xs);
+  color: var(--text-strong);
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-bold);
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.state[data-status='PENDING'] {
+  border-style: dashed;
+}
+
+/* 승인함 — 테 두 겹(채우지 않는다 : 이 칸에서 잉크 채움은 다음 행동 단추 하나뿐) */
+.state[data-status='APPROVED'] {
+  box-shadow: inset 0 0 0 1px var(--border-strong);
+}
+
+.qa {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+}
+
+.qa > div {
+  display: grid;
+  gap: var(--space-0-5);
+  min-width: 0;
+}
+
+.qa dt {
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  line-height: var(--leading-snug);
+}
+
+.qa dd {
+  min-width: 0;
+  margin: 0;
+  color: var(--text-body);
+  font-size: var(--text-sm);
+  line-height: var(--leading-snug);
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+/* 답 — 사용자 입력 원문. 텍스트로만, 줄바꿈을 살린다 */
+.qa .answer {
+  color: var(--text-strong);
+  font-size: var(--text-base);
+  line-height: var(--leading-normal);
+  white-space: pre-wrap;
+}
+
+.itemNote {
+  color: var(--text-body);
+  font-size: var(--text-sm);
+  line-height: var(--leading-snug);
+  word-break: keep-all;
+}
+
+.skeletonItem {
+  display: grid;
+  gap: var(--space-3);
+}
+
+/* ── 주인 확인 완료 — 상세 정보 칸 ── */
+
+.verified {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-4) var(--space-5);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+}
+
+.verifiedTitle {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-1-5);
+  color: var(--text-strong);
+  font-size: var(--text-base);
+  font-weight: var(--weight-extrabold);
+  line-height: var(--leading-snug);
+}
+
+.record {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-5);
+  margin: 0;
+  font-size: var(--text-sm);
+  line-height: var(--leading-snug);
+}
+
+.record > div {
+  display: flex;
+  gap: var(--space-1-5);
+}
+
+.record dt {
+  color: var(--text-muted);
+}
+
+.record dd {
+  margin: 0;
+  color: var(--text-body);
+  font-weight: var(--weight-semibold);
+  font-variant-numeric: tabular-nums;
+}
