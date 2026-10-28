@@ -132,6 +132,11 @@ function EditForm({ post, status, memberId, signedIn, intro, onSessionLost, logi
   const claims = useQuery(receivedClaimsQueryOptions(post.id))
   const typeLocked = isClaimLocked(status, claims.data?.map((claim) => claim.status))
 
+  // 연락중 글은 받은 요청을 받을 때까지 폼 모양 스켈레톤 — 잠금이 폼을 그린 뒤에 서면 종류 칸 아래 줄이 바뀌며 흔들리고,
+  // 크롬이 그 칸(컨테이너 질의) 글자를 다시 배치하지 않아 칸 이름이 사라졌다(2026-10-28 headless 실측). 게시중 · 완료는 잠글 일이 없어 기다리지 않는다.
+  // 실패하면 기다리지 않고 잠그지 않는다(지금 동작 그대로)
+  if (status === 'IN_PROGRESS' && claims.isPending) return <PostFormSkeleton label="고칠 글을 불러오는 중이에요" />
+
   return (
     <PostForm
       mode="edit"
