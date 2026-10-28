@@ -63,13 +63,10 @@ const CONTACT_TIP: Record<PostType, string> = {
 }
 
 /**
- * 승인한 확인 요청이 있을 때 상태 줄 대신 서는 한 줄(QA-P-C4). 누가 무엇을 누르면 완료가 되는지 — 받는 쪽은 글 종류로 정해진다
- * (`isReceiver` — 습득 글은 요청한 분, 분실 글은 나). 뒤 문장은 다시 직접 바꾸는 길(승인 취소 → 글이 게시중으로 돌아간다)
+ * 승인한 확인 요청이 있을 때 상태 줄 대신 서는 한 줄(QA-P-C4). 누가 무엇을 누르면 완료되는지 · 승인 취소 길은 바로 아래 받은 요청 칸이
+ * 한 번 말한다 — 여기서 되풀이하지 않고 그 칸을 가리키기만 한다(한 번만 말한다, 근접성)
  */
-const CLAIM_LOCK_NOTE: Record<PostType, string> = {
-  FOUND: '승인한 확인 요청이 있어 상태는 받는 분이 받았다고 누르면 완료로 바뀌어요.',
-  LOST: '승인한 확인 요청이 있어 상태는 물건을 받은 뒤 아래 요청에서 받았다고 누르면 완료로 바뀌어요.',
-}
+const CLAIM_LOCK_NOTE = '승인한 확인 요청이 있어 상태는 아래 확인 요청에서 바뀌어요.'
 
 /**
  * 화면이 틀렸다는 뜻인 실패 — 이미 완료됨 · 남의 글 · 지워진 글 · 승인한 확인 요청이 생김. 상세를 다시 받아 맞춘다
@@ -202,14 +199,14 @@ export function PostOwnerPanel({ post, editHref, onDeleted }: PostOwnerPanelProp
           ) : statusWaiting ? (
             // 잠금 줄을 보이지 않게 깔아 높이를 그대로 잡고(폭마다 줄 수가 달라도 맞는다) 그 위에 글자 모양
             <div className={styles.statusWaiting} aria-hidden="true">
-              <ClaimLockNote type={post.type} />
+              <ClaimLockNote />
               <div className={styles.statusWaitingLines}>
                 <Skeleton shape="text" width="100%" />
                 <Skeleton shape="text" width="62%" />
               </div>
             </div>
           ) : claimLocked ? (
-            <ClaimLockNote type={post.type} />
+            <ClaimLockNote />
           ) : (
             <div className={styles.statusControls}>
               <div
@@ -322,13 +319,11 @@ export function PostOwnerPanel({ post, editHref, onDeleted }: PostOwnerPanelProp
 }
 
 /** 승인 잠금 줄 — 상태 자리에 선다(받은 요청을 기다리는 동안은 높이만 잡는 데 쓴다) */
-function ClaimLockNote({ type }: { type: PostType }) {
+function ClaimLockNote() {
   return (
     <p className={styles.doneNote}>
       <LockSimple />
-      <span>
-        {CLAIM_LOCK_NOTE[type]} <span className={styles.doneMore}>승인을 취소하면 다시 직접 바꿀 수 있어요.</span>
-      </span>
+      <span>{CLAIM_LOCK_NOTE}</span>
     </p>
   )
 }
