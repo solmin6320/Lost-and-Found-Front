@@ -20,7 +20,7 @@ export type {
 export { claimKeys, myClaimsQueryOptions, receivedClaimsQueryOptions } from './model/claimQueries'
 export { CLAIM_STALE_CODES, useCreateClaim, useDecideClaim } from './model/claimMutations'
 export type { ClaimDecision } from './model/claimMutations'
-export { CLAIM_CONSEQUENCE, CLAIM_STATUS_LABEL, claimEntryLabel, isReceiver } from './model/labels'
+export { CLAIM_CONSEQUENCE, CLAIM_STATUS_LABEL, OWNER_VERIFIED_SENTENCE, claimEntryLabel, isReceiver } from './model/labels'
 export {
   CLAIMS_ANCHOR_ID,
   POST_CLAIMS_HASH,

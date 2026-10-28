@@ -13,6 +13,7 @@ import {
   validateClaimAnswer,
   waitingClaimCount,
 } from './claimView'
+import { OWNER_VERIFIED_SENTENCE } from './labels'
 
 describe('claimPanelMode', () => {
   const open = { status: 'OPEN' as const, myClaim: null }
@@ -201,5 +202,12 @@ describe('waitingClaimCount', () => {
     expect(waitingClaimCount(2, 'DONE')).toBe(0)
     expect(waitingClaimCount(2, 'IN_PROGRESS')).toBe(2)
     expect(waitingClaimCount(null, 'OPEN')).toBe(0)
+  })
+})
+
+describe('주인 확인 완료 문장', () => {
+  it('증명하지 않은 것(주인에게 돌아갔다)을 단정하지 않는다(C13)', () => {
+    expect(OWNER_VERIFIED_SENTENCE).not.toContain('주인에게')
+    expect(OWNER_VERIFIED_SENTENCE).toContain('받았다고 알린')
   })
 })

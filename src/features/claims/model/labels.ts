@@ -24,6 +24,12 @@ export function isReceiver(type: PostType, side: 'author' | 'claimant'): boolean
   return type === 'FOUND' ? side === 'claimant' : side === 'author'
 }
 
+/**
+ * 주인 확인 완료 글이 **무엇을 거쳤는지** 한 문장 — 기록이 보증하는 것까지만 말한다(C13).
+ * 서버가 아는 것은 "글쓴이가 확인 질문(또는 확인할 내용)을 보고 승인했고, 받는 쪽이 받았다고 눌렀다" 뿐이라 "주인에게 돌아갔다"고 단정하지 않는다
+ */
+export const OWNER_VERIFIED_SENTENCE = '글쓴이가 확인 질문으로 확인하고, 받는 분이 받았다고 알린 물건이에요.'
+
 /** 되돌릴 수 없는 동작의 결과 문장(화면정의서 SCR-12 ⑤) */
 export const CLAIM_CONSEQUENCE = {
   send: '한 글에 한 번만 보낼 수 있고, 거절돼도 다시 보낼 수 없어요.',
