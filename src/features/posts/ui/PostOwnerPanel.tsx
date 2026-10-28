@@ -8,6 +8,7 @@ import {
   ChatCircleDots,
   Check,
   CheckCircle,
+  LockSimple,
   MegaphoneSimple,
   PencilSimple,
   Trash,
@@ -16,12 +17,15 @@ import {
 } from '@/shared/ui/icons'
 import { LoadingDots } from '@/shared/ui/LoadingDots'
 import { SafetyNote } from '@/shared/ui/SafetyNote'
+import { Skeleton } from '@/shared/ui/Skeleton'
 
 import type { PostDetailResponse, PostStatus, PostType } from '../api/types'
 import { POST_STATUS_LABEL } from '../model/labels'
+import { deleteConsequence } from '../model/postDelete'
 import { useChangePostStatus, useDeletePost } from '../model/postMutations'
 import { postKeys } from '../model/postQueries'
-import { isIrreversibleStatus } from '../model/postStatus'
+import { isClaimLocked, isIrreversibleStatus } from '../model/postStatus'
+import { receivedClaimsCacheKey, useCachedReceivedClaims } from '../model/receivedClaimsCache'
 import styles from './PostOwnerPanel.module.css'
 
 interface PostOwnerPanelProps {
@@ -58,8 +62,20 @@ const CONTACT_TIP: Record<PostType, string> = {
   LOST: '돈을 먼저 보내 달라는 요청에는 응하지 마세요.',
 }
 
-/** 화면이 틀렸다는 뜻인 실패 — 이미 완료됨 · 남의 글 · 지워진 글. 상세를 다시 받아 맞춘다(훅이 409 · 404 를, 여기서 403 을) */
-const STALE_CODES = ['INVALID_STATUS_TRANSITION', 'FORBIDDEN_ACCESS', 'POST_NOT_FOUND'] as const
+/**
+ * 승인한 확인 요청이 있을 때 상태 줄 대신 서는 한 줄(QA-P-C4). 누가 무엇을 누르면 완료가 되는지 — 받는 쪽은 글 종류로 정해진다
+ * (`isReceiver` — 습득 글은 요청한 분, 분실 글은 나). 뒤 문장은 다시 직접 바꾸는 길(승인 취소 → 글이 게시중으로 돌아간다)
+ */
+const CLAIM_LOCK_NOTE: Record<PostType, string> = {
+  FOUND: '승인한 확인 요청이 있어 상태는 받는 분이 받았다고 누르면 완료로 바뀌어요.',
+  LOST: '승인한 확인 요청이 있어 상태는 물건을 받은 뒤 아래 요청에서 받았다고 누르면 완료로 바뀌어요.',
+}
+
+/**
+ * 화면이 틀렸다는 뜻인 실패 — 이미 완료됨 · 남의 글 · 지워진 글 · 승인한 확인 요청이 생김. 상세를 다시 받아 맞춘다
+ * (훅이 409 전이 · 404 를, 여기서 403 · `CLAIM_IN_PROGRESS` 를 — 이건 받은 요청도 다시 받아야 잠금 줄이 선다)
+ */
+const STALE_CODES = ['INVALID_STATUS_TRANSITION', 'FORBIDDEN_ACCESS', 'POST_NOT_FOUND', 'CLAIM_IN_PROGRESS'] as const
 
 /**
  * 내 글 관리 — **작성자 본인에게만** 그린다(부른 쪽이 판정한다. 비활성으로 남기지 않는다).
@@ -73,11 +89,15 @@ const STALE_CODES = ['INVALID_STATUS_TRANSITION', 'FORBIDDEN_ACCESS', 'POST_NOT_
  *
  * - 요청 중에는 버튼을 `disabled` 로 잠그지 않고 누름만 무시한다(`aria-disabled`) — 누른 버튼이 잠기면 포커스가 빠진다
  * - 서버가 거절하면(409 · 403) 상태 줄 아래에 `message` 를 그대로 보여 주고 상세를 다시 받는다
+ * - 승인한 확인 요청이 있으면(연락중 + 받은 요청에 승인함) 스위치 · [완료로 바꾸기] · "언제든" 도움말을 그리지 않고 한 줄로 까닭을 말한다
+ *   (서버가 거절할 단추를 보이지 않는다 — QA-P-C4). 받은 요청은 바로 아래 칸과 같은 캐시를 읽는다. 받기 전 · 실패면 지금 동작 그대로
  */
 export function PostOwnerPanel({ post, editHref, onDeleted }: PostOwnerPanelProps) {
   const queryClient = useQueryClient()
   const changeStatus = useChangePostStatus(post.id)
   const deletePost = useDeletePost()
+  // 바로 아래 받은 확인 요청 칸이 받은 것을 캐시에서 읽는다(요청은 그 칸이 한 번). 승인 잠금 · 삭제 결과 문장의 요청 수에 쓴다
+  const { data: receivedClaims, waiting: claimsWaiting } = useCachedReceivedClaims(post.id)
   const [confirm, setConfirm] = useState<'done' | 'delete' | null>(null)
   const [statusError, setStatusError] = useState<string | null>(null)
   const [dialogError, setDialogError] = useState<string | null>(null)
@@ -90,6 +110,10 @@ export function PostOwnerPanel({ post, editHref, onDeleted }: PostOwnerPanelProp
 
   const busy = changeStatus.isPending || deletePost.isPending
   const done = post.status === 'DONE'
+  const claimLocked = isClaimLocked(post.status, receivedClaims?.map((claim) => claim.status))
+  // 연락중 글은 승인 잠금일 수 있다 — 받은 요청이 오기 전에는 상태 자리를 글자 모양으로 잡아 둔다. 바로 열면 스위치가 먼저 섰다가
+  // 잠금 줄로 바뀌며 아래가 78px 당겨졌고(375 실측), 그 사이 누른 단추는 서버가 거절했다. 실패면 기다리지 않는다(지금 동작 그대로)
+  const statusWaiting = post.status === 'IN_PROGRESS' && claimsWaiting
 
   function openConfirm(kind: 'done' | 'delete') {
     setDialogError(null)
@@ -117,8 +141,12 @@ export function PostOwnerPanel({ post, editHref, onDeleted }: PostOwnerPanelProp
       },
       onError: (error) => {
         const stale = STALE_CODES.some((code) => hasErrorCode(error, code))
-        if (hasErrorCode(error, 'FORBIDDEN_ACCESS')) {
+        if (hasErrorCode(error, 'FORBIDDEN_ACCESS') || hasErrorCode(error, 'CLAIM_IN_PROGRESS')) {
           void queryClient.invalidateQueries({ queryKey: postKeys.detail(post.id), exact: true })
+        }
+        if (hasErrorCode(error, 'CLAIM_IN_PROGRESS')) {
+          // 다른 탭에서 승인했다 — 받은 요청을 다시 받으면 잠금 줄이 선다(창은 닫고, 다시 누를 단추를 남기지 않는다)
+          void queryClient.invalidateQueries({ queryKey: receivedClaimsCacheKey(post.id) })
         }
         // 다이얼로그 안에서 난 실패 중 다시 눌러 볼 만한 것(연결 · 서버 오류)은 그 자리에 둔다
         if (confirm === 'done' && !stale) {
@@ -149,8 +177,8 @@ export function PostOwnerPanel({ post, editHref, onDeleted }: PostOwnerPanelProp
     })
   }
 
-  const photoCount = post.images.length
-  const commentCount = post.totalCommentCount
+  // 받은 요청을 받았으면 전체(대기 · 승인 · 거절 · 전달 완료 모두 지워진다), 아직이면 상세가 아는 대기 수
+  const claimCount = receivedClaims ? receivedClaims.length : (post.pendingClaimCount ?? 0)
   const showContactTip = contactTip && post.status === 'IN_PROGRESS' && !(changeStatus.isPending && !confirm)
 
   return (
@@ -171,6 +199,17 @@ export function PostOwnerPanel({ post, editHref, onDeleted }: PostOwnerPanelProp
                 주인에게 돌아간 물건이에요. <span className={styles.doneMore}>상태는 더 바꿀 수 없어요.</span>
               </span>
             </p>
+          ) : statusWaiting ? (
+            // 잠금 줄을 보이지 않게 깔아 높이를 그대로 잡고(폭마다 줄 수가 달라도 맞는다) 그 위에 글자 모양
+            <div className={styles.statusWaiting} aria-hidden="true">
+              <ClaimLockNote type={post.type} />
+              <div className={styles.statusWaitingLines}>
+                <Skeleton shape="text" width="100%" />
+                <Skeleton shape="text" width="62%" />
+              </div>
+            </div>
+          ) : claimLocked ? (
+            <ClaimLockNote type={post.type} />
           ) : (
             <div className={styles.statusControls}>
               <div
@@ -202,7 +241,7 @@ export function PostOwnerPanel({ post, editHref, onDeleted }: PostOwnerPanelProp
           )}
         </div>
 
-        {done ? null : showContactTip ? (
+        {done || claimLocked || statusWaiting ? null : showContactTip ? (
           // 사칭 · 선입금을 막는 안전 경고 — 빨간 글자 + 경고 세모(본인 피드백 2026-10-07)
           <p id={hintId} className={styles.tip}>
             <SafetyNote appear>{CONTACT_TIP[post.type]}</SafetyNote>
@@ -225,7 +264,8 @@ export function PostOwnerPanel({ post, editHref, onDeleted }: PostOwnerPanelProp
           </p>
         )}
 
-        {statusError ? (
+        {/* 잠금 줄이 섰으면 그 까닭이 이미 화면에 있다 — 서버 문장(합니다체)을 겹쳐 두지 않는다 */}
+        {statusError && !claimLocked ? (
           <p className={styles.error} role="alert">
             <WarningCircle />
             {statusError}
@@ -248,7 +288,7 @@ export function PostOwnerPanel({ post, editHref, onDeleted }: PostOwnerPanelProp
       </div>
 
       <ConfirmDialog
-        open={confirm === 'done'}
+        open={confirm === 'done' && !claimLocked}
         title="완료로 바꿀까요?"
         confirmLabel="완료로 바꾸기"
         pendingLabel="바꾸는 중"
@@ -275,21 +315,20 @@ export function PostOwnerPanel({ post, editHref, onDeleted }: PostOwnerPanelProp
         onClose={() => setConfirm(null)}
         fallbackFocus={() => headingRef.current}
       >
-        <p>{deleteConsequence(photoCount, commentCount)}</p>
+        <p>{deleteConsequence({ photos: post.images.length, comments: post.totalCommentCount, claims: claimCount })}</p>
       </ConfirmDialog>
     </section>
   )
 }
 
-/**
- * 무엇이 함께 사라지는지 숫자로(화면정의서 SCR-03 ①). 0인 것은 문장에서 뺀다.
- * 삭제는 댓글(`commentRepository.deleteByPostId`)과 S3 사진까지 지운다 — 사용자가 예상하지 못하는 결과다
- */
-function deleteConsequence(photos: number, comments: number): string {
-  const lost = [photos > 0 ? `사진 ${photos}장` : null, comments > 0 ? `댓글 ${comments.toLocaleString('ko-KR')}개` : null]
-    .filter(Boolean)
-    .join('과 ')
-  if (!lost) return '이 게시글을 삭제하면 되돌릴 수 없어요.'
-  const particle = comments > 0 ? '가' : '이'
-  return `이 게시글을 삭제하면 ${lost}${particle} 함께 사라져요. 되돌릴 수 없어요.`
+/** 승인 잠금 줄 — 상태 자리에 선다(받은 요청을 기다리는 동안은 높이만 잡는 데 쓴다) */
+function ClaimLockNote({ type }: { type: PostType }) {
+  return (
+    <p className={styles.doneNote}>
+      <LockSimple />
+      <span>
+        {CLAIM_LOCK_NOTE[type]} <span className={styles.doneMore}>승인을 취소하면 다시 직접 바꿀 수 있어요.</span>
+      </span>
+    </p>
+  )
 }
