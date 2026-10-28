@@ -627,7 +627,8 @@ export function PostForm({
             name="verificationQuestion"
             value={values.verificationQuestion}
             count={{ value: values.verificationQuestion.trim().length, max: POST_QUESTION_MAX_LENGTH }}
-            placeholder={values.type === 'LOST' ? '예: 지갑을 주운 곳 근처에 무엇이 있었나요?' : '예: 지갑 안에 든 영수증은 어느 가게 것인가요?'}
+            // 예시는 320 폭 칸 안에 끝까지 보이게(잘린 예시는 읽히지 않는다 — 320 칸 262px, 예시 236 · 257px)
+            placeholder={values.type === 'LOST' ? '예: 주운 곳 근처에 무엇이 있었나요?' : '예: 영수증은 어느 가게 것인가요?'}
             hint={
               values.type === 'LOST'
                 ? '정말 주운 사람만 답할 수 있게, 색 · 개수처럼 찍어서 맞힐 수 있는 것은 피해 주세요. 질문은 확인 요청을 보내려는 사람에게 보이고, 답은 나만 봐요.'
