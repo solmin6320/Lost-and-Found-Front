@@ -17,6 +17,7 @@ import {
 } from '@/shared/ui/icons'
 import { LoadingDots } from '@/shared/ui/LoadingDots'
 import { SafetyNote } from '@/shared/ui/SafetyNote'
+import { Skeleton } from '@/shared/ui/Skeleton'
 
 import type { PostDetailResponse, PostStatus, PostType } from '../api/types'
 import { POST_STATUS_LABEL } from '../model/labels'
@@ -96,7 +97,7 @@ export function PostOwnerPanel({ post, editHref, onDeleted }: PostOwnerPanelProp
   const changeStatus = useChangePostStatus(post.id)
   const deletePost = useDeletePost()
   // 바로 아래 받은 확인 요청 칸이 받은 것을 캐시에서 읽는다(요청은 그 칸이 한 번). 승인 잠금 · 삭제 결과 문장의 요청 수에 쓴다
-  const receivedClaims = useCachedReceivedClaims(post.id)
+  const { data: receivedClaims, waiting: claimsWaiting } = useCachedReceivedClaims(post.id)
   const [confirm, setConfirm] = useState<'done' | 'delete' | null>(null)
   const [statusError, setStatusError] = useState<string | null>(null)
   const [dialogError, setDialogError] = useState<string | null>(null)
@@ -110,6 +111,9 @@ export function PostOwnerPanel({ post, editHref, onDeleted }: PostOwnerPanelProp
   const busy = changeStatus.isPending || deletePost.isPending
   const done = post.status === 'DONE'
   const claimLocked = isClaimLocked(post.status, receivedClaims?.map((claim) => claim.status))
+  // 연락중 글은 승인 잠금일 수 있다 — 받은 요청이 오기 전에는 상태 자리를 글자 모양으로 잡아 둔다. 바로 열면 스위치가 먼저 섰다가
+  // 잠금 줄로 바뀌며 아래가 78px 당겨졌고(375 실측), 그 사이 누른 단추는 서버가 거절했다. 실패면 기다리지 않는다(지금 동작 그대로)
+  const statusWaiting = post.status === 'IN_PROGRESS' && claimsWaiting
 
   function openConfirm(kind: 'done' | 'delete') {
     setDialogError(null)
@@ -195,13 +199,17 @@ export function PostOwnerPanel({ post, editHref, onDeleted }: PostOwnerPanelProp
                 주인에게 돌아간 물건이에요. <span className={styles.doneMore}>상태는 더 바꿀 수 없어요.</span>
               </span>
             </p>
+          ) : statusWaiting ? (
+            // 잠금 줄을 보이지 않게 깔아 높이를 그대로 잡고(폭마다 줄 수가 달라도 맞는다) 그 위에 글자 모양
+            <div className={styles.statusWaiting} aria-hidden="true">
+              <ClaimLockNote type={post.type} />
+              <div className={styles.statusWaitingLines}>
+                <Skeleton shape="text" width="100%" />
+                <Skeleton shape="text" width="62%" />
+              </div>
+            </div>
           ) : claimLocked ? (
-            <p className={styles.doneNote}>
-              <LockSimple />
-              <span>
-                {CLAIM_LOCK_NOTE[post.type]} <span className={styles.doneMore}>승인을 취소하면 다시 직접 바꿀 수 있어요.</span>
-              </span>
-            </p>
+            <ClaimLockNote type={post.type} />
           ) : (
             <div className={styles.statusControls}>
               <div
@@ -233,7 +241,7 @@ export function PostOwnerPanel({ post, editHref, onDeleted }: PostOwnerPanelProp
           )}
         </div>
 
-        {done || claimLocked ? null : showContactTip ? (
+        {done || claimLocked || statusWaiting ? null : showContactTip ? (
           // 사칭 · 선입금을 막는 안전 경고 — 빨간 글자 + 경고 세모(본인 피드백 2026-10-07)
           <p id={hintId} className={styles.tip}>
             <SafetyNote appear>{CONTACT_TIP[post.type]}</SafetyNote>
@@ -310,5 +318,17 @@ export function PostOwnerPanel({ post, editHref, onDeleted }: PostOwnerPanelProp
         <p>{deleteConsequence({ photos: post.images.length, comments: post.totalCommentCount, claims: claimCount })}</p>
       </ConfirmDialog>
     </section>
+  )
+}
+
+/** 승인 잠금 줄 — 상태 자리에 선다(받은 요청을 기다리는 동안은 높이만 잡는 데 쓴다) */
+function ClaimLockNote({ type }: { type: PostType }) {
+  return (
+    <p className={styles.doneNote}>
+      <LockSimple />
+      <span>
+        {CLAIM_LOCK_NOTE[type]} <span className={styles.doneMore}>승인을 취소하면 다시 직접 바꿀 수 있어요.</span>
+      </span>
+    </p>
   )
 }

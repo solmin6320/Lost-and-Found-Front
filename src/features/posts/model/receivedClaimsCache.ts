@@ -17,8 +17,9 @@ export function receivedClaimsCacheKey(postId: number) {
 
 /**
  * 글쓴이 화면에서 받은 확인 요청을 **캐시에서만** 읽는다(요청은 보내지 않는다 — 바로 아래 `ReceivedClaims` 칸이 같은 키로 받는다).
- * 아직 받지 못했거나 실패했으면 `undefined` — 부른 쪽은 지금 동작 그대로 둔다
+ * `data` 는 아직 받지 못했거나 실패했으면 `undefined` — 부른 쪽은 지금 동작 그대로 둔다. `waiting` 은 아직 한 번도 받지 못했고 실패도 아니다
  */
-export function useCachedReceivedClaims(postId: number): ClaimResponse[] | undefined {
-  return useQuery<ClaimResponse[]>({ queryKey: receivedClaimsCacheKey(postId), enabled: false }).data
+export function useCachedReceivedClaims(postId: number): { data: ClaimResponse[] | undefined; waiting: boolean } {
+  const query = useQuery<ClaimResponse[]>({ queryKey: receivedClaimsCacheKey(postId), enabled: false })
+  return { data: query.data, waiting: query.status === 'pending' }
 }
