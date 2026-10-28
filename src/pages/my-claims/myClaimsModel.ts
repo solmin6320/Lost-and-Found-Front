@@ -1,7 +1,7 @@
 import { useCallback } from 'react'
 import { useSearchParams, type To } from 'react-router-dom'
 
-import { isReceiver, type ClaimStatus, type MyClaimResponse } from '@/features/claims'
+import { CLAIM_STATUS_LABEL, isReceiver, stalledPendingLine, type ClaimStatus, type MyClaimResponse } from '@/features/claims'
 import { parsePageParam, useCanonicalPageParam } from '@/shared/lib/pageParam'
 
 /*
@@ -23,16 +23,21 @@ export function useMyClaimsPage() {
 
 /**
  * 상태마다 다음 행동 한 줄. 할 일이 없으면(전달 완료) `null`.
- * 승인된 요청 — 물건을 받는 쪽(습득 글이면 보낸 나, 분실 글이면 글쓴이)에 따라 `[받았어요]` 를 누를 사람이 다르다
+ * 대기 중인데 글이 게시중이 아니면(연락중 · 완료) 기다림 · 알림 약속 대신 멈춘 까닭 — 상세의 내 요청과 같은 말(`stalledPendingLine`).
+ * 승인된 요청 — 물건을 받는 쪽(습득 글이면 보낸 나, 분실 글이면 글쓴이)에 따라 ‘받았어요’ 단추를 누를 사람이 다르다.
+ * 만날 곳은 댓글로 정하라고 권하지 않는다(공개라서, C1) — 안전 경고는 상세 칸이 한다
  */
-export function claimNextStep(claim: Pick<MyClaimResponse, 'status' | 'postType'>): string | null {
+export function claimNextStep(claim: Pick<MyClaimResponse, 'status' | 'postType' | 'postStatus'>): string | null {
   switch (claim.status) {
-    case 'PENDING':
-      return '글쓴이가 답을 보고 승인하거나 거절하면 알림으로 알려 드려요.'
+    case 'PENDING': {
+      const stalled = stalledPendingLine(claim.postStatus)
+      if (stalled) return stalled.next ? `${stalled.text} ${stalled.next}` : stalled.text
+      return '글쓴이가 승인하거나 거절하면 알림으로 알려 드려요.'
+    }
     case 'APPROVED':
       return isReceiver(claim.postType, 'claimant')
-        ? '상세에서 만날 곳을 정해 주세요. 물건을 받으면 상세에서 ‘받았어요’를 눌러 주세요.'
-        : '상세에서 만날 곳을 정해 주세요. 글쓴이가 받으면 전달 완료로 바뀌어요.'
+        ? '상세의 안내를 보고 만날 곳을 정해 주세요. 물건을 받으면 상세에서 ‘받았어요’ 단추를 눌러 주세요.'
+        : '상세의 안내를 보고 만날 곳을 정해 주세요. 글쓴이가 받았다고 누르면 글이 완료돼요.'
     case 'REJECTED':
       return '거절된 글에는 다시 보낼 수 없어요.'
     case 'RECEIVED':
@@ -61,4 +66,19 @@ export const CLAIM_STATUS_TONE: Record<ClaimStatus, 'wait' | 'act' | 'closed' | 
   APPROVED: 'act',
   REJECTED: 'closed',
   RECEIVED: 'done',
+}
+
+/** 완료된 글에 남은 대기 요청 — 더 기다릴 것이 없다(서버가 닫기 전까지 화면이 닫는다, C2) */
+export function isStalledClosed(claim: Pick<MyClaimResponse, 'status' | 'postStatus'>): boolean {
+  return claim.status === 'PENDING' && claim.postStatus === 'DONE'
+}
+
+/** 상태 이름 — 완료 글의 남은 대기 요청은 `닫힘`(기다리는 중이 아니다) */
+export function claimStatusLabel(claim: Pick<MyClaimResponse, 'status' | 'postStatus'>): string {
+  return isStalledClosed(claim) ? '닫힘' : CLAIM_STATUS_LABEL[claim.status]
+}
+
+/** 상태 모양 — 닫힌 대기 요청은 거절과 같은 "끝난 칸" 모양 */
+export function claimStatusTone(claim: Pick<MyClaimResponse, 'status' | 'postStatus'>): (typeof CLAIM_STATUS_TONE)[ClaimStatus] {
+  return isStalledClosed(claim) ? 'closed' : CLAIM_STATUS_TONE[claim.status]
 }

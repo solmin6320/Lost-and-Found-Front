@@ -316,6 +316,12 @@
   white-space: pre-wrap;
 }
 
+/* 승인한 요청의 안내 두 줄(다음 길 · 만날 곳 경고) — 한 묶음이라 건 안 간격(12px)보다 좁게 */
+.itemNotes {
+  display: grid;
+  gap: var(--space-1);
+}
+
 .itemNote {
   color: var(--text-body);
   font-size: var(--text-sm);

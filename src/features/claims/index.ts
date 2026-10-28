@@ -28,6 +28,7 @@ export {
   claimPanelMode,
   myClaimLine,
   receivedClaimActions,
+  stalledPendingLine,
 } from './model/claimView'
 export type { ClaimPanelMode, ClaimViewer } from './model/claimView'
 export { ClaimPanelSkeleton, ClaimRequestPanel } from './ui/ClaimRequestPanel'

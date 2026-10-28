@@ -4,7 +4,7 @@ import styles from './MyClaims.module.css'
 import { MY_CLAIMS_PAGE_SIZE } from './myClaimsModel'
 
 /** 머리 문장 — 화면과 대체 화면이 같은 글자를 쓴다(자리가 바뀌지 않게) */
-export const MY_CLAIMS_HINT = '다른 사람 글에 보낸 요청이에요. 내 답은 글쓴이와 나만 볼 수 있어요.'
+export const MY_CLAIMS_HINT = '다른 사람 글에 보낸 요청이에요. 보낸 내용은 글쓴이와 나만 봐요.'
 
 /**
  * 요청 칸 자리표시 — 받은 칸과 같은 구조(이름표 줄 · 제목 · 상태 줄 · 다음 행동 줄 · `내가 보낸 답` 줄).

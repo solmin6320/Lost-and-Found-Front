@@ -6,7 +6,7 @@ import { loginPath } from '@/app/authRedirect'
 import { PAGE_TURN_FOCUS_ATTR } from '@/app/RouteFocus'
 import { paths, type LoginNoticeState } from '@/app/paths'
 import { subscribeSignedOutElsewhere, useAuth } from '@/features/auth'
-import { CLAIM_STATUS_LABEL, myClaimsQueryOptions, type ClaimStatus, type MyClaimResponse } from '@/features/claims'
+import { myClaimsQueryOptions, type ClaimStatus, type MyClaimResponse } from '@/features/claims'
 import { StatusBadge, TypeBadge } from '@/features/posts'
 import { formatDate } from '@/shared/lib/date'
 import { isPlainClick } from '@/shared/lib/events'
@@ -17,18 +17,20 @@ import type { PagedModel } from '@/shared/types/api'
 import { ButtonLink } from '@/shared/ui/Button'
 import { EmptyState } from '@/shared/ui/EmptyState'
 import { ErrorState } from '@/shared/ui/ErrorState'
-import { CaretDown, CheckCircle, Clock, HandHeart, MagnifyingGlass, PaperPlaneRight, XCircle, type Icon } from '@/shared/ui/icons'
+import { CaretDown, CheckCircle, Clock, HandHeart, Info, MagnifyingGlass, PaperPlaneRight, XCircle, type Icon } from '@/shared/ui/icons'
 import { Pagination } from '@/shared/ui/Pagination'
 import { Skeleton } from '@/shared/ui/Skeleton'
 
 import styles from './MyClaims.module.css'
 import {
-  CLAIM_STATUS_TONE,
   MY_CLAIMS_PAGE_GROUP,
   MY_CLAIMS_PAGE_SIZE,
   claimNextStep,
   claimSettledAt,
+  claimStatusLabel,
+  claimStatusTone,
   claimsPageAnnouncement,
+  isStalledClosed,
   useMyClaimsPage,
 } from './myClaimsModel'
 import { MY_CLAIMS_HINT, MyClaimsListSkeleton } from './MyClaimsSkeleton'
@@ -264,8 +266,9 @@ function MyClaimsBody({ query, hrefForPage, onPageNavigate }: MyClaimsBodyProps)
  * 강조는 승인된 요청의 상태 하나만(잉크 채움) — 할 일이 있는 칸이다
  */
 function ClaimItem({ claim }: { claim: MyClaimResponse }) {
-  const StatusIcon = STATUS_ICON[claim.status]
-  const tone = CLAIM_STATUS_TONE[claim.status]
+  // 완료 글에 남은 대기 요청 — 거절이 아니라 닫힘이라 안내 아이콘(C2)
+  const StatusIcon = isStalledClosed(claim) ? Info : STATUS_ICON[claim.status]
+  const tone = claimStatusTone(claim)
   const next = claimNextStep(claim)
   const settledAt = claimSettledAt(claim)
 
@@ -291,7 +294,7 @@ function ClaimItem({ claim }: { claim: MyClaimResponse }) {
           <span className={styles.statusMark}>
             <StatusIcon className={styles.statusIcon} />
             <span className="sr-only">내 요청 </span>
-            {CLAIM_STATUS_LABEL[claim.status]}
+            {claimStatusLabel(claim)}
           </span>
           {settledAt ? (
             <time className={styles.settled} dateTime={settledAt}>
@@ -315,7 +318,7 @@ function ClaimItem({ claim }: { claim: MyClaimResponse }) {
             </div>
           ) : null}
           <div>
-            <dt>내 답</dt>
+            <dt>{claim.question ? '내 답' : '확인할 내용'}</dt>
             <dd>{claim.answer}</dd>
           </div>
         </dl>

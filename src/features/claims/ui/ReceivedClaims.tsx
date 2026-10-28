@@ -7,17 +7,21 @@ import { getErrorMessage, hasErrorCode } from '@/shared/lib/http'
 import { Button } from '@/shared/ui/Button'
 import { ConfirmDialog } from '@/shared/ui/ConfirmDialog'
 import { ArrowClockwise, ArrowUUpLeft, Check, HandHeart, WarningCircle, X } from '@/shared/ui/icons'
+import { SafetyNote } from '@/shared/ui/SafetyNote'
 import { Skeleton } from '@/shared/ui/Skeleton'
 
 import type { ClaimResponse } from '../api/types'
 import { CLAIM_STALE_CODES, useDecideClaim, type ClaimDecision } from '../model/claimMutations'
 import { receivedClaimsQueryOptions } from '../model/claimQueries'
 import {
+  CLAIM_MEETING_SAFETY,
   CLAIMS_ANCHOR_ID,
-  RECEIVED_CLAIM_STATUS_LABEL,
   approveBlockedReason,
+  isClosedPending,
   receivedClaimActions,
+  receivedClaimStatusLabel,
   sortReceivedClaims,
+  waitingClaimCount,
 } from '../model/claimView'
 import { CLAIM_CONSEQUENCE } from '../model/labels'
 import styles from './claims.module.css'
@@ -38,7 +42,7 @@ const DIALOG: Record<Pending['decision'], { title: string; confirm: string; pend
 }
 
 const DONE_ANNOUNCE: Record<Pending['decision'], string> = {
-  approve: '승인했어요. 댓글로 만날 곳을 정해 주세요.',
+  approve: '승인했어요. 글이 연락중으로 바뀌었어요.',
   reject: '거절했어요.',
   cancel: '승인을 취소했어요. 글이 다시 게시중이에요.',
   receive: '받았다고 알렸어요. 주인 확인이 끝났어요.',
@@ -49,7 +53,9 @@ const DONE_ANNOUNCE: Record<Pending['decision'], string> = {
  *
  * - 대기 중 : `[승인]` `[거절]`(둘 다 확인 창 — 승인은 글을 연락중으로 바꾸고, 거절은 그 사람이 다시 요청할 수 없다).
  *   승인한 요청이 이미 있거나 글이 게시중이 아니면 `[승인]`은 그리지 않고 까닭을 목록 위 한 줄로
- * - 승인함 : `[승인 취소]`(확인 창), 분실 글이면 `[받았어요]`(글쓴이가 받는 쪽 — 이 칸의 유일한 잉크 단추)
+ * - 승인함 : `[승인 취소]`(확인 창), 분실 글이면 `[받았어요]`(글쓴이가 받는 쪽 — 이 칸의 유일한 잉크 단추).
+ *   만날 곳 안전 경고(`SafetyNote`) 한 줄 — 연락 길이 공개 댓글뿐이라(C1). 습득 글(글쓴이가 건네는 쪽)은 누가 닫는지 · 막혔을 때 길을 미리 말한다(C3)
+ * - 완료 글에 남은 대기 : 단추 없이 "닫혔어요" 한 줄(서버가 닫지 않아 화면이 닫는다, C2). 제목 옆 기다리는 수에도 세지 않는다
  * - 거절함 · 전달 완료 : 할 일 없음
  * - 네 상태 : 로딩(한 건 모양 스켈레톤) · 0건(한 줄 + 다음에 일어날 일) · 오류(서버 문장 + `[다시 시도]`) · 권한(부른 쪽)
  *
@@ -108,19 +114,20 @@ export function ReceivedClaims({ post }: ReceivedClaimsProps) {
     )
   }
 
-  const list = sortReceivedClaims(claims.data ?? [])
+  const list = sortReceivedClaims(claims.data ?? [], post.status)
   const approvedExists = list.some((claim) => claim.status === 'APPROVED')
   const blocked = approveBlockedReason(list, post.status)
   const dialog = pending ? DIALOG[pending.decision] : null
+  const waiting = waitingClaimCount(pendingCount, post.status)
 
   return (
     <section id={CLAIMS_ANCHOR_ID} className={styles.panel} aria-labelledby={headingId}>
       <h2 ref={headingRef} id={headingId} tabIndex={-1} className={styles.heading} data-claims-heading>
         받은 확인 요청
-        {pendingCount > 0 ? (
+        {waiting > 0 ? (
           <span className={styles.count}>
             <span className="sr-only">, 기다리는 요청 </span>
-            {pendingCount.toLocaleString('ko-KR')}
+            {waiting.toLocaleString('ko-KR')}
             <span className="sr-only">건</span>
           </span>
         ) : null}
@@ -225,6 +232,7 @@ interface ReceivedClaimItemProps {
 function ReceivedClaimItem({ claim, post, approvedExists, busy, onAsk }: ReceivedClaimItemProps) {
   const actions = receivedClaimActions(claim, post, approvedExists)
   const any = actions.approve || actions.reject || actions.cancel || actions.receive
+  const closed = isClosedPending(claim, post.status)
   const press = (decision: Pending['decision']) => () => !busy && onAsk(claim, decision)
 
   return (
@@ -234,8 +242,8 @@ function ReceivedClaimItem({ claim, post, approvedExists, busy, onAsk }: Receive
         <time className={styles.when} dateTime={claim.createdAt}>
           {formatDateTime(claim.createdAt)}
         </time>
-        <span className={styles.state} data-status={claim.status}>
-          {RECEIVED_CLAIM_STATUS_LABEL[claim.status]}
+        <span className={styles.state} data-status={closed ? 'CLOSED' : claim.status}>
+          {receivedClaimStatusLabel(claim, post.status)}
         </span>
       </div>
 
@@ -247,31 +255,39 @@ function ReceivedClaimItem({ claim, post, approvedExists, busy, onAsk }: Receive
           </div>
         ) : null}
         <div>
-          <dt>{claim.question ? '답' : '보낸 내용'}</dt>
+          {/* 쓰는 쪽 칸 이름(`claimAnswerLabel`)과 같은 말 */}
+          <dt>{claim.question ? '답' : '확인할 내용'}</dt>
           {/* 사용자 입력 원문 — 텍스트로만(보안명세서 · XSS) */}
           <dd className={styles.answer}>{claim.answer}</dd>
         </div>
       </dl>
 
       {claim.status === 'APPROVED' ? (
-        <p className={styles.itemNote}>
-          {actions.receive
-            ? '승인한 요청이에요. 댓글로 만날 곳을 정하고, 물건을 받으면 [받았어요]를 눌러 주세요.'
-            : '승인한 요청이에요. 댓글로 만날 곳을 정해 주세요. 상대가 물건을 받으면 주인 확인이 끝나요.'}
-        </p>
+        <div className={styles.itemNotes}>
+          <p className={styles.itemNote}>
+            {actions.receive
+              ? '승인한 요청이에요. 물건을 받으면 ‘받았어요’ 단추를 눌러 주세요.'
+              : '승인한 요청이에요. 상대가 받았다고 누르면 글이 완료돼요. 상대가 끝내 누르지 않으면 승인을 취소할 수 있어요.'}
+          </p>
+          <p className={styles.itemNote}>
+            <SafetyNote>{CLAIM_MEETING_SAFETY}</SafetyNote>
+          </p>
+        </div>
       ) : null}
+
+      {closed ? <p className={styles.itemNote}>글이 끝나 이 요청은 닫혔어요.</p> : null}
 
       {any ? (
         <div className={styles.actions}>
           {actions.receive ? (
             <Button variant="primary" size="sm" aria-disabled={busy || undefined} onClick={press('receive')}>
-              <HandHeart />
+              <Check />
               받았어요
             </Button>
           ) : null}
           {actions.approve ? (
             <Button size="sm" aria-disabled={busy || undefined} onClick={press('approve')}>
-              <Check />
+              <HandHeart />
               승인
             </Button>
           ) : null}
