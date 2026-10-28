@@ -57,33 +57,75 @@ export function validateClaimAnswer(answer: string, label: string): string | nul
   return null
 }
 
+/**
+ * 승인 뒤 만날 곳을 정하는 길이 지금은 **공개 댓글**뿐이다(채팅 SCR-13 전). 그래서 댓글로 정하라고 권하지 않고,
+ * 거기에 무엇을 쓰지 말지 · 어디서 만날지를 안전 경고 자리(`SafetyNote`, 1.2)에 한 줄로 둔다. 요청자 · 글쓴이 양쪽이 같은 문장을 본다
+ */
+export const CLAIM_MEETING_SAFETY =
+  '댓글은 누구나 봐요. 번호 · 집 주소는 쓰지 말고, 만날 곳은 역 고객센터처럼 사람 많은 곳으로 정해 주세요.'
+
+/**
+ * 대기 중인 요청이 글 상태 때문에 더 나아가지 않을 때의 문장 — 서버가 남은 요청을 닫지 않아(`Claim.receive()` · 상태 바꾸기)
+ * 화면이 글 상태로 가른다. 게시중이면 `null`(정말 기다리는 중). 상세의 내 요청 · 보낸 확인 요청(`/me/claims`)이 같은 말을 쓴다
+ *   완료   : 다시 게시중이 될 수 없다 — 닫힌 문장, 기다림 · 알림 약속 없음
+ *   연락중 : 글쓴이가 다른 분과 연락 중 — 지금은 진행되지 않음, 그 연락이 풀리면 다시 볼 수 있다는 사실만
+ */
+export interface StalledPendingLine {
+  text: string
+  next: string | null
+}
+
+export function stalledPendingLine(postStatus: PostStatus): StalledPendingLine | null {
+  if (postStatus === 'DONE') return { text: '이 글이 완료돼 요청이 더 진행되지 않아요.', next: null }
+  if (postStatus === 'IN_PROGRESS') {
+    return {
+      text: '글쓴이가 다른 분과 연락하고 있어 지금은 요청이 진행되지 않아요.',
+      next: '그 연락이 취소되면 글쓴이가 다시 볼 수 있어요.',
+    }
+  }
+  return null
+}
+
 /** 내가 보낸 요청의 상태 한 줄 — 첫 문장은 지금 상태, 둘째는 다음에 할 일(없으면 `null`) */
 export interface MyClaimLine {
   text: string
   next: string | null
-  /** [받았어요]를 그린다 — 승인됐고 내가 받는 쪽 */
+  /** 승인됐다 — 만날 곳 안전 경고(`CLAIM_MEETING_SAFETY`)를 그린다 */
+  safety: boolean
+  /** ‘받았어요’ 단추를 그린다 — 승인됐고 내가 받는 쪽 */
   canReceive: boolean
+  /** 글 상태 때문에 멈춘 대기 요청 — 대기 아이콘 대신 안내 아이콘 */
+  stalled: boolean
 }
 
-export function myClaimLine(status: ClaimStatus, type: PostType): MyClaimLine {
+export function myClaimLine(status: ClaimStatus, type: PostType, postStatus: PostStatus): MyClaimLine {
   const receiver = isReceiver(type, 'claimant')
+  const base = { safety: false, canReceive: false, stalled: false }
   switch (status) {
-    case 'PENDING':
-      return { text: '확인 요청을 보냈어요. 글쓴이가 답을 확인하고 있어요.', next: null, canReceive: false }
+    case 'PENDING': {
+      const stalled = stalledPendingLine(postStatus)
+      if (stalled) return { ...base, ...stalled, stalled: true }
+      return {
+        ...base,
+        text: '확인 요청을 보냈어요.',
+        next: '글쓴이가 승인하거나 거절하면 알림으로 알려 드려요.',
+      }
+    }
     case 'APPROVED':
       return {
-        text: '승인됐어요. 댓글로 만날 곳을 정해 주세요.',
-        next: receiver ? '물건을 건네받으면 [받았어요]를 눌러 주세요.' : '글쓴이가 물건을 받으면 주인 확인이 끝나요.',
+        ...base,
+        text: '승인됐어요.',
+        next: receiver
+          ? '물건을 건네받으면 ‘받았어요’ 단추를 눌러 주세요.'
+          : '글쓴이가 받았다고 누르면 글이 완료돼요.',
+        safety: true,
         canReceive: receiver,
       }
     case 'REJECTED':
-      return { text: '요청이 거절됐어요.', next: '이 글에는 다시 요청할 수 없어요.', canReceive: false }
+      return { ...base, text: '요청이 거절됐어요.', next: '이 글에는 다시 요청할 수 없어요.' }
     case 'RECEIVED':
-      return {
-        text: receiver ? '물건을 받았어요.' : '물건을 건넸어요.',
-        next: receiver ? null : '글쓴이가 받았다고 확인했어요.',
-        canReceive: false,
-      }
+      // 물건이 돌아갔다는 말은 상세 머리 줄이 한 번 한다(C11) — 여기서는 "내 요청으로 끝났다"만
+      return { ...base, text: '내 요청으로 완료된 글이에요.', next: null }
   }
 }
 
@@ -95,9 +137,24 @@ export const RECEIVED_CLAIM_STATUS_LABEL: Record<ClaimStatus, string> = {
   RECEIVED: '전달 완료',
 }
 
+/** 완료된 글에 남은 대기 요청 — 승인할 수도, 더 기다릴 것도 없다(서버가 닫기 전까지 화면이 닫는다) */
+export function isClosedPending(claim: Pick<ClaimResponse, 'status'>, postStatus: PostStatus): boolean {
+  return claim.status === 'PENDING' && postStatus === 'DONE'
+}
+
+/** 받은 요청 이름표 — 완료 글의 남은 대기 요청은 `닫힘` */
+export function receivedClaimStatusLabel(claim: Pick<ClaimResponse, 'status'>, postStatus: PostStatus): string {
+  return isClosedPending(claim, postStatus) ? '닫힘' : RECEIVED_CLAIM_STATUS_LABEL[claim.status]
+}
+
+/** 글쓴이 제목 옆 "기다리는 요청 N건" — 완료 글에서는 기다리는 요청이 없다 */
+export function waitingClaimCount(pendingClaimCount: number | null | undefined, postStatus: PostStatus): number {
+  return postStatus === 'DONE' ? 0 : (pendingClaimCount ?? 0)
+}
+
 /**
  * 받은 요청 하나에 글쓴이가 지금 할 수 있는 것. 서버 규칙(`Claim` · `ClaimService`)을 화면에 옮긴 것이다 —
- * 승인은 대기 중 · 게시중 글 · 승인한 요청이 없을 때만(한 글 한 승인), 거절은 대기 중, 승인 취소는 승인한 요청,
+ * 승인은 대기 중 · 게시중 글 · 승인한 요청이 없을 때만(한 글 한 승인), 거절은 대기 중(완료 글 제외 — 닫힌 요청), 승인 취소는 승인한 요청,
  * 받았어요는 승인한 요청 · 분실 글(글쓴이가 받는 쪽)
  */
 export interface ReceivedClaimActions {
@@ -112,7 +169,8 @@ export function receivedClaimActions(
   post: { status: PostStatus; type: PostType },
   approvedExists: boolean,
 ): ReceivedClaimActions {
-  const pending = claim.status === 'PENDING'
+  // 완료 글에 남은 대기 요청은 닫혔다 — 승인 · 거절 단추 없이 한 줄(C2)
+  const pending = claim.status === 'PENDING' && post.status !== 'DONE'
   const approved = claim.status === 'APPROVED'
   return {
     approve: pending && post.status === 'OPEN' && !approvedExists,
@@ -122,13 +180,21 @@ export function receivedClaimActions(
   }
 }
 
-/** 받은 요청을 늘어놓는 차례 — 지금 진행 중인 것(승인함)이 맨 위, 다음은 결정을 기다리는 것. 같은 묶음 안은 서버 차례(최근 순) 그대로 */
+/**
+ * 받은 요청을 늘어놓는 차례 — 지금 진행 중인 것(승인함)이 맨 위, 다음은 결정을 기다리는 것. 같은 묶음 안은 서버 차례(최근 순) 그대로.
+ * 완료 글이면 전달 완료가 맨 위, 닫힌 대기 요청은 그 아래
+ */
 const RECEIVED_ORDER: Record<ClaimStatus, number> = { APPROVED: 0, PENDING: 1, RECEIVED: 2, REJECTED: 3 }
+const RECEIVED_ORDER_DONE: Record<ClaimStatus, number> = { RECEIVED: 0, APPROVED: 1, PENDING: 2, REJECTED: 3 }
 
-export function sortReceivedClaims<T extends Pick<ClaimResponse, 'status'>>(claims: readonly T[]): T[] {
+export function sortReceivedClaims<T extends Pick<ClaimResponse, 'status'>>(
+  claims: readonly T[],
+  postStatus: PostStatus = 'OPEN',
+): T[] {
+  const order = postStatus === 'DONE' ? RECEIVED_ORDER_DONE : RECEIVED_ORDER
   return claims
     .map((claim, index) => ({ claim, index }))
-    .sort((a, b) => RECEIVED_ORDER[a.claim.status] - RECEIVED_ORDER[b.claim.status] || a.index - b.index)
+    .sort((a, b) => order[a.claim.status] - order[b.claim.status] || a.index - b.index)
     .map(({ claim }) => claim)
 }
 
@@ -140,6 +206,8 @@ export function approveBlockedReason(
   postStatus: PostStatus,
 ): string | null {
   if (!claims.some((claim) => claim.status === 'PENDING')) return null
+  // 완료 글 — 요청마다 "닫혔어요" 한 줄이 말한다(목록 위에 또 말하지 않는다)
+  if (postStatus === 'DONE') return null
   if (claims.some((claim) => claim.status === 'APPROVED')) {
     return '승인한 요청이 있어서 다른 요청은 승인할 수 없어요. 승인을 취소하면 다시 고를 수 있어요.'
   }
@@ -152,7 +220,7 @@ export function approveBlockedReason(
  * 그래도 확인에 필요 없는 번호를 낯선 사람에게 먼저 주지 않게 한 번 멈춰 세운다(막지 않는다)
  */
 export const CLAIM_PERSONAL_INFO_NOTICE: Record<PersonalInfoKind, string> = {
-  phone: '전화번호가 들어 있어요. 연락은 승인된 뒤 댓글로 해도 돼요.',
+  phone: '전화번호가 들어 있어요. 확인에는 필요 없어요.',
   residentId: '주민등록번호가 들어 있어요. 확인에는 필요 없어요.',
   card: '카드 번호가 들어 있어요. 확인에는 필요 없어요.',
 }

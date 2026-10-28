@@ -1,6 +1,6 @@
 import { useId } from 'react'
 
-import { WarningCircle } from '@/shared/ui/icons'
+import { LockSimple, WarningCircle } from '@/shared/ui/icons'
 
 import { POST_TYPES, type PostType } from '../api/types'
 import styles from './PostTypeChoice.module.css'
@@ -10,6 +10,11 @@ interface PostTypeChoiceProps {
   onChange: (type: PostType) => void
   /** 제출 중 — 고른 것을 바꾸지 못하게 한다(보내는 값과 화면이 어긋나지 않게) */
   readOnly?: boolean
+  /**
+   * 바꿀 수 없는 까닭(수정 화면 — 승인한 확인 요청이 있다, QA-P-C5). 있으면 읽기 전용처럼 잠그고(포커스는 남는다)
+   * 아래 한 줄이 "누가 이 글을 보나" 대신 이 까닭을 말한다
+   */
+  lockedReason?: string
   error?: string
 }
 
@@ -36,7 +41,8 @@ const CHOICES: Record<PostType, { label: [string, string]; posts: string; reader
  * 오류는 제출이 막혔을 때만 붙어 바로 읽어 주지 않는다(`aria-describedby` 로 읽힌다, 회의 UI2-9).
  * 아래 한 줄이 **누가 이 글을 보게 되는지** 말한다(온보딩 2층 "등록 화면 유형 선택").
  */
-export function PostTypeChoice({ value, onChange, readOnly = false, error }: PostTypeChoiceProps) {
+export function PostTypeChoice({ value, onChange, readOnly = false, lockedReason, error }: PostTypeChoiceProps) {
+  const locked = readOnly || Boolean(lockedReason)
   const id = useId()
   const errorId = `${id}-error`
   const noteId = `${id}-note`
@@ -66,13 +72,13 @@ export function PostTypeChoice({ value, onChange, readOnly = false, error }: Pos
                 value={type}
                 checked={checked}
                 // 읽기 전용 라디오는 없다. 바꾸는 것만 무시한다(disabled 는 포커스가 빠진다)
-                aria-disabled={readOnly || undefined}
+                aria-disabled={locked || undefined}
                 // 오류는 칸(라디오)에도 잇는다 — 묶음(fieldset)의 설명은 포커스가 라디오로 들어올 때 읽지 않는 낭독기가 있다
                 // (iOS VoiceOver 등). 제출이 막혀 이 칸으로 포커스가 오면 오류 문장이 바로 읽힌다(접근성 점검 2026-10-14)
                 aria-invalid={error ? true : undefined}
                 aria-describedby={error ? errorId : undefined}
                 onChange={() => {
-                  if (!readOnly) onChange(type)
+                  if (!locked) onChange(type)
                 }}
               />
               <span className={styles.label}>
@@ -90,9 +96,16 @@ export function PostTypeChoice({ value, onChange, readOnly = false, error }: Pos
           {error}
         </p>
       ) : null}
-      <p id={noteId} className={styles.note}>
-        {value ? CHOICES[value].reader : '고르면 누가 이 글을 보게 되는지 알려 드려요.'}
-      </p>
+      {lockedReason ? (
+        <p id={noteId} className={styles.locked}>
+          <LockSimple />
+          {lockedReason}
+        </p>
+      ) : (
+        <p id={noteId} className={styles.note}>
+          {value ? CHOICES[value].reader : '고르면 누가 이 글을 보게 되는지 알려 드려요.'}
+        </p>
+      )}
     </fieldset>
   )
 }

@@ -100,6 +100,24 @@
   }
 }
 
+/* 연락중 글의 받은 요청을 기다리는 동안 — 잠금 줄을 보이지 않게 깔아 같은 높이, 그 위에 글자 모양 */
+.statusWaiting {
+  position: relative;
+}
+
+.statusWaiting > p {
+  visibility: hidden;
+}
+
+.statusWaitingLines {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  align-content: start;
+  font-size: var(--text-sm);
+  line-height: var(--leading-snug);
+}
+
 /* 완료 — 상세 머리의 잉크 도장 바로 아래라 배지를 되풀이하지 않는다. 아이콘 + 한 문장(무엇이 끝났나 + 그래서 못 하는 것) */
 .doneNote {
   display: flex;

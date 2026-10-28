@@ -9,6 +9,7 @@ import {
   type Ref,
 } from 'react'
 
+import { claimEntryLabel } from '@/features/claims'
 import type { PostDetailResponse } from '@/features/posts'
 import { allowLeave, isSelfLogout, useDirtyField } from '@/shared/lib/dirtyRegistry'
 import { focusAndReveal } from '@/shared/lib/focusAndReveal'
@@ -225,7 +226,10 @@ export function CommentSection({
 
       <div ref={listRef} className={styles.thread}>
         {empty ? (
-          <EmptyComments postType={post.type} ownPost={viewerId !== null && viewerId === post.memberId} />
+          <EmptyComments
+            post={post}
+            viewer={authPending ? 'unknown' : viewerId === null ? 'guest' : viewerId === post.memberId ? 'owner' : 'member'}
+          />
         ) : (
           <ol className={styles.list} role="list">
             {comments.map((comment) => renderItem(comment, freshIds.has(comment.id)))}
@@ -322,21 +326,48 @@ export function CommentSection({
 
 /**
  * 댓글 0건 — 온보딩 2층(docs/온보딩설계.md 4장). 무엇을 남기면 되는지 글의 유형에 맞춰 한 줄.
- * 내 글이면 기다리는 쪽이라 권유 대신 "여기에 보여요"
+ * 내 글이면 기다리는 쪽이라 권유 대신 "여기에 보여요".
+ *
+ * 소유 주장은 댓글이 아니라 확인 요청으로 보낸다(QA-P-C7) — 댓글은 누구나 보고 답을 묻지 않는다. 그래서 첫 문장은 댓글이 할 일
+ * (궁금한 점 · 본 적 있음), 둘째 문장은 **위쪽 확인 요청 칸이 지금 받고 있을 때만**(게시중 · 내가 보낸 요청 없음) 그 입구를 가리킨다.
+ * 입구 이름은 그 칸의 단추 글자 그대로(회원 `내 물건이에요` · `제가 주웠어요`, 비로그인은 로그인부터). 로그인 확인 전에는 가리키지 않는다.
+ * 끝난 글은 권유하지 않는다 — 이미 돌아간 물건이다
  */
-function EmptyComments({ postType, ownPost }: { postType: PostDetailResponse['type']; ownPost: boolean }) {
-  const description = ownPost
-    ? '누군가 댓글을 남기면 여기에 보여요.'
-    : postType === 'LOST'
-      ? '이 물건을 본 적 있다면 댓글로 알려 주세요.'
-      : '내 물건 같다면 댓글로 알려 주세요.'
+const EMPTY_ASK: Record<PostDetailResponse['type'], string> = {
+  FOUND: '궁금한 점은 댓글로 물어보세요.',
+  LOST: '이 물건을 본 적 있다면 댓글로 알려 주세요.',
+}
+
+/** 확인 요청 입구를 가리키는 둘째 문장 — 상세의 확인 요청 칸은 댓글보다 위에 있다(좁은 화면 · 넓은 화면 모두 같은 열) */
+function claimPointer(type: PostDetailResponse['type'], viewer: 'guest' | 'member'): string {
+  const whose = type === 'FOUND' ? '내 물건이면' : '주웠다면'
+  return viewer === 'guest'
+    ? `${whose} 로그인하고 위쪽에서 확인 요청을 보내 주세요.`
+    : `${whose} 위쪽 ‘${claimEntryLabel(type)}’로 확인 요청을 보내 주세요.`
+}
+
+function EmptyComments({
+  post,
+  viewer,
+}: {
+  post: Pick<PostDetailResponse, 'type' | 'status' | 'myClaim'>
+  viewer: 'unknown' | 'guest' | 'member' | 'owner'
+}) {
+  const description =
+    viewer === 'owner'
+      ? '누군가 댓글을 남기면 여기에 보여요.'
+      : post.status === 'DONE'
+        ? null
+        : post.status === 'OPEN' && !post.myClaim && viewer !== 'unknown'
+          ? `${EMPTY_ASK[post.type]} ${claimPointer(post.type, viewer)}`
+          : EMPTY_ASK[post.type]
 
   return (
     <div className={styles.empty}>
       <ChatCircleDots className={styles.emptyIcon} />
       <div>
         <p className={styles.emptyTitle}>아직 댓글이 없어요.</p>
-        <p className={styles.emptyText}>{description}</p>
+        {description ? <p className={styles.emptyText}>{description}</p> : null}
       </div>
     </div>
   )

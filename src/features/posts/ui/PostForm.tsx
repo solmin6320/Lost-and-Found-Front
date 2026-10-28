@@ -96,6 +96,11 @@ interface PostFormProps {
   cancelTo: To
   /** 다른 창에서 로그아웃돼 이 화면에 머물 때 [로그인]이 갈 곳(돌아올 곳을 싣는다) */
   loginHref: To
+  /**
+   * 수정 — 글 종류를 바꿀 수 없는 까닭(승인한 확인 요청이 있다, QA-P-C5). 있으면 종류 칸을 잠그고 처음 종류로 되돌린다
+   * (받는 쪽이 글 종류로 정해져 진행 중에 바뀌면 [받았어요]가 건넨 사람에게 넘어간다)
+   */
+  typeLockedReason?: string
 }
 
 /** 앱 안 이동을 막을 때의 문장 — 레이아웃의 막는 곳 하나가 띄운다(쓰던 칸 등록부). 렌더마다 새로 만들지 않게 밖에 둔다 */
@@ -167,6 +172,7 @@ export function PostForm({
   onSessionLost,
   cancelTo,
   loginHref,
+  typeLockedReason,
 }: PostFormProps) {
   const copy = COPY[mode]
   const navigate = useNavigate()
@@ -205,6 +211,12 @@ export function PostForm({
   const contentInfo = usePersonalInfoCheck(values.content)
   const questionInfo = usePersonalInfoCheck(values.verificationQuestion)
   const today = useMemo(() => todayIsoDate(), [])
+
+  // 잠금이 늦게 섰다(받은 요청을 받기 전에 종류를 바꿨다) — 처음 종류로 되돌린다. 보내는 값과 잠긴 화면이 어긋나지 않게
+  const typeLocked = Boolean(typeLockedReason)
+  if (typeLocked && values.type !== initialValues.type) {
+    setValues({ ...values, type: initialValues.type })
+  }
 
   const dirty = !samePostFormValues(values, initialValues) || items.length > 0 || removeExisting
   useDirtyField(dirty || pending, LEAVE_COPY[mode])
@@ -459,6 +471,7 @@ export function PostForm({
           <PostTypeChoice
             value={values.type}
             readOnly={readOnly}
+            lockedReason={typeLockedReason}
             error={errors.type}
             onChange={(type) => setField('type', type)}
           />
@@ -603,18 +616,23 @@ export function PostForm({
           />
         </div>
 
-        {/* 확인 질문([4.7], 선택) — 확인 요청을 보내는 사람이 이 질문에 답한다. 질문은 누구나 보고, 답은 글쓴이만 본다 */}
+        {/*
+          확인 질문([4.7], 선택) — 확인 요청을 보내는 사람이 이 질문에 답한다. 상세는 로그인한 회원이 요청 칸을 펼쳤을 때 질문을 보여 주고,
+          답은 글쓴이(와 보낸 사람)만 본다 — 도움말이 이 사실을 그대로 말한다(QA-P-C15).
+          예시는 서술형으로 — 색 · 개수처럼 경우가 적은 질문은 몇 번 찍으면 맞힌다(QA-P-C9). 도움말이 한마디로 피하게 한다
+        */}
         <div data-field="verificationQuestion">
           <TextField
             label="확인 질문 (선택)"
             name="verificationQuestion"
             value={values.verificationQuestion}
             count={{ value: values.verificationQuestion.trim().length, max: POST_QUESTION_MAX_LENGTH }}
-            placeholder={values.type === 'LOST' ? '예: 지갑을 주운 곳 근처에 무엇이 있었나요?' : '예: 지갑 안에 든 카드는 몇 장인가요?'}
+            // 예시는 320 폭 칸 안에 끝까지 보이게(잘린 예시는 읽히지 않는다 — 320 칸 262px, 예시 236 · 257px)
+            placeholder={values.type === 'LOST' ? '예: 주운 곳 근처에 무엇이 있었나요?' : '예: 영수증은 어느 가게 것인가요?'}
             hint={
               values.type === 'LOST'
-                ? '주웠다는 사람에게 물어볼 질문이에요. 질문은 누구나 보고, 답은 나만 봐요.'
-                : '주인만 답할 수 있는 것을 물어 주세요. 질문은 누구나 보고, 답은 나만 봐요.'
+                ? '정말 주운 사람만 답할 수 있게, 색 · 개수처럼 찍어서 맞힐 수 있는 것은 피해 주세요. 질문은 확인 요청을 보내려는 사람에게 보이고, 답은 나만 봐요.'
+                : '주인만 답할 수 있게, 색 · 개수처럼 찍어서 맞힐 수 있는 것은 피해 주세요. 질문은 확인 요청을 보내려는 사람에게 보이고, 답은 나만 봐요.'
             }
             error={errors.verificationQuestion}
             announceError={liveField === 'verificationQuestion'}
