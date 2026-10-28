@@ -16,6 +16,7 @@ import { useAuth } from '@/features/auth'
 import {
   CLAIMS_ANCHOR_ID,
   ClaimRequestPanel,
+  OWNER_VERIFIED_SENTENCE,
   OwnerVerifiedNote,
   POST_CLAIMS_HASH,
   ReceivedClaims,
@@ -49,7 +50,7 @@ import { showFlash } from '@/shared/lib/flash'
 import { getErrorMessage, hasErrorCode, isApiError } from '@/shared/lib/http'
 import { useDocumentTitle } from '@/shared/lib/useDocumentTitle'
 import { ErrorState } from '@/shared/ui/ErrorState'
-import { CaretLeft, CheckCircle } from '@/shared/ui/icons'
+import { CaretLeft, CheckCircle, ShieldCheck } from '@/shared/ui/icons'
 
 import { findListPreview } from './listPreview'
 import styles from './PostDetailPage.module.css'
@@ -236,7 +237,7 @@ function PostDetail({ post, claimTitleFocus = false }: PostDetailProps) {
           <p className={styles.flags}>
             <TypeBadge type={post.type} />
             <span className="sr-only">, </span>
-            <StatusBadge status={post.status} surface="detail" />
+            <StatusBadge status={post.status} surface="detail" verified={post.ownerVerified} />
           </p>
           {/* 연락 입구(①) — 첫 화면 안, 판단하는 순간 손이 있는 사진 · 이름표 곁. 쓰는 칸으로 데려간다.
               이름표 안내와 한 묶음이라 좁으면 둘이 같이 다음 줄 오른쪽으로 내려간다 */}
@@ -245,11 +246,12 @@ function PostDetail({ post, claimTitleFocus = false }: PostDetailProps) {
             <PostStatusGuide type={post.type} status={post.status} />
           </div>
         </div>
-        {/* 끝난 글 — 링크로 들어온 사람에게 가장 먼저 알린다(UI-11). 글쓴이에게는 바로 아래 내 글 관리가 같은 말을 한 번 한다 */}
+        {/* 끝난 글 — 링크로 들어온 사람에게 가장 먼저 알린다(UI-11). 글쓴이에게는 바로 아래 내 글 관리가 같은 말을 한 번 한다.
+            주인 확인 완료 글은 이 줄이 **무엇을 거쳐 끝났는지** 한 번만 말한다(C11 · C13) — 아래 기록 칸은 날짜만, 내 요청 칸은 "내 요청으로 끝났다"만 */}
         {done && !isOwner ? (
           <p className={styles.doneNote}>
-            <CheckCircle />
-            주인에게 돌아간 물건이에요.
+            {post.ownerVerified ? <ShieldCheck /> : <CheckCircle />}
+            {post.ownerVerified ? OWNER_VERIFIED_SENTENCE : '주인에게 돌아간 물건이에요.'}
           </p>
         ) : null}
       </header>

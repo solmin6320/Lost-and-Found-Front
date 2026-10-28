@@ -1,7 +1,7 @@
-import { ClaimPanelSkeleton } from '@/features/claims'
+import { ClaimPanelSkeleton, OWNER_VERIFIED_SENTENCE } from '@/features/claims'
 import { CommentEntryButton } from '@/features/comments'
 import { PostStatusGuide, PostThumbnail, StatusBadge, TypeBadge, type PostListResponse } from '@/features/posts'
-import { CaretLeft } from '@/shared/ui/icons'
+import { CaretLeft, CheckCircle, ShieldCheck } from '@/shared/ui/icons'
 import { Skeleton } from '@/shared/ui/Skeleton'
 
 import styles from './PostDetailPage.module.css'
@@ -65,7 +65,7 @@ export function PostDetailSkeleton({ preview, ownerLikely = false, claimLikely =
             {preview ? (
               <>
                 <TypeBadge type={preview.type} />
-                <StatusBadge status={preview.status} surface="detail" />
+                <StatusBadge status={preview.status} surface="detail" verified={preview.ownerVerified} />
               </>
             ) : (
               <>
@@ -83,6 +83,13 @@ export function PostDetailSkeleton({ preview, ownerLikely = false, claimLikely =
             <PostStatusGuide type={preview?.type ?? 'LOST'} status={preview?.status ?? 'OPEN'} />
           </div>
         </div>
+        {/* 끝난 글의 머리 줄 — 진짜 화면과 같은 글자로 자리를 잡는다(주인 확인 문장은 두 줄이라, 없으면 응답 뒤 사진이 밀린다) */}
+        {preview?.status === 'DONE' && !ownerLikely ? (
+          <p className={styles.doneNote}>
+            {preview.ownerVerified ? <ShieldCheck /> : <CheckCircle />}
+            {preview.ownerVerified ? OWNER_VERIFIED_SENTENCE : '주인에게 돌아간 물건이에요.'}
+          </p>
+        ) : null}
       </div>
       {ownerLikely ? (
         <div className={styles.owner}>
