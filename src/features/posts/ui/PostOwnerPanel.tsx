@@ -1,7 +1,6 @@
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQueryClient } from '@tanstack/react-query'
 import { useId, useRef, useState } from 'react'
 
-import { receivedClaimsQueryOptions } from '@/features/claims'
 import { getErrorMessage, hasErrorCode } from '@/shared/lib/http'
 import { Button, ButtonLink } from '@/shared/ui/Button'
 import { ConfirmDialog } from '@/shared/ui/ConfirmDialog'
@@ -25,6 +24,7 @@ import { deleteConsequence } from '../model/postDelete'
 import { useChangePostStatus, useDeletePost } from '../model/postMutations'
 import { postKeys } from '../model/postQueries'
 import { isClaimLocked, isIrreversibleStatus } from '../model/postStatus'
+import { receivedClaimsCacheKey, useCachedReceivedClaims } from '../model/receivedClaimsCache'
 import styles from './PostOwnerPanel.module.css'
 
 interface PostOwnerPanelProps {
@@ -95,8 +95,8 @@ export function PostOwnerPanel({ post, editHref, onDeleted }: PostOwnerPanelProp
   const queryClient = useQueryClient()
   const changeStatus = useChangePostStatus(post.id)
   const deletePost = useDeletePost()
-  // 바로 아래 받은 확인 요청 칸과 같은 쿼리(같은 키 — 요청은 한 번). 승인 잠금 · 삭제 결과 문장의 요청 수에 쓴다
-  const claims = useQuery(receivedClaimsQueryOptions(post.id))
+  // 바로 아래 받은 확인 요청 칸이 받은 것을 캐시에서 읽는다(요청은 그 칸이 한 번). 승인 잠금 · 삭제 결과 문장의 요청 수에 쓴다
+  const receivedClaims = useCachedReceivedClaims(post.id)
   const [confirm, setConfirm] = useState<'done' | 'delete' | null>(null)
   const [statusError, setStatusError] = useState<string | null>(null)
   const [dialogError, setDialogError] = useState<string | null>(null)
@@ -109,7 +109,7 @@ export function PostOwnerPanel({ post, editHref, onDeleted }: PostOwnerPanelProp
 
   const busy = changeStatus.isPending || deletePost.isPending
   const done = post.status === 'DONE'
-  const claimLocked = isClaimLocked(post.status, claims.data?.map((claim) => claim.status))
+  const claimLocked = isClaimLocked(post.status, receivedClaims?.map((claim) => claim.status))
 
   function openConfirm(kind: 'done' | 'delete') {
     setDialogError(null)
@@ -142,7 +142,7 @@ export function PostOwnerPanel({ post, editHref, onDeleted }: PostOwnerPanelProp
         }
         if (hasErrorCode(error, 'CLAIM_IN_PROGRESS')) {
           // 다른 탭에서 승인했다 — 받은 요청을 다시 받으면 잠금 줄이 선다(창은 닫고, 다시 누를 단추를 남기지 않는다)
-          void queryClient.invalidateQueries({ queryKey: receivedClaimsQueryOptions(post.id).queryKey })
+          void queryClient.invalidateQueries({ queryKey: receivedClaimsCacheKey(post.id) })
         }
         // 다이얼로그 안에서 난 실패 중 다시 눌러 볼 만한 것(연결 · 서버 오류)은 그 자리에 둔다
         if (confirm === 'done' && !stale) {
@@ -174,7 +174,7 @@ export function PostOwnerPanel({ post, editHref, onDeleted }: PostOwnerPanelProp
   }
 
   // 받은 요청을 받았으면 전체(대기 · 승인 · 거절 · 전달 완료 모두 지워진다), 아직이면 상세가 아는 대기 수
-  const claimCount = claims.data ? claims.data.length : (post.pendingClaimCount ?? 0)
+  const claimCount = receivedClaims ? receivedClaims.length : (post.pendingClaimCount ?? 0)
   const showContactTip = contactTip && post.status === 'IN_PROGRESS' && !(changeStatus.isPending && !confirm)
 
   return (
