@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { POST_CLAIMS_HASH, notificationHref } from './notificationLink'
+import { POST_CLAIMS_HASH, POST_MATCHES_HASH, notificationHref } from './notificationLink'
 
 describe('알림 줄이 가는 곳(SCR-10 "누르면")', () => {
   it('받은 요청 · 승인은 그 글 상세의 확인 요청 칸', () => {
@@ -14,8 +14,12 @@ describe('알림 줄이 가는 곳(SCR-10 "누르면")', () => {
     expect(notificationHref({ type: 'CLAIM_REJECTED', postId: null })).toBe('/me/claims')
   })
 
+  it('추천은 내 글 상세의 추천 후보 묶음(SCR-11)', () => {
+    expect(notificationHref({ type: 'MATCH_SUGGESTED', postId: 5 })).toBe('/posts/5#matches')
+    expect(POST_MATCHES_HASH).toBe('#matches')
+  })
+
   it('그 밖의 종류는 그 글 상세(조각 없음)', () => {
-    expect(notificationHref({ type: 'MATCH_SUGGESTED', postId: 5 })).toBe('/posts/5')
     expect(notificationHref({ type: 'SOMETHING_NEW', postId: 5 })).toBe('/posts/5')
   })
 

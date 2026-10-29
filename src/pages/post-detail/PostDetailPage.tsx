@@ -3,10 +3,10 @@ import { useEffect, useRef, useState, type MouseEvent } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 
 import { loginPath } from '@/app/authRedirect'
-import { LabSlot } from '@/app/lab/LabSlot'
 import {
   paths,
   POST_COMMENTS_HASH,
+  POST_MATCHES_HASH,
   readPostDetailEntry,
   toPostDetailEntry,
   type AuthReturnState,
@@ -30,6 +30,7 @@ import {
   useCommentTotal,
   type CommentEntryHandle,
 } from '@/features/comments'
+import { MATCHES_ANCHOR_ID, MatchCandidates, showsMatches } from '@/features/matches'
 import {
   MissingPost,
   POST_CATEGORY_LABEL,
@@ -161,7 +162,13 @@ function PostDetail({ post, claimTitleFocus = false }: PostDetailProps) {
 
   // 사용자가 그사이 다른 곳(Tab · 누름)으로 옮겼으면 두고, 아무 데도 없을 때만 제목으로
   useEffect(() => {
-    if (!claimTitleFocus || location.hash === POST_COMMENTS_HASH || location.hash === POST_CLAIMS_HASH) return
+    if (
+      !claimTitleFocus ||
+      location.hash === POST_COMMENTS_HASH ||
+      location.hash === POST_CLAIMS_HASH ||
+      location.hash === POST_MATCHES_HASH
+    )
+      return
     const frame = requestAnimationFrame(() => {
       const active = document.activeElement
       if (active && active !== document.body) return
@@ -197,6 +204,22 @@ function PostDetail({ post, claimTitleFocus = false }: PostDetailProps) {
       if (target) {
         target.scrollIntoView({ block: 'start', behavior: 'instant' })
         const heading = target.querySelector<HTMLElement>('[data-claims-heading]')
+        ;(heading ?? target).focus({ preventScroll: true })
+      }
+      navigate({ pathname: location.pathname, search: location.search, hash: '' }, { replace: true, state: location.state })
+    })
+    return () => cancelAnimationFrame(frame)
+  }, [location.hash, location.pathname, location.search, location.state, navigate])
+
+  // 추천 후보 묶음으로(`#matches`, 문자열 비교) — 알림(내 글에 비슷한 글이 올라왔다)이 가리킨다. `#claims` 와 같은 규칙 :
+  // 묶음 제목에 포커스를 두고 조각은 바로 지운다. 묶음이 없으면(그사이 연락중 · 완료가 됨, 받기 실패) 조각만 지운다
+  useEffect(() => {
+    if (location.hash !== POST_MATCHES_HASH) return
+    const frame = requestAnimationFrame(() => {
+      const target = document.getElementById(MATCHES_ANCHOR_ID)
+      if (target) {
+        target.scrollIntoView({ block: 'start', behavior: 'instant' })
+        const heading = target.querySelector<HTMLElement>('[data-matches-heading]')
         ;(heading ?? target).focus({ preventScroll: true })
       }
       navigate({ pathname: location.pathname, search: location.search, hash: '' }, { replace: true, state: location.state })
@@ -261,8 +284,8 @@ function PostDetail({ post, claimTitleFocus = false }: PostDetailProps) {
           <PostOwnerPanel post={post} editHref={paths.postEdit(post.id)} onDeleted={handleDeleted} />
           {/* 받은 확인 요청(SCR-12 ②) — 내 글 관리 바로 아래. 상태 · 수정 · 삭제와 같은 "내 글에 할 일" 묶음이다 */}
           <ReceivedClaims post={post} />
-          {/* 시안 자리(개발 모드 `?lab=match-a|b|c` 에서만, 2026-10-19) — 내 분실 글의 매칭 후보 */}
-          {post.type === 'LOST' && !done ? <LabSlot name="match" context="detail" source={post} /> : null}
+          {/* 추천 후보(SCR-11) — 받은 확인 요청 아래, 본문 앞. 게시중 글에만(연락중 · 완료는 이미 진행 중) */}
+          {showsMatches(post, isOwner) ? <MatchCandidates post={post} /> : null}
         </div>
       ) : claimMode !== 'none' ? (
         <div className={styles.owner}>

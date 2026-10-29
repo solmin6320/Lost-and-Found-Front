@@ -1,0 +1,326 @@
+/*
+ * 추천 후보(SCR-11) — 내 글 상세의 "내 글에 할 일" 묶음 셋째 면. 면 · 간격 언어는 내 글 관리 · 받은 확인 요청을 따른다 :
+ * 옅은 면 한 장(`--surface-sunken`) · 안쪽 20px · 묶음 안 4 ~ 12px < 묶음 사이 16px.
+ * 카드는 목록 카드와 같은 말 — 잉크 윤곽 3px · 1:1 사진(없으면 포스터) · 사진 왼쪽 위 유형 이름표. 그림자 없음(종이 위에 놓인 것).
+ * 새 색을 만들지 않는다(의미 토큰만). 일치율 · 막대 · 점수 없음 — 맞은 이유는 글자로(디자인품질기준 "추천 일치")
+ */
+
+.panel {
+  container: match-panel / inline-size;
+  display: grid;
+  gap: var(--space-3);
+  min-width: 0;
+  padding: var(--space-5);
+  border-radius: var(--radius-md);
+  background-color: var(--surface-sunken);
+  scroll-margin-top: calc(var(--header-h) + var(--space-4));
+}
+
+.head {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.heading {
+  font-size: var(--text-base);
+  font-weight: var(--weight-extrabold);
+  line-height: var(--leading-snug);
+  text-wrap: balance;
+  word-break: keep-all;
+}
+
+.heading:focus {
+  outline: none;
+}
+
+/* 건수 — 숫자 타일이 아니라 제목에 붙는 글자(받은 확인 요청의 대기 수와 같은 말투) */
+.count {
+  color: var(--text-body);
+  font-weight: var(--weight-bold);
+  font-variant-numeric: tabular-nums;
+}
+
+.lead {
+  max-width: var(--measure);
+  color: var(--text-body);
+  font-size: var(--text-sm);
+  line-height: var(--leading-snug);
+  word-break: keep-all;
+}
+
+.panel[data-empty] .lead {
+  color: var(--text-muted);
+}
+
+.error {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-1-5);
+  color: var(--error-text);
+  font-size: var(--text-sm);
+  line-height: var(--leading-snug);
+}
+
+.error svg {
+  flex: none;
+  width: var(--icon-sm);
+  height: var(--icon-sm);
+  margin-top: 0.15em;
+}
+
+/*
+ * 옆으로 밀어 보는 줄 — 면의 안쪽 여백까지 흘러가 다음 카드 끝이 걸린다(더 있다는 표시, 숨은 제스처가 아니다).
+ * 카드 폭은 면 폭의 42% — 휴대폰(375) 두 장 남짓, 넓은 화면 오른쪽 열(30rem)도 두 장 반. 140px 아래로 줄이지 않는다(제목 두 줄이 읽히는 폭).
+ * 선택자를 한 단계 올린다 — 초기화(`ul[role='list']`)의 `padding: 0` 이 첫 카드 앞 여백을 지웠다
+ */
+.panel .track {
+  display: grid;
+  grid-auto-columns: clamp(8.75rem, 42cqi, 12rem);
+  grid-auto-flow: column;
+  gap: var(--space-3);
+  margin-inline: calc(var(--space-5) * -1);
+  padding: var(--space-1) var(--space-5) var(--space-2);
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-padding-inline: var(--space-5);
+  scroll-snap-type: x proximity;
+  scrollbar-width: thin;
+}
+
+.track > li {
+  min-width: 0;
+  scroll-snap-align: start;
+}
+
+/* ── 카드 ── */
+
+.card {
+  --outline-width: 3px;
+
+  position: relative;
+  display: flex;
+  height: 100%;
+  flex-direction: column;
+  border: var(--outline-width) solid var(--card-outline);
+  border-radius: var(--radius-md);
+  background-color: var(--surface);
+}
+
+.card:has(.link:active) {
+  opacity: var(--press-opacity);
+}
+
+.skeletonCard {
+  border-color: var(--skeleton);
+}
+
+.media {
+  position: relative;
+  order: -1;
+  border-radius: calc(var(--radius-md) - var(--outline-width)) calc(var(--radius-md) - var(--outline-width)) 0 0;
+}
+
+.media .visual,
+.media .skeletonMedia {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1;
+  border-radius: inherit;
+}
+
+.media:has(img) {
+  background-color: var(--surface-sunken);
+}
+
+.media:has(img)::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: inset 0 -1px 0 var(--media-edge);
+  pointer-events: none;
+}
+
+/* 작은 포스터에서는 그림 이름(지갑 · 카드 …)을 숨긴다 — 칸이 좁아 글자가 그림을 가리고, 종류는 맞은 이유가 말한다 */
+.media [class*='label'] {
+  display: none;
+}
+
+.flags {
+  position: absolute;
+  top: var(--space-2);
+  left: var(--space-2);
+  z-index: 2;
+  display: flex;
+  pointer-events: none;
+}
+
+.body {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--space-1-5);
+  padding: var(--space-2) var(--space-2) var(--space-1);
+}
+
+/* 제목 자리는 늘 두 줄 — 스켈레톤과 같고, 한 줄 제목 카드도 아래 줄이 옆 카드와 같은 높이에 선다 */
+.title {
+  display: grid;
+  min-height: calc(2em * var(--leading-snug));
+  color: var(--text-strong);
+  font-size: var(--text-base);
+  font-weight: var(--weight-bold);
+  line-height: var(--leading-snug);
+  letter-spacing: var(--tracking-tight);
+}
+
+.titleText {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow-wrap: anywhere;
+}
+
+.link {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+}
+
+/* 제목 링크 하나가 카드 전체(사진 · 이름표 · 이유 포함)를 덮는다. 숨기기 단추만 덮개 위에 선다 */
+.link::after {
+  content: '';
+  position: absolute;
+  inset: calc(var(--outline-width) * -1);
+  z-index: 1;
+  border-radius: var(--radius-md);
+}
+
+.link:focus-visible {
+  outline: none;
+}
+
+.card:has(.link:focus-visible) {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 4px;
+}
+
+@media (hover: hover) {
+  .card:has(.link:hover) .titleText {
+    text-decoration: underline;
+    text-decoration-thickness: 1.5px;
+    text-underline-offset: 0.2em;
+  }
+}
+
+/*
+ * 맞은 이유 — 한 줄에 하나(체크 목록처럼 위에서 아래로 훑는다), 자르지 않는다. 같은 것만 체크 + 잉크 굵게, 날짜 차는 체크 없이 본문 색.
+ * 이유는 많아야 넷(종류 · 날짜 · 장소 · 제목)이라 **네 줄 자리를 늘 잡는다** — 이유가 둘인 카드 · 스켈레톤 · 넷인 카드의 높이가 같아
+ * 받는 순간 아래 본문이 밀리지 않는다(QA-D-L5). 남는 자리는 장소 · 날짜를 카드 아래로 붙여(`margin-top: auto`) 이유 밑에 둔다
+ */
+.reasons {
+  display: flex;
+  min-height: calc(4em * var(--leading-snug));
+  flex-direction: column;
+  color: var(--text-body);
+  font-size: var(--text-xs);
+  line-height: var(--leading-snug);
+  word-break: keep-all;
+}
+
+.reasons li {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-0-5);
+  white-space: nowrap;
+}
+
+.reasons li[data-same] {
+  color: var(--text-strong);
+  font-weight: var(--weight-semibold);
+}
+
+.reasons svg {
+  flex: none;
+  width: var(--icon-xs);
+  height: var(--icon-xs);
+}
+
+.facts {
+  display: grid;
+  gap: var(--space-0-5);
+  margin-top: auto;
+  font-size: var(--text-xs);
+  line-height: var(--leading-snug);
+}
+
+.facts > div {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+/* 장소는 말줄임으로 자르지 않는다(확정안) — 두 줄 자리를 잡고, 더 길면 그만큼 자란다 */
+.place {
+  min-height: calc(2em * var(--leading-snug));
+}
+
+.place dt {
+  display: flex;
+  flex: none;
+  padding-top: 0.1em;
+}
+
+.pin {
+  display: block;
+  width: var(--icon-xs);
+  height: var(--icon-xs);
+  color: var(--text-muted);
+}
+
+.place dd {
+  min-width: 0;
+  color: var(--text-body);
+  overflow-wrap: anywhere;
+  word-break: keep-all;
+}
+
+.date {
+  flex-wrap: wrap;
+  color: var(--text-body);
+}
+
+.date dt {
+  flex: none;
+  color: var(--text-muted);
+}
+
+/* 숨기기 — 덮개 위(z-index), 카드 아래 끝. 누르는 면 44px. 위 글과 가는 선 하나로 갈라 "글 열기"와 다른 일임을 보인다 */
+.actions {
+  position: relative;
+  z-index: 2;
+  padding: var(--space-1);
+  border-top: var(--hairline);
+}
+
+.dismiss {
+  padding-inline: var(--space-1);
+  color: var(--text-body);
+  font-size: var(--text-sm);
+  white-space: nowrap;
+}
+
+.skeletonButton {
+  width: 100%;
+  /* 작은 버튼의 보이는 높이(`Button` `.sm`) — 받은 카드와 같은 줄 높이 */
+  height: 2.25rem;
+}
+
+.dialogTitle {
+  font-weight: var(--weight-bold);
+  overflow-wrap: anywhere;
+}
