@@ -73,6 +73,12 @@ export const POST_COMMENTS_HASH = '#comments'
 export const POST_CLAIMS_HASH = '#claims'
 
 /**
+ * 상세의 추천 후보 묶음 조각(SCR-11). 알림(`MATCH_SUGGESTED` — 내 글에 비슷한 글이 올라왔다)이 붙이고, 상세가 받으면 그 묶음으로 데려간다.
+ * 로그인 리다이렉트를 거치지 않는다(알림은 로그인한 사람에게만 있다) — `safeRedirectPath` 의 허용 조각이 아니다
+ */
+export const POST_MATCHES_HASH = '#matches'
+
+/**
  * 로그인 화면에 넘기는 안내 한 줄(`navigate(paths.login, { state })`). 로그인 화면이 폼 위에 띄운다(SCR-05).
  * 설정의 비밀번호 변경 뒤 · 가입은 됐는데 이어진 로그인만 실패했을 때 쓴다
  */
