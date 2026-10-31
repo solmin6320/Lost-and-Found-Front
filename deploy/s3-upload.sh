@@ -30,6 +30,8 @@ DIST=dist
 IMAGE_BUCKET=lostfound-images-solmin-seoul
 # 사진 CloudFront(사진 버킷을 OAC 로 내보내는 배포). build/csp.ts 의 DEFAULT_IMAGE_ORIGINS 와 같은 값 — csp.test.ts 가 맞춰 본다
 PHOTO_ORIGIN=https://d1xmzetvs0f1oh.cloudfront.net
+# 공공 습득물 사진(경찰민원24). build/csp.ts 의 PUBLIC_DATA_IMAGE_ORIGINS 와 같은 값 — csp.test.ts 가 맞춰 본다
+PUBLIC_PHOTO_ORIGIN=https://minwon24.police.go.kr
 IMMUTABLE='public, max-age=31536000, immutable'
 NO_CACHE='no-cache'
 
@@ -223,6 +225,10 @@ IMG_SRC="$(grep -o 'img-src [^;"]*' "$DIST/index.html" | strip_cr || true)"
 case " ${IMG_SRC#img-src } " in
   *" $PHOTO_ORIGIN "*) ;;
   *) die "CSP 사진 출처에 $PHOTO_ORIGIN 이 없습니다($IMG_SRC). CSP_IMAGE_ORIGINS=$PHOTO_ORIGIN npm run build 로 다시 빌드하세요(보안명세서 9.2)." ;;
+esac
+case " ${IMG_SRC#img-src } " in
+  *" $PUBLIC_PHOTO_ORIGIN "*) ;;
+  *) die "CSP 사진 출처에 공공 습득물 사진 $PUBLIC_PHOTO_ORIGIN 이 없습니다($IMG_SRC). build/csp.ts 의 PUBLIC_DATA_IMAGE_ORIGINS 를 확인하세요(보안명세서 4장)." ;;
 esac
 if grep -q 'amazonaws\.com' <<<"$IMG_SRC"; then
   die "CSP 사진 출처에 S3 주소가 있습니다($IMG_SRC). 사진은 CloudFront 로만 받습니다 — CSP_IMAGE_ORIGINS=$PHOTO_ORIGIN 으로 다시 빌드하세요(보안명세서 9.2)."

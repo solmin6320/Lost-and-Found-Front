@@ -6,6 +6,7 @@ import {
   badgeText,
   bellLabel,
   isListedNotification,
+  notificationKind,
   notificationSentence,
   notificationTime,
   sentenceText,
@@ -14,7 +15,14 @@ import {
   type UnreadPart,
 } from './notificationCopy'
 
-const TYPES = ['CLAIM_REQUESTED', 'CLAIM_APPROVED', 'CLAIM_REJECTED', 'MATCH_SUGGESTED', 'SOMETHING_NEW'] as const
+const TYPES = [
+  'CLAIM_REQUESTED',
+  'CLAIM_APPROVED',
+  'CLAIM_REJECTED',
+  'MATCH_SUGGESTED',
+  'PUBLIC_MATCH_SUGGESTED',
+  'SOMETHING_NEW',
+] as const
 
 describe('알림 문장', () => {
   it('모든 종류의 문장에 글 제목이 들어간다(QA-D-L17 · P-L12) — 승인 문장 포함', () => {
@@ -29,6 +37,14 @@ describe('알림 문장', () => {
     expect(s('CLAIM_REQUESTED')).toBe('민수 님이 「지갑」에 확인 요청을 보냈어요.')
     expect(s('CLAIM_APPROVED')).toBe('민수 님이 「지갑」 확인 요청을 승인했어요.')
     expect(s('CLAIM_REJECTED')).toBe('「지갑」 확인 요청이 거절됐어요.')
+  })
+
+  it('경찰서 · 기관 보관 후보 — 어디에 맡겨졌는지까지 한 문장, 종류 아이콘은 따로', () => {
+    expect(sentenceText(notificationSentence({ type: 'PUBLIC_MATCH_SUGGESTED', postTitle: '지갑', actorNickname: null }))).toBe(
+      '「지갑」 글과 비슷한 물건이 경찰서 · 기관에 맡겨져 있어요.',
+    )
+    expect(notificationKind('PUBLIC_MATCH_SUGGESTED')).toBe('publicMatch')
+    expect(notificationKind('MATCH_SUGGESTED')).toBe('match')
   })
 
   it('제목 바로 뒤에 받침으로 갈리는 조사(과/와 · 이/가 · 을/를)를 붙이지 않는다', () => {

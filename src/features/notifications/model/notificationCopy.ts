@@ -15,7 +15,7 @@ export interface Segment {
   strong?: boolean
 }
 
-export type NotificationKind = 'request' | 'approved' | 'rejected' | 'match' | 'other'
+export type NotificationKind = 'request' | 'approved' | 'rejected' | 'match' | 'publicMatch' | 'other'
 
 export function notificationKind(type: string): NotificationKind {
   switch (type) {
@@ -27,6 +27,8 @@ export function notificationKind(type: string): NotificationKind {
       return 'rejected'
     case 'MATCH_SUGGESTED':
       return 'match'
+    case 'PUBLIC_MATCH_SUGGESTED':
+      return 'publicMatch'
     default:
       return 'other'
   }
@@ -61,6 +63,9 @@ export function notificationSentence(n: Pick<NotificationResponse, 'type' | 'pos
     case 'MATCH_SUGGESTED':
       // 몇 건인지 · 상대가 분실 글인지 습득 글인지는 응답에 아직 없다(자동 매칭 단계) — 그 전까지는 수 없이
       return [title, { text: ' 글과 비슷한 글이 올라왔어요.' }]
+    case 'PUBLIC_MATCH_SUGGESTED':
+      // 우리 사이트 글이 아니라 물건 — 어디에 맡겨졌는지까지 한 문장에(누르면 그 글 상세의 공공 후보 묶음). 건수는 응답에 없다
+      return [title, { text: ' 글과 비슷한 물건이 경찰서 · 기관에 맡겨져 있어요.' }]
     default:
       return [title, { text: '에 새 소식이 있어요.' }]
   }

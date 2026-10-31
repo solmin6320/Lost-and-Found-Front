@@ -56,6 +56,8 @@ export type ErrorCode =
   | 'CLAIM_IN_PROGRESS' // 409 — 승인된 요청이 있어 글 상태를 직접 바꿀 수 없음
   // 자동 매칭(7.6 ②)
   | 'MATCH_NOT_FOUND' // 404 — 없는 후보 쌍을 숨기려 함
+  // 공공 습득물 자동 대조(7.6 ②-1)
+  | 'PUBLIC_MATCH_NOT_FOUND' // 404 — 없는 공공 후보를 숨기려 함(30일 지나 지워짐 · 다른 탭에서 숨김)
   // 공통
   | 'INVALID_INPUT' // 400
   | 'RESOURCE_NOT_FOUND' // 404

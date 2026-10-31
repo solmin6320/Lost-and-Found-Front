@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 
 import { getErrorMessage } from '@/shared/lib/http'
 import { Button } from '@/shared/ui/Button'
-import { Bell, HandHeart, HandWaving, ListMagnifyingGlass, XCircle, type Icon } from '@/shared/ui/icons'
+import { Bell, Buildings, HandHeart, HandWaving, ListMagnifyingGlass, XCircle, type Icon } from '@/shared/ui/icons'
 import { Skeleton } from '@/shared/ui/Skeleton'
 
 import type { NotificationResponse } from '../api/types'
@@ -27,6 +27,8 @@ const KIND_ICON: Record<NotificationKind, Icon> = {
   approved: HandHeart,
   rejected: XCircle,
   match: ListMagnifyingGlass,
+  // 경찰서 · 기관 보관 후보 — 공공 후보 카드의 보관처 이름표와 같은 아이콘
+  publicMatch: Buildings,
   other: Bell,
 }
 
