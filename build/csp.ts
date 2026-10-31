@@ -18,6 +18,13 @@
  */
 export const DEFAULT_IMAGE_ORIGINS = ['https://d1xmzetvs0f1oh.cloudfront.net'] as const
 
+/**
+ * 공공 습득물 사진 출처(경찰민원24 — 7.6 ②-1 공공 후보 카드). 배포 환경과 상관없는 **고정 외부 출처**라 `CSP_IMAGE_ORIGINS` 와 따로,
+ * 늘 `img-src` 에 붙는다. 화면도 이 출처로 시작하는 주소만 그린다(`publicMatchView` 의 `PUBLIC_PHOTO_ORIGIN` — `csp.test.ts` 가 둘이 같은지 본다).
+ * 출처 하나만 연다 — 응답에 다른 도메인이 와도 브라우저가 받지 않는다(보안명세서 4장)
+ */
+export const PUBLIC_DATA_IMAGE_ORIGINS = ['https://minwon24.police.go.kr'] as const
+
 export interface CspOptions {
   /** 게시글 사진을 내려주는 출처(S3 · CloudFront). `img-src` 에 붙는다 */
   imageOrigins: readonly string[]
@@ -64,7 +71,8 @@ function toOrigin(value: string, name: string): string {
  * - `script-src 'self'` — 인라인 · `eval` 없음. 화면 모드 초기화도 같은 출처 파일(`/theme-init.js`)이다
  * - `style-src 'self'` — `'unsafe-inline'` 없음. React 의 `style` prop 은 CSSOM(`el.style.x = …`)으로 들어가
  *   CSP 가 막지 않는다. 막히는 것은 HTML 의 `style="…"` 속성 · `<style>` 요소 · `setAttribute('style')` 인데 앱에 없다
- * - `img-src 'self' blob: <사진 출처>` — `blob:` 은 등록 · 수정의 미리보기(`URL.createObjectURL`). `data:` 는 넣지 않는다
+ * - `img-src 'self' blob: <사진 출처> <공공 사진 출처>` — `blob:` 은 등록 · 수정의 미리보기(`URL.createObjectURL`). `data:` 는 넣지 않는다.
+ *   공공 사진 출처(`PUBLIC_DATA_IMAGE_ORIGINS`)는 늘 맨 뒤에 붙는다
  * - `connect-src 'self'` — API 는 같은 출처(`/api/*`, CloudFront 가 EC2 로 넘김)
  * - `base-uri 'none'` — `<base>` 를 끼워 상대 주소 스크립트를 남의 서버로 돌리는 것을 막는다. 앱은 `<base>` 를 쓰지 않는다
  * - `require-trusted-types-for 'script'` · `trusted-types 'none'` — `innerHTML` · `eval` 같은 문자열 → 코드 통로를
@@ -78,7 +86,7 @@ function commonDirectives({ imageOrigins, connectOrigins = [] }: CspOptions): st
     `default-src 'self'`,
     `script-src 'self'`,
     `style-src 'self'`,
-    `img-src ${list(`'self'`, 'blob:', ...imageOrigins)}`,
+    `img-src ${list(`'self'`, 'blob:', ...imageOrigins, ...PUBLIC_DATA_IMAGE_ORIGINS.filter((o) => !imageOrigins.includes(o)))}`,
     `font-src 'self'`,
     `connect-src ${list(`'self'`, ...connectOrigins)}`,
     `object-src 'none'`,

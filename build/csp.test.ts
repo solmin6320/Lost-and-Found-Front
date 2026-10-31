@@ -2,7 +2,14 @@ import { readFileSync } from 'node:fs'
 
 import { describe, expect, it } from 'vitest'
 
-import { DEFAULT_IMAGE_ORIGINS, FORBIDDEN_CSP_TOKENS, buildHeaderCsp, buildMetaCsp, parseOriginList } from './csp.ts'
+import {
+  DEFAULT_IMAGE_ORIGINS,
+  FORBIDDEN_CSP_TOKENS,
+  PUBLIC_DATA_IMAGE_ORIGINS,
+  buildHeaderCsp,
+  buildMetaCsp,
+  parseOriginList,
+} from './csp.ts'
 
 describe('parseOriginList — 환경변수가 정책 문자열에 그대로 들어가지 않게', () => {
   it('비어 있으면 빈 목록', () => {
@@ -48,6 +55,25 @@ describe('기본 사진 출처', () => {
     const script = readFileSync(new URL('../deploy/s3-upload.sh', import.meta.url), 'utf8')
     const escaped = DEFAULT_IMAGE_ORIGINS[0].replace(/[.]/g, '\\.')
     expect(script).toMatch(new RegExp(`^PHOTO_ORIGIN=${escaped}\\r?$`, 'm'))
+  })
+})
+
+describe('공공 습득물 사진 출처(경찰민원24)', () => {
+  it('출처 하나 — 늘 img-src 맨 뒤에 붙고, 사진 출처를 무엇으로 빌드해도 빠지지 않는다', () => {
+    expect(PUBLIC_DATA_IMAGE_ORIGINS).toEqual(['https://minwon24.police.go.kr'])
+    expect(buildMetaCsp({ imageOrigins: DEFAULT_IMAGE_ORIGINS })).toContain(
+      `img-src 'self' blob: https://d1xmzetvs0f1oh.cloudfront.net https://minwon24.police.go.kr;`,
+    )
+    expect(buildMetaCsp({ imageOrigins: [] })).toContain(`img-src 'self' blob: https://minwon24.police.go.kr;`)
+    // 같은 출처를 환경변수로 또 넣어도 두 번 쓰지 않는다
+    expect(buildMetaCsp({ imageOrigins: ['https://minwon24.police.go.kr'] }).match(/minwon24/g)).toHaveLength(1)
+  })
+
+  // 화면이 그리는 출처(`PUBLIC_PHOTO_ORIGIN`)와 같은지는 `src/features/matches/model/publicMatchView.test.ts` 가 본다
+  it('업로드 스크립트의 PUBLIC_PHOTO_ORIGIN 과 같다', () => {
+    const script = readFileSync(new URL('../deploy/s3-upload.sh', import.meta.url), 'utf8')
+    const escaped = PUBLIC_DATA_IMAGE_ORIGINS[0].replace(/[.]/g, '\\.')
+    expect(script).toMatch(new RegExp(`^PUBLIC_PHOTO_ORIGIN=${escaped}\\r?$`, 'm'))
   })
 })
 
