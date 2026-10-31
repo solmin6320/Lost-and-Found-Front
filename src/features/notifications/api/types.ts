@@ -6,7 +6,14 @@
  * 알림 종류. 지금 서버가 내는 것은 확인 요청 셋(`ClaimService`)이다.
  * `MATCH_SUGGESTED`(자동 매칭) · `CHAT_MESSAGE`(채팅)는 이름만 있고 아직 내지 않는다 — 문장은 준비해 둔다(SCR-10)
  */
-export type NotificationType = 'CLAIM_REQUESTED' | 'CLAIM_APPROVED' | 'CLAIM_REJECTED' | 'MATCH_SUGGESTED' | 'CHAT_MESSAGE'
+export type NotificationType =
+  | 'CLAIM_REQUESTED'
+  | 'CLAIM_APPROVED'
+  | 'CLAIM_REJECTED'
+  | 'MATCH_SUGGESTED'
+  /** 경찰서 · 기관 보관 습득물 후보(7.6 ②-1, PR #45) — `postId` 는 받는 사람의 **분실 글**, `postTitle` 은 그 글 제목 */
+  | 'PUBLIC_MATCH_SUGGESTED'
+  | 'CHAT_MESSAGE'
 
 export interface NotificationResponse {
   id: number

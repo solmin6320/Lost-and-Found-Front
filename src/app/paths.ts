@@ -79,6 +79,12 @@ export const POST_CLAIMS_HASH = '#claims'
 export const POST_MATCHES_HASH = '#matches'
 
 /**
+ * 상세의 공공 습득물 후보 묶음 조각(SCR-11 확장, 7.6 ②-1). 알림(`PUBLIC_MATCH_SUGGESTED` — 경찰서 · 기관에 비슷한 물건이 맡겨졌다)이 붙이고,
+ * 상세가 받으면 그 묶음으로 데려간다. `#matches` 와 같이 로그인 리다이렉트의 허용 조각이 아니다
+ */
+export const POST_PUBLIC_MATCHES_HASH = '#public-matches'
+
+/**
  * 로그인 화면에 넘기는 안내 한 줄(`navigate(paths.login, { state })`). 로그인 화면이 폼 위에 띄운다(SCR-05).
  * 설정의 비밀번호 변경 뒤 · 가입은 됐는데 이어진 로그인만 실패했을 때 쓴다
  */

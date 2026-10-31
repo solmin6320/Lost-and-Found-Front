@@ -1,7 +1,7 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { useEffect, useRef } from 'react'
 
-import { matchKeys } from '@/features/matches'
+import { matchKeys, publicMatchKeys } from '@/features/matches'
 import { postKeys } from '@/features/posts'
 
 import { openNotificationStream } from '../api/notificationApi'
@@ -40,6 +40,10 @@ export function useNotificationStream(enabled: boolean, onArrive: (notification:
           // 내 글에 새 후보 — 보고 있는 추천 묶음도 다시 받는다(보고 있지 않으면 다음에 열 때)
           if (notification.type === 'MATCH_SUGGESTED') {
             void queryClient.invalidateQueries({ queryKey: matchKeys.post(notification.postId) })
+          }
+          // 경찰서 · 기관에 새 후보 — 그 분실 글의 공공 후보 묶음도 다시 받는다
+          if (notification.type === 'PUBLIC_MATCH_SUGGESTED') {
+            void queryClient.invalidateQueries({ queryKey: publicMatchKeys.post(notification.postId) })
           }
         }
         if (!notification.read) onArriveRef.current(notification)

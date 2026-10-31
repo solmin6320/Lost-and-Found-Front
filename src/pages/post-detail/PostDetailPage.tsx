@@ -7,6 +7,7 @@ import {
   paths,
   POST_COMMENTS_HASH,
   POST_MATCHES_HASH,
+  POST_PUBLIC_MATCHES_HASH,
   readPostDetailEntry,
   toPostDetailEntry,
   type AuthReturnState,
@@ -30,7 +31,14 @@ import {
   useCommentTotal,
   type CommentEntryHandle,
 } from '@/features/comments'
-import { MATCHES_ANCHOR_ID, MatchCandidates, showsMatches } from '@/features/matches'
+import {
+  MATCHES_ANCHOR_ID,
+  MatchCandidates,
+  PUBLIC_MATCHES_ANCHOR_ID,
+  PublicMatchCandidates,
+  showsMatches,
+  showsPublicMatches,
+} from '@/features/matches'
 import {
   MissingPost,
   POST_CATEGORY_LABEL,
@@ -166,7 +174,8 @@ function PostDetail({ post, claimTitleFocus = false }: PostDetailProps) {
       !claimTitleFocus ||
       location.hash === POST_COMMENTS_HASH ||
       location.hash === POST_CLAIMS_HASH ||
-      location.hash === POST_MATCHES_HASH
+      location.hash === POST_MATCHES_HASH ||
+      location.hash === POST_PUBLIC_MATCHES_HASH
     )
       return
     const frame = requestAnimationFrame(() => {
@@ -220,6 +229,22 @@ function PostDetail({ post, claimTitleFocus = false }: PostDetailProps) {
       if (target) {
         target.scrollIntoView({ block: 'start', behavior: 'instant' })
         const heading = target.querySelector<HTMLElement>('[data-matches-heading]')
+        ;(heading ?? target).focus({ preventScroll: true })
+      }
+      navigate({ pathname: location.pathname, search: location.search, hash: '' }, { replace: true, state: location.state })
+    })
+    return () => cancelAnimationFrame(frame)
+  }, [location.hash, location.pathname, location.search, location.state, navigate])
+
+  // 공공 습득물 후보 묶음으로(`#public-matches`, 문자열 비교) — 알림(경찰서 · 기관에 비슷한 물건이 맡겨졌다)이 가리킨다. `#matches` 와 같은 규칙 :
+  // 묶음 제목에 포커스를 두고 조각은 바로 지운다. 묶음이 없으면(그사이 연락중 · 완료가 됨, 받기 실패) 조각만 지운다
+  useEffect(() => {
+    if (location.hash !== POST_PUBLIC_MATCHES_HASH) return
+    const frame = requestAnimationFrame(() => {
+      const target = document.getElementById(PUBLIC_MATCHES_ANCHOR_ID)
+      if (target) {
+        target.scrollIntoView({ block: 'start', behavior: 'instant' })
+        const heading = target.querySelector<HTMLElement>('[data-public-matches-heading]')
         ;(heading ?? target).focus({ preventScroll: true })
       }
       navigate({ pathname: location.pathname, search: location.search, hash: '' }, { replace: true, state: location.state })
@@ -286,6 +311,8 @@ function PostDetail({ post, claimTitleFocus = false }: PostDetailProps) {
           <ReceivedClaims post={post} />
           {/* 추천 후보(SCR-11) — 받은 확인 요청 아래, 본문 앞. 게시중 글에만(연락중 · 완료는 이미 진행 중) */}
           {showsMatches(post, isOwner) ? <MatchCandidates post={post} /> : null}
+          {/* 공공 습득물 후보(SCR-11 확장) — 우리 사이트 추천 바로 아래. 게시중 **분실** 글에만(습득 글은 서버도 빈 배열) */}
+          {showsPublicMatches(post, isOwner) ? <PublicMatchCandidates post={post} /> : null}
         </div>
       ) : claimMode !== 'none' ? (
         <div className={styles.owner}>
