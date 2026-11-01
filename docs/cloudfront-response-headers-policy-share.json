@@ -1,0 +1,37 @@
+{
+  "Name": "lost-and-found-front-share",
+  "Comment": "/og-image.png 전용. 노션 공개 페이지처럼 남의 웹 페이지가 <img>로 직접 붙이는 링크 미리보기 그림이라 CORP 만 cross-origin. 나머지는 기본 정책과 같게",
+  "SecurityHeadersConfig": {
+    "StrictTransportSecurity": {
+      "Override": true,
+      "AccessControlMaxAgeSec": 31536000,
+      "IncludeSubdomains": true,
+      "Preload": false
+    },
+    "ContentTypeOptions": {
+      "Override": true
+    },
+    "ReferrerPolicy": {
+      "Override": true,
+      "ReferrerPolicy": "same-origin"
+    }
+  },
+  "CustomHeadersConfig": {
+    "Quantity": 1,
+    "Items": [
+      {
+        "Header": "Cross-Origin-Resource-Policy",
+        "Value": "cross-origin",
+        "Override": true
+      }
+    ]
+  },
+  "RemoveHeadersConfig": {
+    "Quantity": 1,
+    "Items": [
+      {
+        "Header": "Server"
+      }
+    ]
+  }
+}
