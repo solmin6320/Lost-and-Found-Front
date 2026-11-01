@@ -30,6 +30,20 @@ export interface CspOptions {
   imageOrigins: readonly string[]
   /** 같은 출처가 아닌 API 주소(`VITE_API_BASE_URL` 을 채웠을 때만). `connect-src` 에 붙는다 */
   connectOrigins?: readonly string[]
+  /**
+   * 채팅 WebSocket 출처(`wss://사이트 호스트`, 7.6 ③). `connect-src` 에 `'self'` 바로 뒤에 붙는다.
+   * CSP3 의 `'self'` 는 같은 호스트의 `wss:` 를 덮지만, 그 규칙이 늦게 들어간 브라우저(옛 Safari)에서 채팅만 막히지 않게 이름으로도 연다.
+   * `toSocketOrigin(사이트 출처)` 로 만든다 — 다른 호스트는 넣지 않는다
+   */
+  socketOrigins?: readonly string[]
+}
+
+/** `https://host` → `wss://host`(내 컴퓨터 `http://` → `ws://`). 검사한 출처(`parseOriginList`)만 넣는다 */
+export function toSocketOrigin(origin: string): string {
+  const url = new URL(origin)
+  if (url.protocol === 'https:') return `wss://${url.host}`
+  if (url.protocol === 'http:' && (url.hostname === 'localhost' || url.hostname === '127.0.0.1')) return `ws://${url.host}`
+  throw new Error(`WebSocket 출처로 바꿀 수 없습니다 — ${origin}`)
 }
 
 /**
@@ -73,14 +87,14 @@ function toOrigin(value: string, name: string): string {
  *   CSP 가 막지 않는다. 막히는 것은 HTML 의 `style="…"` 속성 · `<style>` 요소 · `setAttribute('style')` 인데 앱에 없다
  * - `img-src 'self' blob: <사진 출처> <공공 사진 출처>` — `blob:` 은 등록 · 수정의 미리보기(`URL.createObjectURL`). `data:` 는 넣지 않는다.
  *   공공 사진 출처(`PUBLIC_DATA_IMAGE_ORIGINS`)는 늘 맨 뒤에 붙는다
- * - `connect-src 'self'` — API 는 같은 출처(`/api/*`, CloudFront 가 EC2 로 넘김)
+ * - `connect-src 'self' wss://<사이트 호스트>` — API 는 같은 출처(`/api/*`, CloudFront 가 EC2 로 넘김), 채팅 WebSocket 은 같은 호스트의 `wss:`(`/ws`)
  * - `base-uri 'none'` — `<base>` 를 끼워 상대 주소 스크립트를 남의 서버로 돌리는 것을 막는다. 앱은 `<base>` 를 쓰지 않는다
  * - `require-trusted-types-for 'script'` · `trusted-types 'none'` — `innerHTML` · `eval` 같은 문자열 → 코드 통로를
  *   브라우저가 막는다. 번들에서 이 통로를 쓰는 곳은 React 의 `dangerouslySetInnerHTML`(앱이 쓰지 않는다)뿐이라
  *   정책을 하나도 만들지 않는다(`'none'`). 운영 빌드에서 목록 · 상세 · 로그인 · 등록(사진) · 설정을 돌려 위반 0건을 확인했다
  * - `upgrade-insecure-requests` — 혹시 섞여 들어온 `http://` 사진 주소를 https 로 올려 받는다
  */
-function commonDirectives({ imageOrigins, connectOrigins = [] }: CspOptions): string[] {
+function commonDirectives({ imageOrigins, connectOrigins = [], socketOrigins = [] }: CspOptions): string[] {
   const list = (...values: readonly string[]) => values.filter(Boolean).join(' ')
   return [
     `default-src 'self'`,
@@ -88,7 +102,7 @@ function commonDirectives({ imageOrigins, connectOrigins = [] }: CspOptions): st
     `style-src 'self'`,
     `img-src ${list(`'self'`, 'blob:', ...imageOrigins, ...PUBLIC_DATA_IMAGE_ORIGINS.filter((o) => !imageOrigins.includes(o)))}`,
     `font-src 'self'`,
-    `connect-src ${list(`'self'`, ...connectOrigins)}`,
+    `connect-src ${list(`'self'`, ...socketOrigins, ...connectOrigins.filter((o) => !socketOrigins.includes(o)))}`,
     `object-src 'none'`,
     `base-uri 'none'`,
     `form-action 'self'`,

@@ -14,6 +14,7 @@ import type { ReactNode } from 'react'
 export {
   Archive,
   ArrowClockwise,
+  ArrowDown,
   ArrowLeft,
   ArrowRight,
   ArrowSquareOut,
@@ -33,6 +34,7 @@ export {
   Clock,
   ClockCounterClockwise,
   Crosshair,
+  DotsThreeVertical,
   Eye,
   EyeSlash,
   Gear,
@@ -51,6 +53,7 @@ export {
   NavigationArrow,
   PaperPlaneRight,
   PencilSimple,
+  Prohibit,
   Plus,
   ShieldCheck,
   Signpost,
@@ -61,6 +64,7 @@ export {
   User,
   Warning,
   WarningCircle,
+  WifiSlash,
   X,
   XCircle,
 } from '@phosphor-icons/react'

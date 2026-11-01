@@ -4,9 +4,9 @@ import { useEffect, useId, useRef, useState } from 'react'
 import type { PostDetailResponse } from '@/features/posts'
 import { formatDateTime } from '@/shared/lib/date'
 import { getErrorMessage, hasErrorCode } from '@/shared/lib/http'
-import { Button } from '@/shared/ui/Button'
+import { Button, ButtonLink } from '@/shared/ui/Button'
 import { ConfirmDialog } from '@/shared/ui/ConfirmDialog'
-import { ArrowClockwise, ArrowUUpLeft, Check, HandHeart, WarningCircle, X } from '@/shared/ui/icons'
+import { ArrowClockwise, ArrowUUpLeft, ChatsCircle, Check, HandHeart, WarningCircle, X } from '@/shared/ui/icons'
 import { SafetyNote } from '@/shared/ui/SafetyNote'
 import { Skeleton } from '@/shared/ui/Skeleton'
 
@@ -14,6 +14,7 @@ import type { ClaimResponse } from '../api/types'
 import { CLAIM_STALE_CODES, useDecideClaim, type ClaimDecision } from '../model/claimMutations'
 import { receivedClaimsQueryOptions } from '../model/claimQueries'
 import {
+  CLAIM_CHAT_SAFETY,
   CLAIM_MEETING_SAFETY,
   CLAIMS_ANCHOR_ID,
   approveBlockedReason,
@@ -29,6 +30,8 @@ import styles from './claims.module.css'
 interface ReceivedClaimsProps {
   /** 글쓴이의 글. **글쓴이에게만** 그린다(부른 쪽이 판정한다) — 답은 글쓴이와 보낸 사람만 본다 */
   post: PostDetailResponse
+  /** 승인한 요청으로 열린 대화방 주소(SCR-13) — `[대화하기]`. 못 찾으면 `null`(댓글 쪽 안내 그대로). 경로는 부른 쪽이 정한다 */
+  chatHrefFor?: (claimId: number) => string | null
 }
 
 /** 확인 창 하나 — 어떤 요청에 무엇을 할지 */
@@ -62,7 +65,7 @@ const DONE_ANNOUNCE: Record<Pending['decision'], string> = {
  * 승인 · 거절 · 받았어요는 빨강이 아니다 — 빨간 채움은 삭제 확인만(1.2). 되돌릴 수 없는 결과는 확인 창 문장이 말한다.
  * 누르는 면 44px, 두 단추 사이 16px — 같은 줄의 [승인]–[거절]을 잘못 누르지 않게(피츠). 확인 창이 한 번 더 받는다.
  */
-export function ReceivedClaims({ post }: ReceivedClaimsProps) {
+export function ReceivedClaims({ post, chatHrefFor }: ReceivedClaimsProps) {
   const claims = useQuery(receivedClaimsQueryOptions(post.id))
   const decide = useDecideClaim(post.id)
   const headingId = useId()
@@ -190,6 +193,7 @@ export function ReceivedClaims({ post }: ReceivedClaimsProps) {
                 approvedExists={approvedExists}
                 busy={decide.isPending}
                 onAsk={ask}
+                chatHref={claim.status === 'APPROVED' && chatHrefFor ? chatHrefFor(claim.id) : null}
               />
             ))}
           </ol>
@@ -227,11 +231,13 @@ interface ReceivedClaimItemProps {
   approvedExists: boolean
   busy: boolean
   onAsk: (claim: ClaimResponse, decision: Pending['decision']) => void
+  /** 이 요청의 대화방(승인함일 때만) */
+  chatHref: string | null
 }
 
-function ReceivedClaimItem({ claim, post, approvedExists, busy, onAsk }: ReceivedClaimItemProps) {
+function ReceivedClaimItem({ claim, post, approvedExists, busy, onAsk, chatHref }: ReceivedClaimItemProps) {
   const actions = receivedClaimActions(claim, post, approvedExists)
-  const any = actions.approve || actions.reject || actions.cancel || actions.receive
+  const any = actions.approve || actions.reject || actions.cancel || actions.receive || chatHref !== null
   const closed = isClosedPending(claim, post.status)
   const press = (decision: Pending['decision']) => () => !busy && onAsk(claim, decision)
 
@@ -270,7 +276,7 @@ function ReceivedClaimItem({ claim, post, approvedExists, busy, onAsk }: Receive
               : '승인한 요청이에요. 상대가 받았다고 누르면 글이 완료돼요. 상대가 끝내 누르지 않으면 승인을 취소할 수 있어요.'}
           </p>
           <p className={styles.itemNote}>
-            <SafetyNote>{CLAIM_MEETING_SAFETY}</SafetyNote>
+            <SafetyNote>{chatHref ? CLAIM_CHAT_SAFETY : CLAIM_MEETING_SAFETY}</SafetyNote>
           </p>
         </div>
       ) : null}
@@ -279,8 +285,15 @@ function ReceivedClaimItem({ claim, post, approvedExists, busy, onAsk }: Receive
 
       {any ? (
         <div className={styles.actions}>
+          {/* 승인한 요청 — 만날 약속은 대화방에서(이 건의 잉크 단추 하나). 받았어요(분실 글)는 만난 뒤의 일이라 테 단추 */}
+          {chatHref ? (
+            <ButtonLink to={chatHref} variant="primary" size="sm">
+              <ChatsCircle />
+              대화하기
+            </ButtonLink>
+          ) : null}
           {actions.receive ? (
-            <Button variant="primary" size="sm" aria-disabled={busy || undefined} onClick={press('receive')}>
+            <Button variant={chatHref ? 'secondary' : 'primary'} size="sm" aria-disabled={busy || undefined} onClick={press('receive')}>
               <Check />
               받았어요
             </Button>

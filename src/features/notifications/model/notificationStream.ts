@@ -1,3 +1,4 @@
+import { RECONNECT_BASE_MS, RECONNECT_MAX_MS, defaultTimers, reconnectDelay, type StreamTimers } from '@/shared/lib/backoff'
 import { ApiError } from '@/shared/lib/http'
 import { createSseParser } from '@/shared/lib/sse'
 
@@ -21,10 +22,9 @@ import type { NotificationResponse } from '../api/types'
 
 export type StreamStatus = 'idle' | 'connecting' | 'open' | 'waiting' | 'paused' | 'stopped'
 
-export interface StreamTimers {
-  set: (fn: () => void, ms: number) => unknown
-  clear: (handle: unknown) => void
-}
+/** 재연결 간격 · 시계는 채팅 연결과 같이 쓴다(`shared/lib/backoff`) */
+export { RECONNECT_BASE_MS, RECONNECT_MAX_MS, reconnectDelay }
+export type { StreamTimers }
 
 export interface NotificationStreamOptions {
   /** 연결을 연다(실패하면 던진다). 기본은 `openNotificationStream` */
@@ -38,16 +38,8 @@ export interface NotificationStreamOptions {
   random?: () => number
 }
 
-export const RECONNECT_BASE_MS = 1_000
-export const RECONNECT_MAX_MS = 30_000
 /** 이만큼 아무것도 오지 않으면 죽은 연결 — 서버 heartbeat(15초) 세 번 */
 export const STALL_MS = 45_000
-
-/** `attempt` 번째(0부터) 다시 붙기 전 기다림. 지수 백오프 + 반쪽 흔들기(equal jitter) */
-export function reconnectDelay(attempt: number, random: () => number = Math.random): number {
-  const ceiling = Math.min(RECONNECT_MAX_MS, RECONNECT_BASE_MS * 2 ** attempt)
-  return Math.round(ceiling / 2 + random() * (ceiling / 2))
-}
 
 /** 다시 두드려도 같은 실패 — 서버가 4xx 로 거절했다(세션 끝 · 권한 없음) */
 export function isFatalStreamError(error: unknown): boolean {
@@ -63,11 +55,6 @@ export function parseNotification(data: string): NotificationResponse | null {
   } catch {
     return null
   }
-}
-
-const defaultTimers: StreamTimers = {
-  set: (fn, ms) => setTimeout(fn, ms),
-  clear: (handle) => clearTimeout(handle as ReturnType<typeof setTimeout>),
 }
 
 export interface NotificationStream {

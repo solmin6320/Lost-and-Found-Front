@@ -22,6 +22,7 @@ export { CLAIM_STALE_CODES, useCreateClaim, useDecideClaim } from './model/claim
 export type { ClaimDecision } from './model/claimMutations'
 export { CLAIM_CONSEQUENCE, CLAIM_STATUS_LABEL, OWNER_VERIFIED_SENTENCE, claimEntryLabel, isReceiver } from './model/labels'
 export {
+  CLAIM_CHAT_SAFETY,
   CLAIMS_ANCHOR_ID,
   POST_CLAIMS_HASH,
   RECEIVED_CLAIM_STATUS_LABEL,

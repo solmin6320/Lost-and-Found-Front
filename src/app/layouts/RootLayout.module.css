@@ -379,6 +379,30 @@
 }
 
 /*
+ * 화면 높이를 꽉 쓰는 화면(채팅 SCR-13, `data-chat-screen`) — 페이지는 스크롤되지 않고 그 화면 안의 칸만 스크롤된다(100dvh, QA-D-L19).
+ * 껍데기를 화면 높이에 맞추고 본문이 헤더 아래 남은 높이를 그 화면에 넘긴다(헤더 높이를 숫자로 빼지 않는다 — 글자를 키워도 맞는다).
+ * 본문 아래 여백(빈 띠)은 두지 않고 기기 아래 여백만 비킨다. 낮은 화면(키보드가 뜬 휴대폰)은 위아래 여백도 거둔다
+ */
+.shell:has([data-chat-screen]) {
+  height: 100dvh;
+}
+
+.main:has([data-chat-screen]) {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding-top: var(--space-2);
+  padding-bottom: max(var(--space-2), env(safe-area-inset-bottom));
+}
+
+@media (max-height: 40rem) {
+  .main:has([data-chat-screen]) {
+    padding-top: 0;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+/*
  * ── 더 좁으면 — 모든 화면이 같은 한 단계(본인 결정 2026-10-12 "모든 화면 같은 규칙" · 2026-10-13 두 줄) ──
  *
  * 헤더가 한 줄에 서는 가장 좁은 폭은 약 18.5rem(296px)이다(글자 100% 실측 — 꼬리표 30 · 사이 8 · 오른쪽 묶음 226 · 양옆 16씩).
@@ -450,5 +474,14 @@
   /* 헤더가 붙지 않으니 헤더 높이에 기대어 붙던 것들은 화면 맨 위에 붙는다 */
   .main {
     --header-h: 0rem;
+  }
+
+  /*
+   * 두세 줄 헤더(글자 200%)에서는 채팅이 헤더 아래 남은 높이만 받으면 대화 칸이 너무 작다(375 × 200% 헤더 217px).
+   * 채팅 칸을 화면 높이 그대로 두고 헤더는 한 번 보이고 올라가게 한다(헤더가 이 폭에서 붙지 않는 것과 같은 까닭)
+   */
+  .main:has([data-chat-screen]) {
+    flex: none;
+    height: 100dvh;
   }
 }

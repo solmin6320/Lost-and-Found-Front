@@ -20,7 +20,7 @@ import styles from './NotificationPanel.module.css'
 
 /**
  * 종류 아이콘 — 16px, 원 바탕 없이(QA-D-L23 · 디자인품질기준 "알림 줄"). 종류는 문장이 말하고 아이콘은 훑어볼 때의 표지다.
- * 승인은 `HandHeart`(채운 `CheckCircle` 은 "완료" 표시 전용 · `ChatsCircle` 은 대화가 생긴 뒤)
+ * 승인은 `HandHeart`(채운 `CheckCircle` 은 "완료" 표시 전용). 승인 문장이 대화를 말해도 아이콘은 요청 고리(요청 · 승인 · 거절)의 표지 그대로
  */
 const KIND_ICON: Record<NotificationKind, Icon> = {
   request: HandWaving,
@@ -38,13 +38,18 @@ const SKELETON_ROWS = 4
 interface NotificationListProps {
   /** 줄을 눌렀다 — 읽음으로 바꾸고 칸을 닫는다(새 탭 열기면 닫지 않는다) */
   onOpen: (notification: NotificationResponse, event: MouseEvent<HTMLAnchorElement>) => void
+  /**
+   * 이 확인 요청으로 열린 대화방 id — 승인 알림이 그 방으로 간다(SCR-13). 방 목록을 아직 못 받았으면 `undefined`,
+   * 받았는데 없으면 `null`(그때는 승인 문장에 대화 약속을 붙이지 않는다)
+   */
+  roomIdForClaim?: (claimId: number) => number | null | undefined
 }
 
 /**
  * 알림 목록 — 네 가지 상태를 모두 그린다(로딩 줄 스켈레톤 · 빈 · 오류 + [다시 시도] · 권한은 종이 맡는다).
  * 한 줄 = 링크 하나(늘인 `::after` — 줄 어디를 눌러도, 최소 56px). 줄 안에 작은 글자 링크를 두지 않는다(QA-D-L17 · P-L12)
  */
-export function NotificationList({ onOpen }: NotificationListProps) {
+export function NotificationList({ onOpen, roomIdForClaim }: NotificationListProps) {
   const list = useNotificationList(true)
 
   if (list.isPending) {
@@ -101,7 +106,7 @@ export function NotificationList({ onOpen }: NotificationListProps) {
     <div className={styles.listArea}>
       <ul role="list" className={styles.list}>
         {items.map((n) => (
-          <NotificationRow key={n.id} notification={n} now={now} onOpen={onOpen} />
+          <NotificationRow key={n.id} notification={n} now={now} onOpen={onOpen} roomIdForClaim={roomIdForClaim} />
         ))}
       </ul>
       {list.hasNextPage ? (
@@ -130,14 +135,18 @@ function NotificationRow({
   notification: n,
   now,
   onOpen,
+  roomIdForClaim,
 }: {
   notification: NotificationResponse
   now: Date
   onOpen: NotificationListProps['onOpen']
+  roomIdForClaim: NotificationListProps['roomIdForClaim']
 }) {
   const KindIcon = KIND_ICON[notificationKind(n.type)]
-  const segments = notificationSentence(n)
-  const href = notificationHref(n)
+  const roomId = n.claimId !== null && roomIdForClaim ? roomIdForClaim(n.claimId) : undefined
+  // 방이 없다고 확인된 승인에만 대화 약속을 빼고, 목록을 아직 모르면 붙인다(누르면 방 또는 내 요청 칸 — 막다른 길은 아니다)
+  const segments = notificationSentence(n, { chat: roomId !== null })
+  const href = notificationHref(n, roomIdForClaim)
   const sentence = (
     <>
       {n.read ? null : <span className="sr-only">안 읽음. </span>}
@@ -150,8 +159,8 @@ function NotificationRow({
       <KindIcon className={styles.kind} />
       <span className={styles.body}>
         {/*
-          가는 곳은 종류마다 다음 행동이 있는 자리(`notificationHref`, 화면정의서 SCR-10) — 요청 · 승인은 그 글 상세의 확인 요청 칸(`#claims`),
-          거절은 보낸 확인 요청(`/me/claims`). 글이 없는 알림(앞으로 생길 종류)은 링크가 아니다
+          가는 곳은 종류마다 다음 행동이 있는 자리(`notificationHref`, 화면정의서 SCR-10) — 요청은 그 글 상세의 확인 요청 칸(`#claims`),
+          승인은 그 대화방(`/chat/:roomId`, 방을 못 찾으면 `#claims`), 거절은 보낸 확인 요청(`/me/claims`). 글이 없는 알림은 링크가 아니다
         */}
         {href !== null ? (
           <Link className={styles.link} to={href} onClick={(event) => onOpen(n, event)}>

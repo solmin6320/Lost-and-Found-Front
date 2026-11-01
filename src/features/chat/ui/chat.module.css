@@ -1,0 +1,401 @@
+/*
+ * 채팅 말풍선 · 입력 줄(SCR-13, 시안 a 말풍선). 색은 의미 토큰만(16진 색 0개), 빨강은 오류 문장에만.
+ * 말풍선 반경은 놓이는 면(12px), 이어지는 말은 붙은 쪽 모서리만 4px — 누가 말했는지 묶음으로 보인다(근접성)
+ */
+
+/* ── 대화 칸 — 늘고 줄어드는 유일한 칸 ── */
+
+.scrollWrap {
+  position: relative;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.scroll {
+  container: chat-log / inline-size;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: var(--space-3) var(--space-3) var(--space-2);
+}
+
+.scroll:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: -2px;
+}
+
+/* 맨 위 — 지난 대화 더 보기, 또는 대화의 처음(안전 안내 한 번) */
+.top {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-1);
+  min-height: var(--tap-min);
+  margin-bottom: var(--space-2);
+}
+
+.start {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  max-width: 30rem;
+  padding: var(--space-2) var(--space-3);
+  border: var(--hairline);
+  border-radius: var(--radius-sm);
+  color: var(--text-body);
+  font-size: var(--text-sm);
+  line-height: var(--leading-snug);
+  word-break: keep-all;
+}
+
+.start svg {
+  flex: none;
+  width: var(--icon-sm);
+  height: var(--icon-sm);
+  margin-top: 0.15em;
+  color: var(--text-strong);
+}
+
+.start b {
+  color: var(--text-strong);
+  font-weight: var(--weight-bold);
+}
+
+.olderError {
+  color: var(--error-text);
+  font-size: var(--text-sm);
+  text-align: center;
+}
+
+.messages {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  list-style: none;
+}
+
+.day {
+  display: flex;
+  justify-content: center;
+  margin-block: var(--space-4) var(--space-2);
+}
+
+.day span {
+  padding: 0.125rem var(--space-2);
+  border-radius: var(--radius-pill);
+  background-color: var(--surface-sunken);
+  color: var(--text-muted);
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-semibold);
+}
+
+.system {
+  justify-self: center;
+  max-width: 30rem;
+  margin-block: var(--space-2);
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+  line-height: var(--leading-snug);
+  text-align: center;
+  word-break: keep-all;
+}
+
+.message {
+  display: grid;
+  justify-items: start;
+  margin-top: var(--space-3);
+}
+
+.message[data-run] {
+  margin-top: var(--space-1);
+}
+
+.message[data-mine] {
+  justify-items: end;
+}
+
+.bubbleRow {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-1-5);
+  max-width: min(84%, 30rem);
+}
+
+.message[data-mine] .bubbleRow {
+  flex-direction: row-reverse;
+}
+
+.bubble {
+  min-width: 0;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  background-color: var(--surface-sunken);
+  color: var(--text-strong);
+  font-size: var(--text-base);
+  line-height: var(--leading-snug);
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.message:not([data-mine]) .bubble {
+  border-top-left-radius: var(--radius-xs);
+}
+
+.message[data-mine] .bubble {
+  border-top-right-radius: var(--radius-xs);
+  background-color: var(--action);
+  color: var(--on-action);
+}
+
+/* 보내는 중 — 같은 잉크, 한 단계 흐린 글자(반투명 면 아님). 못 보냄은 잉크 테 */
+.message[data-pending='sending'] .bubble {
+  color: color-mix(in srgb, var(--on-action) 78%, var(--action));
+}
+
+.message[data-pending='failed'] .bubble {
+  border: 2px solid var(--selected-line);
+  background-color: var(--surface);
+  color: var(--text-strong);
+}
+
+/* 보낸 시각 — 12px 하한(시안 11px, QA-D-L19) */
+.stamp {
+  flex: none;
+  color: var(--text-muted);
+  font-size: var(--text-2xs);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.3;
+  white-space: nowrap;
+}
+
+/* 가린 자리 — 자물쇠 + 무엇을 가렸는지. 말풍선 색 위에서 한 칸 낮은 대비의 조각(색만으로 알리지 않는다) */
+.masked {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2em;
+  margin-inline: 0.1em;
+  padding: 0 0.375em;
+  border-radius: var(--radius-xs);
+  background-color: color-mix(in srgb, currentColor 14%, transparent);
+  font-weight: var(--weight-semibold);
+  white-space: nowrap;
+}
+
+.masked svg {
+  width: 0.875em;
+  height: 0.875em;
+}
+
+@container chat-log (width < 16rem) {
+  .masked {
+    white-space: normal;
+  }
+}
+
+.maskNote {
+  max-width: min(84%, 30rem);
+  margin-top: var(--space-1);
+  color: var(--text-muted);
+  font-size: var(--text-2xs);
+  line-height: var(--leading-snug);
+  word-break: keep-all;
+}
+
+.message[data-mine] .maskNote {
+  text-align: right;
+}
+
+.failed {
+  display: grid;
+  justify-items: end;
+  gap: var(--space-1);
+  margin-top: var(--space-1);
+}
+
+.failedText {
+  color: var(--error-text);
+  font-size: var(--text-sm);
+  line-height: var(--leading-snug);
+  text-align: right;
+}
+
+.failedActions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-4);
+}
+
+.empty {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-1);
+  margin-top: var(--space-6);
+  text-align: center;
+}
+
+.emptyTitle {
+  color: var(--text-strong);
+  font-size: var(--text-base);
+  font-weight: var(--weight-bold);
+}
+
+.emptyText {
+  color: var(--text-body);
+  font-size: var(--text-sm);
+}
+
+.bubbleSkeleton {
+  width: 100%;
+  border-radius: var(--radius-md);
+}
+
+/* 새 메시지 — 위를 읽던 중에 온 말. 대화 칸 아래 가운데에 떠 있다(입력 줄을 가리지 않는다) */
+.jump {
+  position: absolute;
+  bottom: var(--space-2);
+  left: 50%;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1-5);
+  min-height: var(--tap-min);
+  padding-inline: var(--space-4);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-pill);
+  background-color: var(--surface-raised);
+  box-shadow: var(--shadow-overlay);
+  color: var(--text-strong);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-bold);
+  transform: translateX(-50%);
+  animation: rise var(--duration-base) var(--ease-out);
+}
+
+.jump svg {
+  width: var(--icon-sm);
+  height: var(--icon-sm);
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 4px);
+  }
+}
+
+/* ── 입력 줄 ── */
+
+.composer {
+  display: grid;
+  flex: none;
+  gap: var(--space-1-5);
+  padding: var(--space-2) var(--space-3);
+  border-top: var(--hairline);
+  background-color: var(--surface);
+}
+
+.composerNote {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  color: var(--text-strong);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-bold);
+  line-height: var(--leading-snug);
+}
+
+.composerNote svg {
+  flex: none;
+  width: var(--icon-sm);
+  height: var(--icon-sm);
+}
+
+.composerRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: var(--space-2);
+}
+
+.input {
+  min-height: var(--form-control-h);
+  max-height: 8rem;
+  padding: 0.75rem var(--space-3);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background-color: var(--surface);
+  color: var(--text-strong);
+  font-size: var(--text-base);
+  line-height: var(--leading-snug);
+  resize: none;
+  field-sizing: content;
+}
+
+/* 안내 글은 한 줄 — 좁은 칸(글자 200%)에서 안내 글이 여러 줄로 접혀 칸이 그만큼 높아지지 않게(칸 높이는 쓴 글자만큼) */
+.input::placeholder {
+  overflow: hidden;
+  color: var(--text-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.input:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 1px;
+}
+
+.send {
+  width: var(--form-control-h);
+  min-height: var(--form-control-h);
+  padding: 0;
+}
+
+.send svg {
+  width: var(--icon-md);
+  height: var(--icon-md);
+}
+
+.count {
+  color: var(--text-muted);
+  font-size: var(--text-2xs);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+/* 강제 색상 — 말풍선 테두리로 갈린다(면 색이 사라진다) */
+@media (forced-colors: active) {
+  .bubble {
+    border: 1px solid CanvasText;
+  }
+
+  .masked {
+    border: 1px solid CanvasText;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .jump {
+    animation: none;
+  }
+}
+
+/*
+ * 낮은 화면(키보드가 뜬 휴대폰 · 375 × 380) — 대화 칸에 자리를 준다(메시지 칸 ≥ 화면 높이 50%, QA-P-L10).
+ * 맨 위 안전 안내는 대화 칸 안에서 스크롤되니 그대로 두고, 칸 안 여백만 줄인다
+ */
+@media (max-height: 40rem) {
+  .scroll {
+    padding-block: var(--space-2) var(--space-1);
+  }
+
+  .composer {
+    padding-block: var(--space-1-5);
+  }
+
+  /* 쓴 글이 길어도 세 줄까지만 자란다 — 대화 칸 자리를 지킨다 */
+  .input {
+    max-height: calc(3lh + 1.5rem + 2px);
+  }
+}

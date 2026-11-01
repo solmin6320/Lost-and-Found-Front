@@ -5,6 +5,7 @@ import { paths } from '@/app/paths'
 import { RouteLoadError } from '@/app/RouteLoadError'
 import { PostFormSkeleton } from '@/features/posts'
 import { AdminRouteFallback } from '@/pages/admin/ManagersHead'
+import { ChatSkeleton } from '@/pages/chat/ChatSkeleton'
 import { LoginPage } from '@/pages/login/LoginPage'
 import { MyClaimsSkeleton } from '@/pages/my-claims/MyClaimsSkeleton'
 import { MyPageSkeleton } from '@/pages/my-page/MyPageSkeleton'
@@ -28,6 +29,7 @@ import { SignupPage } from '@/pages/signup/SignupPage'
  * | /me                 | 마이페이지(내 글)       | [6.1]        |
  * | /me/claims          | 보낸 확인 요청          | [4.7] [4.8]  |
  * | /settings           | 설정(화면 모드 · 프로필 · 비밀번호) | [3.6] [3.7] |
+ * | /chat/:roomId       | 1:1 채팅(승인된 두 사람만) | 7.6 ③       |
  * | /admin/managers     | 관리자 — 매니저 관리(회원 검색 · 임명 · 해임) | 7.4 |
  * | 그 외               | 없는 화면               | 9장          |
  *
@@ -103,6 +105,13 @@ export function createAppRouter() {
           path="/settings"
           lazy={() => import('@/pages/settings/SettingsPage').then((m) => ({ Component: m.SettingsPage }))}
           hydrateFallbackElement={<SettingsSkeleton />}
+          errorElement={<RouteLoadError />}
+        />
+
+        <Route
+          path="/chat/:roomId"
+          lazy={() => import('@/pages/chat/ChatPage').then((m) => ({ Component: m.ChatPage }))}
+          hydrateFallbackElement={<ChatSkeleton />}
           errorElement={<RouteLoadError />}
         />
 

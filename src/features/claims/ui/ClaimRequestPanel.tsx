@@ -10,6 +10,7 @@ import { Button, ButtonLink } from '@/shared/ui/Button'
 import { ConfirmDialog } from '@/shared/ui/ConfirmDialog'
 import {
   CaretRight,
+  ChatsCircle,
   Check,
   CheckCircle,
   Clock,
@@ -28,6 +29,7 @@ import { TextArea } from '@/shared/ui/TextArea'
 import { CLAIM_ANSWER_MAX_LENGTH, type ClaimStatus } from '../api/types'
 import { CLAIM_STALE_CODES, useCreateClaim, useDecideClaim } from '../model/claimMutations'
 import {
+  CLAIM_CHAT_SAFETY,
   CLAIM_MEETING_SAFETY,
   CLAIM_PERSONAL_INFO_NOTICE,
   CLAIMS_ANCHOR_ID,
@@ -49,6 +51,10 @@ interface ClaimRequestPanelProps {
   loginState?: unknown
   /** 내가 보낸 요청 목록 주소 */
   myClaimsHref: string
+  /**
+   * 내 요청으로 열린 대화방 주소(SCR-13) — 승인됐을 때 `[대화하기]`. 방을 못 찾으면(목록 전 · 차단한 두 사람) `null` — 그때는 댓글 쪽 안내 그대로
+   */
+  chatHref?: string | null
 }
 
 /**
@@ -85,7 +91,7 @@ const LEAVE_COPY: LeaveCopy = {
  *
  * 보내기 · 받았어요가 그사이 바뀐 상태로 실패하면(이미 보냄 · 게시중 아님) 서버 `message` 를 칸 위에 남기고 상세를 다시 받는다(훅).
  */
-export function ClaimRequestPanel({ post, mode, loginHref, loginState, myClaimsHref }: ClaimRequestPanelProps) {
+export function ClaimRequestPanel({ post, mode, loginHref, loginState, myClaimsHref, chatHref = null }: ClaimRequestPanelProps) {
   const queryClient = useQueryClient()
   const createClaim = useCreateClaim(post.id)
   const decide = useDecideClaim(post.id)
@@ -237,25 +243,36 @@ export function ClaimRequestPanel({ post, mode, loginHref, loginState, myClaimsH
           {/* 만날 곳을 정하는 일이 받는 일보다 먼저라 경고가 다음 할 일 앞에 선다 */}
           {line.safety ? (
             <p className={styles.statusNext}>
-              <SafetyNote>{CLAIM_MEETING_SAFETY}</SafetyNote>
+              <SafetyNote>{chatHref ? CLAIM_CHAT_SAFETY : CLAIM_MEETING_SAFETY}</SafetyNote>
             </p>
           ) : null}
           {line.next ? <p className={styles.statusNext}>{line.next}</p> : null}
         </div>
-        {/* 댓글로 가는 입구는 바로 위 이름표 줄의 [댓글 쓰기]가 맡는다 — 같은 뜻의 단추를 하나 더 두지 않는다 */}
-        {line.canReceive ? (
+        {/*
+          승인됐으면 만날 약속은 대화방에서(SCR-13) — `[대화하기]`가 이 칸의 잉크 단추 하나다. 받았어요는 만난 뒤의 일이라 테 단추(16px 떨어짐).
+          방을 못 찾으면 연락 입구는 바로 위 이름표 줄의 [댓글 쓰기]가 맡는다(같은 뜻의 단추를 하나 더 두지 않는다)
+        */}
+        {(line.safety && chatHref) || line.canReceive ? (
           <div className={styles.actions}>
-            <Button
-              variant="primary"
-              size="sm"
-              onClick={() => {
-                setDialogError(null)
-                setConfirmReceive(true)
-              }}
-            >
-              <Check />
-              받았어요
-            </Button>
+            {line.safety && chatHref ? (
+              <ButtonLink to={chatHref} variant="primary" size="sm">
+                <ChatsCircle />
+                대화하기
+              </ButtonLink>
+            ) : null}
+            {line.canReceive ? (
+              <Button
+                variant={chatHref ? 'secondary' : 'primary'}
+                size="sm"
+                onClick={() => {
+                  setDialogError(null)
+                  setConfirmReceive(true)
+                }}
+              >
+                <Check />
+                받았어요
+              </Button>
+            ) : null}
           </div>
         ) : null}
         <Link to={myClaimsHref} className={styles.textLink}>

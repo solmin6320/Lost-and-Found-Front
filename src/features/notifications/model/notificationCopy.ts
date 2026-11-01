@@ -1,3 +1,5 @@
+import { parseLocalDateTime, relativeTime } from '@/shared/lib/localDateTime'
+
 import type { NotificationResponse } from '../api/types'
 
 /**
@@ -5,8 +7,9 @@ import type { NotificationResponse } from '../api/types'
  *
  * - **글 제목은 늘 넣는다**(QA-D-L17 · P-L12) — 「제목」 꺾쇠로 감싸 문장과 가른다. 제목 뒤 조사는 받침에 따라 갈리는 것(과/와 · 이/가)을 쓰지 않는다
  *   (`「지갑」에` · `「지갑」 확인 요청` 처럼 받침과 상관없는 말만, QA-D-L16 · P-L20)
- * - 승인 문장의 "대화를 시작할 수 있어요"는 **채팅이 생긴 뒤** 붙인다 — 지금 붙이면 갈 수 없는 곳을 약속한다(막다른 길)
- * - `CHAT_MESSAGE` 는 알림 줄로 그리지 않는다 — 대화 탭의 안 읽은 수로 센다(채팅 단계)
+ * - 승인 문장 끝 "대화를 시작할 수 있어요."(채팅 단계, 2026-11-02) — 누르면 그 방으로 간다. 방이 없다고 확인된 승인(차단한 두 사람 —
+ *   서버가 방을 열지 않는다)에는 붙이지 않는다(`chat: false`) — 갈 수 없는 곳을 약속하지 않는다
+ * - `CHAT_MESSAGE` 는 알림 줄로 그리지 않는다 — 대화 탭의 안 읽은 수로 센다
  */
 
 /** 문장 조각. `strong` 은 굵게(누가 · 어느 글) */
@@ -50,14 +53,22 @@ export function shortTitle(title: string): string {
   return chars.length > TITLE_MAX_CHARS ? `${chars.slice(0, TITLE_MAX_CHARS - 1).join('').trimEnd()}…` : chars.join('')
 }
 
-export function notificationSentence(n: Pick<NotificationResponse, 'type' | 'postTitle' | 'actorNickname'>): Segment[] {
+export function notificationSentence(
+  n: Pick<NotificationResponse, 'type' | 'postTitle' | 'actorNickname'>,
+  options: { chat?: boolean } = {},
+): Segment[] {
   const title: Segment = n.postTitle ? { text: `「${shortTitle(n.postTitle)}」`, strong: true } : { text: '글' }
   const actor: Segment = { text: n.actorNickname || '누군가', strong: Boolean(n.actorNickname) }
   switch (n.type) {
     case 'CLAIM_REQUESTED':
       return [actor, { text: ' 님이 ' }, title, { text: '에 확인 요청을 보냈어요.' }]
     case 'CLAIM_APPROVED':
-      return [actor, { text: ' 님이 ' }, title, { text: ' 확인 요청을 승인했어요.' }]
+      return [
+        actor,
+        { text: ' 님이 ' },
+        title,
+        { text: options.chat === false ? ' 확인 요청을 승인했어요.' : ' 확인 요청을 승인했어요. 대화를 시작할 수 있어요.' },
+      ]
     case 'CLAIM_REJECTED':
       return [title, { text: ' 확인 요청이 거절됐어요.' }]
     case 'MATCH_SUGGESTED':
@@ -76,32 +87,12 @@ export function sentenceText(segments: Segment[]): string {
   return segments.map((s) => s.text).join('')
 }
 
-const LOCAL_DATE_TIME = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?/
+/** 서버 시각 읽기 · 상대 시각은 대화 목록 · 말풍선과 같이 쓴다(`shared/lib/localDateTime`) */
+export { parseLocalDateTime }
 
-/** 서버 `LocalDateTime`(시간대 없음) → 이 기기 시각으로 읽은 `Date`. 서버와 기기가 같은 시간대(한국)라고 본다 */
-export function parseLocalDateTime(value: string): Date | null {
-  const m = LOCAL_DATE_TIME.exec(value)
-  if (!m) return null
-  return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]), Number(m[4]), Number(m[5]), Number(m[6] ?? 0))
-}
-
-/**
- * 알림 시각 — 가까울수록 상대 시각(사람들이 알림에서 기대하는 말, 제이콥).
- * 1분 안 `방금` · 1시간 안 `N분 전` · 오늘 `N시간 전` · 어제 `어제` · 올해 `M월 D일` · 그 전 `YYYY년 M월 D일`.
- * 기기 시계가 서버보다 늦어 앞날로 보이면 `방금`
- */
+/** 알림 시각 — 가까울수록 상대 시각(`relativeTime` 그대로 — 대화 목록과 같은 말) */
 export function notificationTime(value: string, now: Date = new Date()): string {
-  const at = parseLocalDateTime(value)
-  if (!at) return ''
-  const diffMin = Math.floor((now.getTime() - at.getTime()) / 60_000)
-  if (diffMin < 1) return '방금'
-  if (diffMin < 60) return `${diffMin}분 전`
-  const day = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime()
-  const days = Math.round((day(now) - day(at)) / 86_400_000)
-  if (days === 0) return `${Math.floor(diffMin / 60)}시간 전`
-  if (days === 1) return '어제'
-  if (at.getFullYear() === now.getFullYear()) return `${at.getMonth() + 1}월 ${at.getDate()}일`
-  return `${at.getFullYear()}년 ${at.getMonth() + 1}월 ${at.getDate()}일`
+  return relativeTime(value, now)
 }
 
 /**
