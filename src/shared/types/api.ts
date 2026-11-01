@@ -58,6 +58,10 @@ export type ErrorCode =
   | 'MATCH_NOT_FOUND' // 404 — 없는 후보 쌍을 숨기려 함
   // 공공 습득물 자동 대조(7.6 ②-1)
   | 'PUBLIC_MATCH_NOT_FOUND' // 404 — 없는 공공 후보를 숨기려 함(30일 지나 지워짐 · 다른 탭에서 숨김)
+  // 1:1 채팅(7.6 ③)
+  | 'CHAT_ROOM_NOT_FOUND' // 404 — 없는 방
+  | 'CHAT_ROOM_FORBIDDEN' // 403 — 방 당사자가 아님(화면은 없는 방과 같은 면)
+  | 'CHAT_ROOM_NOT_OPEN' // 409 — 말할 수 없는 방(읽기 전용 · 닫힘 · 차단). STOMP 는 /user/queue/errors 로 온다
   // 공통
   | 'INVALID_INPUT' // 400
   | 'RESOURCE_NOT_FOUND' // 404

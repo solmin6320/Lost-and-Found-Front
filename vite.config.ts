@@ -4,7 +4,7 @@ import { fileURLToPath, URL } from 'node:url'
 import react from '@vitejs/plugin-react'
 import { defineConfig, loadEnv, type Plugin } from 'vite'
 
-import { DEFAULT_IMAGE_ORIGINS, FORBIDDEN_CSP_TOKENS, buildMetaCsp, parseOriginList } from './build/csp.ts'
+import { DEFAULT_IMAGE_ORIGINS, FORBIDDEN_CSP_TOKENS, buildMetaCsp, parseOriginList, toSocketOrigin } from './build/csp.ts'
 import { DEFAULT_SITE_URL, fillSiteUrl, resolveSiteOrigin } from './build/linkPreview.ts'
 
 /**
@@ -17,8 +17,16 @@ import { DEFAULT_SITE_URL, fillSiteUrl, resolveSiteOrigin } from './build/linkPr
  *
  * `<meta charset>` 바로 뒤에 넣는다. CSP meta 는 그보다 **앞의** 요소에는 걸리지 않으니 `<script>` · `<link>` 보다 먼저 와야 한다.
  */
-function securityMeta({ imageOrigins, connectOrigins }: { imageOrigins: string[]; connectOrigins: string[] }): Plugin {
-  const csp = buildMetaCsp({ imageOrigins, connectOrigins })
+function securityMeta({
+  imageOrigins,
+  connectOrigins,
+  socketOrigins,
+}: {
+  imageOrigins: string[]
+  connectOrigins: string[]
+  socketOrigins: string[]
+}): Plugin {
+  const csp = buildMetaCsp({ imageOrigins, connectOrigins, socketOrigins })
   const bad = FORBIDDEN_CSP_TOKENS.find((token) => csp.includes(token))
   if (bad) throw new Error(`CSP 에 ${bad} 가 들어갔습니다: ${csp}`)
 
@@ -58,9 +66,10 @@ function linkPreviewMeta(origin: string): Plugin {
  * 빌드의 CSP 출처. 둘 다 빌드만 읽는다.
  * - `CSP_IMAGE_ORIGINS` — 사진 출처(`img-src`). 백엔드 `AWS_S3_BASE_URL`(운영 CloudFront)과 같은 출처. 비우면 `DEFAULT_IMAGE_ORIGINS`(운영 사진 CloudFront).
  *   브라우저 코드에는 필요 없어 `VITE_` 를 붙이지 않는다
- * - `VITE_API_BASE_URL` — API 를 다른 출처로 직접 부르도록 빌드했으면(CORS 확인용) 그 출처도 `connect-src` 에 연다
+ * - `VITE_API_BASE_URL` — API 를 다른 출처로 직접 부르도록 빌드했으면(CORS 확인용) 그 출처도 `connect-src` 에 연다(채팅 `wss:` 도 그 호스트)
+ * - 채팅 WebSocket — 사이트 주소(`SITE_URL`, 링크 미리보기와 같은 값)의 `wss://` 를 `connect-src` 에 연다
  */
-function securityMetaOptions(env: Record<string, string>) {
+function securityMetaOptions(env: Record<string, string>, siteOrigin: string) {
   const imageOrigins = parseOriginList(env.CSP_IMAGE_ORIGINS, 'CSP_IMAGE_ORIGINS')
   if (imageOrigins.length === 0) {
     console.warn(
@@ -68,9 +77,11 @@ function securityMetaOptions(env: Record<string, string>) {
         '백엔드 AWS_S3_BASE_URL 이 다른 출처(로컬 S3 주소 · 목 서버)면 사진이 보이지 않습니다.',
     )
   }
+  const connectOrigins = parseOriginList(env.VITE_API_BASE_URL, 'VITE_API_BASE_URL')
   return {
     imageOrigins: imageOrigins.length > 0 ? imageOrigins : [...DEFAULT_IMAGE_ORIGINS],
-    connectOrigins: parseOriginList(env.VITE_API_BASE_URL, 'VITE_API_BASE_URL'),
+    connectOrigins,
+    socketOrigins: [siteOrigin, ...connectOrigins].map(toSocketOrigin),
   }
 }
 
@@ -90,7 +101,11 @@ export default defineConfig(({ command, mode }) => {
     // 링크 미리보기 주소(`SITE_URL`)도 빌드에서만 검사한다. 개발 서버는 운영 주소 그대로
     plugins:
       command === 'build'
-        ? [react(), linkPreviewMeta(resolveSiteOrigin(env.SITE_URL)), securityMeta(securityMetaOptions(env))]
+        ? [
+            react(),
+            linkPreviewMeta(resolveSiteOrigin(env.SITE_URL)),
+            securityMeta(securityMetaOptions(env, resolveSiteOrigin(env.SITE_URL))),
+          ]
         : [react(), linkPreviewMeta(DEFAULT_SITE_URL)],
 
     resolve: {
@@ -107,6 +122,12 @@ export default defineConfig(({ command, mode }) => {
       proxy: {
         '/api': {
           target: proxyTarget,
+          changeOrigin: true,
+        },
+        // 채팅 STOMP 끝점(WebSocket 올리기). 배포는 CloudFront `/ws` 동작이 같은 일을 한다(배포.md). 앞 `/` 로 시작하는 Vite HMR 소켓과 겹치지 않는다
+        '/ws': {
+          target: proxyTarget,
+          ws: true,
           changeOrigin: true,
         },
       },

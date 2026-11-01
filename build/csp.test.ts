@@ -9,7 +9,12 @@ import {
   buildHeaderCsp,
   buildMetaCsp,
   parseOriginList,
+  toSocketOrigin,
 } from './csp.ts'
+import { DEFAULT_SITE_URL } from './linkPreview.ts'
+
+/** 운영 사이트의 채팅 WebSocket 출처 — 헤더 정책(docs JSON)과 같은 값 */
+const SITE_SOCKET = [toSocketOrigin(DEFAULT_SITE_URL)]
 
 describe('parseOriginList — 환경변수가 정책 문자열에 그대로 들어가지 않게', () => {
   it('비어 있으면 빈 목록', () => {
@@ -89,6 +94,15 @@ describe('정책 문자열', () => {
     expect(buildHeaderCsp({ imageOrigins: DEFAULT_IMAGE_ORIGINS })).toContain(`frame-ancestors 'none'`)
   })
 
+  it('채팅 WebSocket — connect-src 에 사이트 호스트의 wss: 가 이름으로 붙는다(옛 브라우저의 self 대비)', () => {
+    expect(toSocketOrigin('https://d3gltjya6f51ok.cloudfront.net')).toBe('wss://d3gltjya6f51ok.cloudfront.net')
+    expect(toSocketOrigin('http://localhost:5173')).toBe('ws://localhost:5173')
+    expect(() => toSocketOrigin('http://example.com')).toThrow()
+    expect(buildMetaCsp({ imageOrigins: [], socketOrigins: SITE_SOCKET })).toContain(
+      `connect-src 'self' wss://d3gltjya6f51ok.cloudfront.net;`,
+    )
+  })
+
   it('다른 출처 API 로 빌드하면 connect-src 에 그 출처가 붙는다', () => {
     expect(buildMetaCsp({ imageOrigins: [], connectOrigins: ['http://localhost:8080'] })).toContain(
       `connect-src 'self' http://localhost:8080`,
@@ -100,7 +114,7 @@ describe('정책 문자열', () => {
       readFileSync(new URL('../docs/cloudfront-response-headers-policy.json', import.meta.url), 'utf8'),
     ) as { SecurityHeadersConfig: { ContentSecurityPolicy: { ContentSecurityPolicy: string } } }
     expect(policy.SecurityHeadersConfig.ContentSecurityPolicy.ContentSecurityPolicy).toBe(
-      buildHeaderCsp({ imageOrigins: DEFAULT_IMAGE_ORIGINS }),
+      buildHeaderCsp({ imageOrigins: DEFAULT_IMAGE_ORIGINS, socketOrigins: SITE_SOCKET }),
     )
   })
 })

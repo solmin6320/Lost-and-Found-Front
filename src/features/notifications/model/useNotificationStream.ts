@@ -1,6 +1,7 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { useEffect, useRef } from 'react'
 
+import { chatKeys } from '@/features/chat'
 import { matchKeys, publicMatchKeys } from '@/features/matches'
 import { postKeys } from '@/features/posts'
 
@@ -46,10 +47,17 @@ export function useNotificationStream(enabled: boolean, onArrive: (notification:
             void queryClient.invalidateQueries({ queryKey: publicMatchKeys.post(notification.postId) })
           }
         }
-        if (!notification.read) onArriveRef.current(notification)
+        // 대화 — 새 메시지(상대가 그 방을 보고 있지 않을 때) · 승인(방이 열림) · 거절(승인 취소면 방이 읽기 전용)이면 방 목록을 다시 받는다.
+        // 새 메시지는 종의 `메시지` 수로 센다 — 알림 도착 말("새 알림이 왔어요")은 하지 않는다
+        if (notification.type === 'CHAT_MESSAGE' || notification.type === 'CLAIM_APPROVED' || notification.type === 'CLAIM_REJECTED') {
+          void queryClient.invalidateQueries({ queryKey: chatKeys.rooms() })
+        }
+        if (!notification.read && notification.type !== 'CHAT_MESSAGE') onArriveRef.current(notification)
       },
       onConnected: ({ reconnect }) => {
-        if (reconnect) void queryClient.invalidateQueries({ queryKey: notificationKeys.unread() })
+        if (!reconnect) return
+        void queryClient.invalidateQueries({ queryKey: notificationKeys.unread() })
+        void queryClient.invalidateQueries({ queryKey: chatKeys.rooms() })
       },
     })
 

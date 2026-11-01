@@ -35,8 +35,14 @@ describe('알림 문장', () => {
   it('화면정의서 표 그대로 — 요청 · 승인 · 거절', () => {
     const s = (type: string) => sentenceText(notificationSentence({ type, postTitle: '지갑', actorNickname: '민수' }))
     expect(s('CLAIM_REQUESTED')).toBe('민수 님이 「지갑」에 확인 요청을 보냈어요.')
-    expect(s('CLAIM_APPROVED')).toBe('민수 님이 「지갑」 확인 요청을 승인했어요.')
+    expect(s('CLAIM_APPROVED')).toBe('민수 님이 「지갑」 확인 요청을 승인했어요. 대화를 시작할 수 있어요.')
     expect(s('CLAIM_REJECTED')).toBe('「지갑」 확인 요청이 거절됐어요.')
+  })
+
+  it('승인 — 방이 없다고 확인되면(차단한 두 사람) 대화 약속을 붙이지 않는다', () => {
+    const approved = { type: 'CLAIM_APPROVED', postTitle: '지갑', actorNickname: '민수' }
+    expect(sentenceText(notificationSentence(approved, { chat: false }))).toBe('민수 님이 「지갑」 확인 요청을 승인했어요.')
+    expect(sentenceText(notificationSentence(approved, { chat: true }))).toContain('대화를 시작할 수 있어요.')
   })
 
   it('경찰서 · 기관 보관 후보 — 어디에 맡겨졌는지까지 한 문장, 종류 아이콘은 따로', () => {

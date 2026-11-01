@@ -39,6 +39,12 @@ export const paths = {
   settings: '/settings',
 
   /**
+   * 1:1 채팅(SCR-13) — 승인된 확인 요청의 두 사람만. 로그인 필요. 입구 : 승인 알림 · 펼침 칸 `대화` 탭 · 상세의 `[대화하기]`.
+   * 대화 목록 주소(`/chat`)는 두지 않는다 — 목록은 헤더 종의 `대화` 탭이다(화면정의서 6.2 열린 항목)
+   */
+  chat: (roomId: number | string) => `/chat/${roomId}`,
+
+  /**
    * 관리자 화면(관리자만, 2026-10-25 — 화면정의서 SCR-19). `/admin` 은 첫 섹션으로 보낸다.
    * 섹션이 생기면 여기에 경로 하나 + `pages/admin/adminSections.ts` 에 한 줄 + `routes.tsx` 의 `/admin` 아래 자식 하나
    */

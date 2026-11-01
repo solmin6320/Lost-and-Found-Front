@@ -1,0 +1,386 @@
+/*
+ * SCR-13 1:1 채팅 — 화면 높이를 꽉 쓰는 세 칸(머리 · 대화 · 입력). 페이지는 스크롤되지 않고 대화 칸만 스크롤된다(100dvh).
+ * 높이는 레이아웃이 준다 — 이 화면이 있으면 껍데기가 화면 높이에 맞고 본문이 남은 높이를 이 칸에 넘긴다(`RootLayout.module.css` 의 `[data-chat-screen]`).
+ * 붙는 것 총량 : 헤더 + 입력 줄 하나(입력 줄은 칸의 바닥이라 따로 떠 있지 않다).
+ */
+
+.page {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  width: 100%;
+  max-width: var(--layout-max);
+  min-height: 0;
+  margin-inline: auto;
+}
+
+.conversation {
+  container: chat-top / inline-size;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  background-color: var(--surface);
+}
+
+/* ── 머리 — ← · 상대 · 글 제목 링크 · 메뉴, 아래 줄에 지금 상태 + (받는 쪽만) 받았어요 ── */
+
+.top {
+  position: relative;
+  display: grid;
+  flex: none;
+  grid-template-areas:
+    'back who tools'
+    'line line act';
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: var(--space-2);
+  padding: var(--space-0-5) var(--space-1) 0;
+  border-bottom: var(--hairline);
+}
+
+/* 받았어요가 없으면 상태 줄이 끝까지 */
+.top:not([data-act]) {
+  grid-template-areas:
+    'back who tools'
+    'line line line';
+}
+
+.back,
+.menuButton {
+  display: grid;
+  place-items: center;
+  width: var(--tap-min);
+  height: var(--tap-min);
+  border-radius: var(--radius-sm);
+  color: var(--text-strong);
+}
+
+.back {
+  grid-area: back;
+}
+
+.back svg,
+.menuButton svg {
+  width: var(--icon-md);
+  height: var(--icon-md);
+}
+
+@media (hover: hover) {
+  .back:hover,
+  .menuButton:hover {
+    background-color: var(--surface-sunken);
+  }
+}
+
+.who {
+  display: grid;
+  grid-area: who;
+  min-width: 0;
+  padding-top: var(--space-1);
+}
+
+.partner {
+  overflow: hidden;
+  color: var(--text-strong);
+  font-size: var(--text-lg);
+  font-weight: var(--weight-extrabold);
+  line-height: var(--leading-tight);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.partner:focus {
+  outline: none;
+}
+
+.about {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1-5);
+  min-width: 0;
+}
+
+/* 글 제목 링크 — 줄 높이 44px(시안 22px, QA-D-L19). 넘치면 말줄임(온전한 제목은 그 글에 있다) */
+.aboutLink,
+.aboutText {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+  min-height: var(--tap-min);
+  overflow: hidden;
+  color: var(--text-body);
+  font-size: var(--text-sm);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.aboutLink {
+  text-decoration: underline;
+  text-decoration-color: var(--border-strong);
+  text-underline-offset: 0.2em;
+}
+
+.aboutLink span,
+.aboutText span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@media (hover: hover) {
+  .aboutLink:hover {
+    color: var(--text-strong);
+    text-decoration-color: currentColor;
+  }
+}
+
+.tools {
+  position: relative;
+  grid-area: tools;
+  align-self: start;
+}
+
+.menuButton[aria-expanded='true'] {
+  background-color: var(--surface-sunken);
+}
+
+.menu {
+  position: absolute;
+  top: calc(100% + var(--space-1));
+  right: 0;
+  z-index: 2;
+  display: grid;
+  min-width: 11rem;
+  padding: var(--space-1);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background-color: var(--surface-raised);
+  box-shadow: var(--shadow-overlay);
+}
+
+.menuItem {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--tap-min);
+  padding-inline: var(--space-3);
+  border-radius: var(--radius-xs);
+  color: var(--text-strong);
+  font-size: var(--text-base);
+  font-weight: var(--weight-semibold);
+  text-align: left;
+}
+
+.menuItem svg {
+  width: var(--icon-sm);
+  height: var(--icon-sm);
+}
+
+@media (hover: hover) {
+  .menuItem:hover {
+    background-color: var(--surface-sunken);
+  }
+}
+
+/* 상태 한 줄 — 말할 수 있는 방만(닫힌 방은 입력 줄 자리에 한 번 말한다) */
+.line {
+  display: flex;
+  grid-area: line;
+  align-items: center;
+  gap: var(--space-1-5);
+  min-height: var(--tap-min);
+  padding: var(--space-1) var(--space-2) var(--space-1) var(--space-3);
+  color: var(--text-body);
+  font-size: var(--text-sm);
+  line-height: var(--leading-snug);
+  word-break: keep-all;
+}
+
+.line svg {
+  flex: none;
+  width: var(--icon-sm);
+  height: var(--icon-sm);
+  color: var(--text-strong);
+}
+
+.line b {
+  color: var(--text-strong);
+}
+
+.act {
+  grid-area: act;
+  padding-right: var(--space-2);
+}
+
+.notice {
+  display: flex;
+  grid-column: 1 / -1;
+  align-items: flex-start;
+  gap: var(--space-1-5);
+  padding: var(--space-2) var(--space-3);
+  border-top: var(--hairline);
+  color: var(--error-text);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  line-height: var(--leading-snug);
+}
+
+.notice svg {
+  flex: none;
+  width: var(--icon-sm);
+  height: var(--icon-sm);
+  margin-top: 0.15em;
+}
+
+/* ── 연결 끊김 · 닫힌 방 · 오류 ── */
+
+.offline {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1-5) var(--space-3);
+  border-top: var(--hairline);
+  background-color: var(--surface-sunken);
+  color: var(--text-strong);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  line-height: var(--leading-snug);
+}
+
+.offline svg {
+  flex: none;
+  width: var(--icon-sm);
+  height: var(--icon-sm);
+}
+
+.closed {
+  display: flex;
+  flex: none;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border-top: var(--hairline);
+  background-color: var(--surface-sunken);
+  color: var(--text-strong);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  line-height: var(--leading-snug);
+  word-break: keep-all;
+}
+
+.closed svg {
+  flex: none;
+  width: var(--icon-md);
+  height: var(--icon-md);
+}
+
+.error {
+  display: grid;
+  flex: 1;
+  align-content: center;
+  justify-items: center;
+  gap: var(--space-2);
+  padding: var(--space-6) var(--space-4);
+  text-align: center;
+}
+
+.errorTitle {
+  color: var(--text-strong);
+  font-size: var(--text-lg);
+  font-weight: var(--weight-extrabold);
+}
+
+.errorText {
+  color: var(--text-body);
+  font-size: var(--text-sm);
+  line-height: var(--leading-snug);
+  word-break: keep-all;
+}
+
+.composerSkeleton {
+  flex: none;
+  padding: var(--space-2) var(--space-3);
+  border-top: var(--hairline);
+}
+
+/*
+ * 낮은 화면(40rem 미만 — 키보드가 뜬 휴대폰 375 × 380 · 글자 200%) — 상태 한 줄을 머리 줄 안으로 접는다(화면정의서 SCR-13 구성).
+ * 상대 · 글 제목이 한 줄, 받았어요는 머리 줄 오른쪽. 상태 문장은 보이지 않게 두고 낭독은 남긴다(단추가 스스로 말한다).
+ * 메시지 칸 ≥ 화면 높이 50%(QA-P-L10)
+ */
+@media (max-height: 40rem) {
+  .top,
+  .top:not([data-act]) {
+    grid-template-areas: 'back who act tools';
+    grid-template-columns: auto minmax(0, 1fr) auto auto;
+    padding-block: var(--space-0-5);
+  }
+
+  .who {
+    display: flex;
+    align-items: center;
+    gap: var(--space-1-5);
+    padding-top: 0;
+  }
+
+  .partner {
+    flex: none;
+    max-width: 50%;
+    font-size: var(--text-base);
+  }
+
+  .line {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    min-height: 0;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .act {
+    padding-right: 0;
+  }
+
+  .tools {
+    align-self: center;
+  }
+
+  /* 좁기까지 하면(글자 200% · 320) 받았어요를 둘째 줄로 — 상대 · 제목 자리를 지킨다 */
+  @container chat-top (width < 20rem) {
+    .top {
+      grid-template-areas:
+        'back who tools'
+        'act act act';
+      grid-template-columns: auto minmax(0, 1fr) auto;
+    }
+
+    .act {
+      padding: 0 var(--space-2) var(--space-1);
+    }
+
+    /* 상대 · 글 제목 자리를 지킨다 — 종류 이름표는 그 글에서 본다 */
+    .about > :first-child:not(:last-child) {
+      display: none;
+    }
+  }
+}
+
+@media (forced-colors: active) {
+  .conversation {
+    border-color: CanvasText;
+  }
+}
+
+/* 라우트 대체 화면의 대화 칸 자리 — 받은 화면의 대화 칸처럼 남은 높이를 채운다 */
+.skeletonBody {
+  flex: 1;
+  min-height: 0;
+}

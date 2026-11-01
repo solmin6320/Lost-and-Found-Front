@@ -2,6 +2,9 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent, type ReactNode } from 'react'
 import { useLocation } from 'react-router-dom'
 
+import { paths } from '@/app/paths'
+import { RoomList, chatUnreadTotal, findRoomByClaim, useChatRooms } from '@/features/chat'
+
 import type { NotificationResponse } from '../api/types'
 import { arrivalAnnouncement, badgeText, bellLabel, unreadTotal, type UnreadPart } from '../model/notificationCopy'
 import { notificationKeys, useMarkNotificationRead, useUnreadNotificationCount } from '../model/notificationQueries'
@@ -24,7 +27,8 @@ const ANNOUNCE_CLEAR_MS = 4_000
  * **로그인했을 때만 그린다**(부르는 쪽 `HeaderActions`). 사라질 때(로그아웃 · 세션 만료 · 다른 탭 로그아웃) 실시간 연결을 끊고
  * 알림 캐시를 지운다(개인 데이터, 보안명세서 8장).
  *
- * - **열기만으로는 읽음 처리하지 않는다** — 줄을 누르면 그 알림만, 나머지는 `[모두 읽음]`
+ * - 탭 둘 — `알림` · `대화`(채팅 단계 SCR-10). 배지 · 종 이름 · 탭 수가 한 묶음(`UnreadPart[]` — 알림 안 읽음 + 대화 안 읽음)에서 나온다
+ * - **열기만으로는 읽음 처리하지 않는다** — 줄을 누르면 그 알림만, 나머지는 `[모두 읽음]`. 대화는 방에 들어가면 읽음
  * - 새 알림이 와서 수가 **늘었을 때만** 스크린리더에 수를 한 번(`role="status"`) — 배지 숫자를 알림 영역으로 만들지 않는다
  */
 export function NotificationCenter({ children }: { children: ReactNode }) {
@@ -35,10 +39,40 @@ export function NotificationCenter({ children }: { children: ReactNode }) {
   const location = useLocation()
   const unread = useUnreadNotificationCount(true)
   const markRead = useMarkNotificationRead()
+  const rooms = useChatRooms(true)
 
   const countNow = unread.data
-  const parts = useMemo<UnreadPart[]>(() => [{ name: '알림', count: countNow ?? 0 }], [countNow])
+  // 대화 안 읽은 수 — 방 목록을 못 받았으면(첫 요청 · 실패) 0으로 센다(알림 수만으로 배지를 그린다)
+  const chatNow = rooms.data === undefined ? undefined : chatUnreadTotal(rooms.data)
+  const parts = useMemo<UnreadPart[]>(
+    () => [
+      { name: '알림', count: countNow ?? 0 },
+      { name: '메시지', count: chatNow ?? 0 },
+    ],
+    [countNow, chatNow],
+  )
   const total = countNow === undefined ? undefined : unreadTotal(parts)
+
+  // 대화 수가 줄었다(방을 읽음) — 서버가 그 방의 새 메시지 알림도 읽음으로 바꿨다. 알림 수를 다시 받는다
+  const lastChat = useRef(chatNow)
+  useEffect(() => {
+    const before = lastChat.current
+    lastChat.current = chatNow
+    if (before !== undefined && chatNow !== undefined && chatNow < before) {
+      void queryClient.invalidateQueries({ queryKey: notificationKeys.unread() })
+    }
+  }, [chatNow, queryClient])
+
+  // 칸을 열 때마다 대화 목록을 새로 받는다 — 같은 방의 둘째 메시지부터는 알림이 오지 않아(서버가 안 읽은 알림 하나만 둔다) 수가 늦을 수 있다
+  const { refetch: refetchRooms } = rooms
+  useEffect(() => {
+    if (open) void refetchRooms()
+  }, [open, refetchRooms])
+
+  const roomIdForClaim = useCallback(
+    (claimId: number) => (rooms.data === undefined ? undefined : (findRoomByClaim(rooms.data, claimId)?.roomId ?? null)),
+    [rooms.data],
+  )
 
   // 새 알림이 오면 수를 새로 받은 뒤, 그 수가 늘었을 때만 한 번 읽어 준다(다시 붙으며 다시 온 옛 알림에는 말하지 않는다)
   const latestCount = useRef(countNow)
@@ -56,10 +90,10 @@ export function NotificationCenter({ children }: { children: ReactNode }) {
     if (before === null || countNow === undefined || unread.isFetching) return
     countBeforeArrival.current = null
     if (countNow <= before) return
-    setAnnouncement(arrivalAnnouncement([{ name: '알림', count: countNow }]))
+    setAnnouncement(arrivalAnnouncement(parts))
     const timer = setTimeout(() => setAnnouncement(''), ANNOUNCE_CLEAR_MS)
     return () => clearTimeout(timer)
-  }, [countNow, unread.isFetching])
+  }, [countNow, unread.isFetching, parts])
 
   // 사라지면 알림 캐시를 지운다 — 같은 기기의 다음 사람이 보지 않게
   useEffect(() => () => queryClient.removeQueries({ queryKey: notificationKeys.all }), [queryClient])
@@ -78,13 +112,28 @@ export function NotificationCenter({ children }: { children: ReactNode }) {
 
   function handleOpen(notification: NotificationResponse, event: MouseEvent<HTMLAnchorElement>) {
     if (!notification.read) markRead.mutate(notification)
-    // 새 탭 · 새 창으로 열면 이 칸은 그대로 둔다
+    closeUnlessNewTab(event)
+  }
+
+  // 새 탭 · 새 창으로 열면 이 칸은 그대로 둔다
+  function closeUnlessNewTab(event: MouseEvent<HTMLAnchorElement>) {
     if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return
     setOpen(false)
   }
 
   const tabs: PanelTab[] = [
-    { id: 'notes', label: '알림', count: countNow ?? 0, content: <NotificationList onOpen={handleOpen} /> },
+    {
+      id: 'notes',
+      label: '알림',
+      count: countNow ?? 0,
+      content: <NotificationList onOpen={handleOpen} roomIdForClaim={roomIdForClaim} />,
+    },
+    {
+      id: 'rooms',
+      label: '대화',
+      count: chatNow ?? 0,
+      content: <RoomList roomHref={paths.chat} onOpen={closeUnlessNewTab} />,
+    },
   ]
 
   const value = useMemo<NotificationCenterValue>(

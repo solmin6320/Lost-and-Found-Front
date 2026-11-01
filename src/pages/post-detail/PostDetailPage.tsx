@@ -14,6 +14,7 @@ import {
   type LoginNoticeState,
 } from '@/app/paths'
 import { useAuth } from '@/features/auth'
+import { findRoomByClaim, useChatRooms } from '@/features/chat'
 import {
   CLAIMS_ANCHOR_ID,
   ClaimRequestPanel,
@@ -161,6 +162,26 @@ function PostDetail({ post, claimTitleFocus = false }: PostDetailProps) {
     auth.status === 'unknown' ? 'unknown' : isOwner ? 'owner' : viewerId === null ? 'guest' : 'member'
   // 글쓴이가 아닌 사람의 확인 요청 칸 — 그릴 것이 있을 때만 제목 아래 칸을 짠다(내 글 관리와 같은 자리)
   const claimMode = claimPanelMode(post, claimViewer)
+
+  // 승인된 확인 요청의 대화방(SCR-13) — 요청자 칸 · 글쓴이 받은 요청의 승인 건에 `[대화하기]`. 승인 중일 때만 방 목록을 받는다
+  // (글쓴이 : 연락중 글 · 요청자 : 내 요청이 승인됨). 승인 · 취소 · 받음으로 상태가 바뀌면 목록을 다시 받는다(방이 열리고 닫힌다)
+  const myApproved = claimMode === 'mine' && post.myClaim?.status === 'APPROVED'
+  const wantsRooms = (isOwner && post.status === 'IN_PROGRESS') || myApproved
+  const rooms = useChatRooms(wantsRooms)
+  const { refetch: refetchRooms } = rooms
+  const claimState = `${post.status}:${post.myClaim?.status ?? ''}`
+  const lastClaimState = useRef(claimState)
+  useEffect(() => {
+    if (lastClaimState.current === claimState) return
+    lastClaimState.current = claimState
+    if (wantsRooms) void refetchRooms()
+  }, [claimState, wantsRooms, refetchRooms])
+  // 그리는 동안 읽어 둔다 — 아래 함수는 자식이 나중에 부르니, 여기서 읽지 않으면 목록이 와도 이 화면이 다시 그려지지 않는다(쿼리의 읽은 값 추적)
+  const roomList = rooms.data
+  const chatHrefFor = (claimId: number) => {
+    const room = findRoomByClaim(roomList, claimId)
+    return room && room.status === 'OPEN' ? paths.chat(room.roomId) : null
+  }
   const done = post.status === 'DONE'
   const here = `${location.pathname}${location.search}`
   // 로그인 화면이 돌려줄 이 상세의 진입 상태 — 돌아온 상세의 [목록으로]가 보던 목록으로 간다(API2-2)
@@ -308,7 +329,7 @@ function PostDetail({ post, claimTitleFocus = false }: PostDetailProps) {
         <div className={styles.owner}>
           <PostOwnerPanel post={post} editHref={paths.postEdit(post.id)} onDeleted={handleDeleted} />
           {/* 받은 확인 요청(SCR-12 ②) — 내 글 관리 바로 아래. 상태 · 수정 · 삭제와 같은 "내 글에 할 일" 묶음이다 */}
-          <ReceivedClaims post={post} />
+          <ReceivedClaims post={post} chatHrefFor={chatHrefFor} />
           {/* 추천 후보(SCR-11) — 받은 확인 요청 아래, 본문 앞. 게시중 글에만(연락중 · 완료는 이미 진행 중) */}
           {showsMatches(post, isOwner) ? <MatchCandidates post={post} /> : null}
           {/* 공공 습득물 후보(SCR-11 확장) — 우리 사이트 추천 바로 아래. 게시중 **분실** 글에만(습득 글은 서버도 빈 배열) */}
@@ -322,6 +343,7 @@ function PostDetail({ post, claimTitleFocus = false }: PostDetailProps) {
             loginHref={loginPath(`${here}${POST_CLAIMS_HASH}`)}
             loginState={returnState}
             myClaimsHref={paths.myClaims}
+            chatHref={myApproved && post.myClaim ? chatHrefFor(post.myClaim.id) : null}
           />
         </div>
       ) : null}

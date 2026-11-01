@@ -4,6 +4,7 @@ import {
   useLayoutEffect,
   useRef,
   useState,
+  type KeyboardEvent,
   type MouseEvent,
   type PointerEvent,
   type ReactNode,
@@ -24,8 +25,8 @@ import styles from './NotificationPanel.module.css'
 export const PANEL_WIDE_QUERY = '(min-width: 40rem)'
 
 /**
- * 탭 하나 — `알림` · (채팅 단계) `대화`. **탭이 하나뿐이면 탭 줄을 그리지 않는다**(빈 탭 금지, SCR-10 "구현 시점").
- * 대화가 생기면 `{ id: 'rooms', label: '대화', count, content: <RoomList /> }` 를 더하면 탭 줄 · 탭마다 수가 선다
+ * 탭 하나 — `알림` · `대화`(채팅 단계, 2026-11-02). **탭이 하나뿐이면 탭 줄을 그리지 않는다**(빈 탭 금지, SCR-10 "구현 시점").
+ * 탭마다 안 읽은 수 — 둘의 합이 종 배지다
  */
 export interface PanelTab {
   id: 'notes' | 'rooms'
@@ -93,6 +94,31 @@ export function NotificationPanel({ open, onClose, anchorRef, tabs, unread }: No
     window.addEventListener('resize', place)
     return () => window.removeEventListener('resize', place)
   }, [open, wide, anchorRef])
+
+  // 열 때 — 보던 탭에 안 읽은 것이 없고 다른 탭에 있으면 그 탭으로(알림이 먼저). 열려 있는 동안은 사용자가 고른 탭 그대로
+  const [wasOpen, setWasOpen] = useState(open)
+  if (wasOpen !== open) {
+    setWasOpen(open)
+    if (open) {
+      const here = tabs.find((t) => t.id === tabId)
+      const unreadTab = tabs.find((t) => t.count > 0)
+      if (here && here.count === 0 && unreadTab) setTabId(unreadTab.id)
+    }
+  }
+
+  // 탭 줄 — 화살표 · Home · End 로 옮기고 바로 고른다(탭 패턴, 주소는 바뀌지 않는다)
+  function handleTabKey(event: KeyboardEvent<HTMLDivElement>) {
+    const index = tabs.findIndex((t) => t.id === current.id)
+    let next = -1
+    if (event.key === 'ArrowRight') next = (index + 1) % tabs.length
+    else if (event.key === 'ArrowLeft') next = (index - 1 + tabs.length) % tabs.length
+    else if (event.key === 'Home') next = 0
+    else if (event.key === 'End') next = tabs.length - 1
+    if (next < 0) return
+    event.preventDefault()
+    setTabId(tabs[next].id)
+    document.getElementById(`${tabsId}-${tabs[next].id}`)?.focus()
+  }
 
   useEffect(() => {
     const dialog = dialogRef.current
@@ -179,7 +205,7 @@ export function NotificationPanel({ open, onClose, anchorRef, tabs, unread }: No
       ) : null}
 
       {tabs.length > 1 ? (
-        <div className={styles.tabs} role="tablist" aria-label="소식 종류">
+        <div className={styles.tabs} role="tablist" aria-label="소식 종류" onKeyDown={handleTabKey}>
           {tabs.map((tab) => (
             <button
               key={tab.id}
@@ -192,7 +218,13 @@ export function NotificationPanel({ open, onClose, anchorRef, tabs, unread }: No
               onClick={() => setTabId(tab.id)}
             >
               {tab.label}
-              {tab.count > 0 ? <span className={styles.tabCount}>{tab.count}</span> : null}
+              {tab.count > 0 ? (
+                <span className={styles.tabCount}>
+                  <span className="sr-only">, 안 읽은 </span>
+                  {tab.count > 99 ? '99+' : tab.count}
+                  <span className="sr-only">개</span>
+                </span>
+              ) : null}
             </button>
           ))}
         </div>
